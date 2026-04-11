@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from "react";
-import { ChevronLeft, ChevronRight, Volume2, VolumeX, Play, Pause } from "lucide-react";
+import { ChevronLeft, ChevronRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import type { Promo } from "@shared/schema";
 
@@ -10,12 +10,9 @@ interface PromoBannerProps {
 export function PromoBanner({ promos }: PromoBannerProps) {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isPaused, setIsPaused] = useState(false);
-  const [isMuted, setIsMuted] = useState(true);
-  const [isVideoPaused, setIsVideoPaused] = useState(false);
-  const videoRef = useRef<HTMLVideoElement>(null);
   const resumeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  const activePromos = promos.filter((p) => p.isActive);
+  const activePromos = promos.filter((p) => p.isActive && p.mediaType !== "video");
 
   const pauseTemporarily = () => {
     setIsPaused(true);
@@ -32,23 +29,12 @@ export function PromoBanner({ promos }: PromoBannerProps) {
   useEffect(() => {
     if (isPaused || activePromos.length <= 1) return;
 
-    const currentPromo = activePromos[currentIndex];
-    const isVideo = currentPromo?.mediaType === "video" && currentPromo?.videoUrl;
-
-    if (isVideo) return;
-
     const interval = setInterval(() => {
       setCurrentIndex((prev) => (prev + 1) % activePromos.length);
     }, 15000);
 
     return () => clearInterval(interval);
   }, [isPaused, activePromos.length, currentIndex]);
-
-  useEffect(() => {
-    if (videoRef.current) {
-      videoRef.current.muted = isMuted;
-    }
-  }, [isMuted]);
 
   if (activePromos.length === 0) {
     return (
@@ -71,7 +57,6 @@ export function PromoBanner({ promos }: PromoBannerProps) {
   }
 
   const currentPromo = activePromos[currentIndex];
-  const isVideo = currentPromo.mediaType === "video" && currentPromo.videoUrl;
 
   const goToPrevious = () => {
     pauseTemporarily();
@@ -83,27 +68,6 @@ export function PromoBanner({ promos }: PromoBannerProps) {
     setCurrentIndex((prev) => (prev + 1) % activePromos.length);
   };
 
-  const toggleMute = () => {
-    setIsMuted(!isMuted);
-  };
-
-  const togglePlayPause = () => {
-    if (videoRef.current) {
-      if (isVideoPaused) {
-        videoRef.current.play();
-      } else {
-        videoRef.current.pause();
-      }
-      setIsVideoPaused(!isVideoPaused);
-    }
-  };
-
-  const handleVideoEnded = () => {
-    if (activePromos.length > 1) {
-      setCurrentIndex((prev) => (prev + 1) % activePromos.length);
-    }
-  };
-
   return (
     <div
       className="relative w-full aspect-[21/9] md:aspect-[21/6] rounded-md overflow-hidden group"
@@ -111,18 +75,7 @@ export function PromoBanner({ promos }: PromoBannerProps) {
       onMouseEnter={() => setIsPaused(true)}
       onMouseLeave={() => setIsPaused(false)}
     >
-      {isVideo ? (
-        <video
-          ref={videoRef}
-          src={currentPromo.videoUrl!}
-          className="w-full h-full object-cover"
-          autoPlay
-          muted={isMuted}
-          playsInline
-          onEnded={handleVideoEnded}
-          data-testid="video-promo"
-        />
-      ) : currentPromo.image ? (
+      {currentPromo.image ? (
         <img
           src={currentPromo.image}
           alt={currentPromo.title}
@@ -156,8 +109,8 @@ export function PromoBanner({ promos }: PromoBannerProps) {
             </p>
           )}
           {currentPromo.link && (
-            <Button 
-              className="mt-4 w-fit" 
+            <Button
+              className="mt-4 w-fit"
               size="lg"
               data-testid="button-promo-cta"
             >
@@ -166,29 +119,6 @@ export function PromoBanner({ promos }: PromoBannerProps) {
           )}
         </div>
       </div>
-
-      {isVideo && (
-        <div className="absolute bottom-3 right-3 flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-          <Button
-            variant="secondary"
-            size="icon"
-            className="bg-black/50 text-white"
-            onClick={togglePlayPause}
-            data-testid="button-video-playpause"
-          >
-            {isVideoPaused ? <Play className="h-4 w-4" /> : <Pause className="h-4 w-4" />}
-          </Button>
-          <Button
-            variant="secondary"
-            size="icon"
-            className="bg-black/50 text-white"
-            onClick={toggleMute}
-            data-testid="button-video-mute"
-          >
-            {isMuted ? <VolumeX className="h-4 w-4" /> : <Volume2 className="h-4 w-4" />}
-          </Button>
-        </div>
-      )}
 
       {activePromos.length > 1 && (
         <>
