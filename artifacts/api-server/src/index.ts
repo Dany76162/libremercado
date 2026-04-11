@@ -20,7 +20,7 @@ if (Number.isNaN(port) || port <= 0) {
 (async () => {
   await registerRoutes(httpServer, app);
   await seedIfEmpty();
-  if (process.env["NODE_ENV"] !== "production") {
+  if (process.env["NODE_ENV"] !== "production" && process.env["SKIP_DEMO_UPDATE"] !== "true") {
     await updateDemoData();
   }
 

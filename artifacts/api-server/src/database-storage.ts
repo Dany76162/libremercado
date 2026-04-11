@@ -602,19 +602,40 @@ export class DatabaseStorage implements IStorage {
 
   // ─── SHOPPABLE VIDEOS ───────────────────────────────────────────────────────
 
-  async getVideoFeed(params: { provinciaId?: string; ciudadId?: string; limit?: number; offset?: number; userId?: string }): Promise<ShoppableVideo[]> {
-    const { provinciaId, ciudadId, limit = 10, offset = 0, userId } = params;
+  async getVideoFeed(params: {
+    provinciaId?: string;
+    ciudadId?: string;
+    storeId?: string;
+    productId?: string;
+    limit?: number;
+    offset?: number;
+    userId?: string;
+  }): Promise<ShoppableVideo[]> {
+    const { provinciaId, ciudadId, storeId, productId, limit = 10, offset = 0, userId } = params;
     const conditions: any[] = [eq(shoppableVideos.status, "published")];
-    if (ciudadId) {
-      conditions.push(or(isNull(shoppableVideos.targetCity), eq(shoppableVideos.targetCity, ciudadId)));
-    } else if (provinciaId) {
-      conditions.push(or(isNull(shoppableVideos.targetProvince), eq(shoppableVideos.targetProvince, provinciaId)));
+
+    if (storeId) {
+      conditions.push(eq(shoppableVideos.storeId, storeId));
+    }
+    if (productId) {
+      conditions.push(eq(shoppableVideos.productId, productId));
+    }
+    if (!storeId && !productId) {
+      if (ciudadId) {
+        conditions.push(or(isNull(shoppableVideos.targetCity), eq(shoppableVideos.targetCity, ciudadId)));
+      } else if (provinciaId) {
+        conditions.push(or(isNull(shoppableVideos.targetProvince), eq(shoppableVideos.targetProvince, provinciaId)));
+      }
     }
 
     const rows = await db.select().from(shoppableVideos)
       .where(and(...conditions))
       .orderBy(desc(shoppableVideos.publishedAt))
-      .limit(100);
+      .limit(storeId || productId ? limit : 100);
+
+    if (storeId || productId) {
+      return rows;
+    }
 
     if (!userId || rows.length === 0) {
       const sorted = [...rows].sort((a, b) => {

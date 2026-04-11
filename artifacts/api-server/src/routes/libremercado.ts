@@ -2536,21 +2536,15 @@ Responde en formato JSON con la siguiente estructura:
     const offset = Number(req.query.offset ?? 0);
     const userId = (req.session as any)?.userId as string | undefined;
 
-    let videos = await storage.getVideoFeed({
+    const videos = await storage.getVideoFeed({
       provinciaId: provinciaId || undefined,
       ciudadId: ciudadId || undefined,
-      limit: (storeIdFilter || productIdFilter) ? 50 : limit,
+      storeId: storeIdFilter,
+      productId: productIdFilter,
+      limit,
       offset,
       userId,
     });
-
-    if (storeIdFilter) {
-      videos = videos.filter((v) => v.storeId === storeIdFilter);
-    }
-    if (productIdFilter) {
-      videos = videos.filter((v) => v.productId === productIdFilter);
-    }
-    videos = videos.slice(0, limit);
 
     // Enrich with store and product data
     const enriched = await Promise.all(
