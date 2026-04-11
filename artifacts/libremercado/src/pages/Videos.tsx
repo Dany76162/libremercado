@@ -4,7 +4,7 @@ import { Link, useLocation } from "wouter";
 import {
   Heart, ShoppingCart, Share2, Store, MapPin, Star, Play, Pause,
   Volume2, VolumeX, Clock, CheckCircle, ChevronUp, ChevronDown,
-  Sparkles, ArrowRight, BadgePercent, UserPlus, UserCheck
+  Sparkles, ArrowRight, BadgePercent, UserPlus, UserCheck, ArrowLeft
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -422,6 +422,19 @@ export default function Videos() {
 
   return (
     <div className="relative bg-black" style={{ height: feedHeight }}>
+      {/* Back to menu button — top left, always visible */}
+      <div className="absolute top-4 left-4 z-50">
+        <Link href="/">
+          <button
+            className="flex items-center gap-1.5 bg-black/50 backdrop-blur-sm text-white text-sm font-semibold px-3 py-1.5 rounded-full shadow-lg hover:bg-black/70 transition-colors"
+            data-testid="button-back-home"
+          >
+            <ArrowLeft className="h-4 w-4" />
+            Menú
+          </button>
+        </Link>
+      </div>
+
       {/* Feed */}
       <div
         ref={containerRef}
