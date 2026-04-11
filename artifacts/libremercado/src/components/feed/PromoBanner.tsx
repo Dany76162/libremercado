@@ -9,27 +9,40 @@ interface PromoBannerProps {
 
 export function PromoBanner({ promos }: PromoBannerProps) {
   const [currentIndex, setCurrentIndex] = useState(0);
-  const [isAutoPlaying, setIsAutoPlaying] = useState(true);
+  const [isPaused, setIsPaused] = useState(false);
   const [isMuted, setIsMuted] = useState(true);
   const [isVideoPaused, setIsVideoPaused] = useState(false);
   const videoRef = useRef<HTMLVideoElement>(null);
+  const resumeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const activePromos = promos.filter((p) => p.isActive);
 
+  const pauseTemporarily = () => {
+    setIsPaused(true);
+    if (resumeTimerRef.current) clearTimeout(resumeTimerRef.current);
+    resumeTimerRef.current = setTimeout(() => setIsPaused(false), 6000);
+  };
+
   useEffect(() => {
-    if (!isAutoPlaying || activePromos.length <= 1) return;
+    return () => {
+      if (resumeTimerRef.current) clearTimeout(resumeTimerRef.current);
+    };
+  }, []);
+
+  useEffect(() => {
+    if (isPaused || activePromos.length <= 1) return;
 
     const currentPromo = activePromos[currentIndex];
     const isVideo = currentPromo?.mediaType === "video" && currentPromo?.videoUrl;
-    
+
     if (isVideo) return;
 
     const interval = setInterval(() => {
       setCurrentIndex((prev) => (prev + 1) % activePromos.length);
-    }, 30000);
+    }, 15000);
 
     return () => clearInterval(interval);
-  }, [isAutoPlaying, activePromos.length, currentIndex, activePromos]);
+  }, [isPaused, activePromos.length, currentIndex]);
 
   useEffect(() => {
     if (videoRef.current) {
@@ -61,12 +74,12 @@ export function PromoBanner({ promos }: PromoBannerProps) {
   const isVideo = currentPromo.mediaType === "video" && currentPromo.videoUrl;
 
   const goToPrevious = () => {
-    setIsAutoPlaying(false);
+    pauseTemporarily();
     setCurrentIndex((prev) => (prev - 1 + activePromos.length) % activePromos.length);
   };
 
   const goToNext = () => {
-    setIsAutoPlaying(false);
+    pauseTemporarily();
     setCurrentIndex((prev) => (prev + 1) % activePromos.length);
   };
 
@@ -95,8 +108,8 @@ export function PromoBanner({ promos }: PromoBannerProps) {
     <div
       className="relative w-full aspect-[21/9] md:aspect-[21/6] rounded-md overflow-hidden group"
       data-testid="promo-banner"
-      onMouseEnter={() => setIsAutoPlaying(false)}
-      onMouseLeave={() => setIsAutoPlaying(true)}
+      onMouseEnter={() => setIsPaused(true)}
+      onMouseLeave={() => setIsPaused(false)}
     >
       {isVideo ? (
         <video
@@ -208,7 +221,7 @@ export function PromoBanner({ promos }: PromoBannerProps) {
                     : "bg-white/50 hover:bg-white/75"
                 }`}
                 onClick={() => {
-                  setIsAutoPlaying(false);
+                  pauseTemporarily();
                   setCurrentIndex(index);
                 }}
                 data-testid={`button-banner-dot-${index}`}
