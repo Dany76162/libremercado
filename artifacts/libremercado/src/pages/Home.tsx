@@ -7,10 +7,11 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
 import { PromoBanner } from "@/components/feed/PromoBanner";
 import { NoticeCard } from "@/components/feed/NoticeCard";
+import { NovedadCard } from "@/components/feed/NovedadCard";
 import { ProductCard } from "@/components/marketplace/ProductCard";
 import { StoreCard } from "@/components/marketplace/StoreCard";
 import { TravelModal } from "@/components/travel/TravelModal";
-import { useFeaturedProducts, useFeaturedStores, useStores, usePromoBanners, usePromoNotices, usePromoCategories, useDiscountedProducts, useHomeSettings } from "@/hooks/use-marketplace";
+import { useFeaturedProducts, useFeaturedStores, useStores, usePromoBanners, usePromoNotices, usePromoCategories, useDiscountedProducts, useHomeSettings, useNovedades } from "@/hooks/use-marketplace";
 import { useLocation as useUserLocation } from "@/hooks/use-location";
 
 const DEFAULT_CATEGORY_IMAGES: Record<string, string> = {
@@ -223,6 +224,7 @@ export default function Home() {
   const { data: stores, isLoading: storesLoading } = useStores(locationFilter);
   const { data: banners, isLoading: bannersLoading } = usePromoBanners(bannerLocationFilter);
   const { data: notices, isLoading: noticesLoading } = usePromoNotices();
+  const { data: novedadesData, isLoading: novedadesLoading } = useNovedades({ limit: 12 });
   const { data: promoCategories } = usePromoCategories();
   const { data: homeSettings } = useHomeSettings();
 
@@ -520,7 +522,39 @@ export default function Home() {
         )}
       </section>
 
-      {!noticesLoading && notices && notices.length > 0 && (
+      {/* NOVEDADES VERIFICADAS */}
+      {!novedadesLoading && novedadesData && novedadesData.length > 0 && (
+        <section className="py-6" data-testid="section-novedades">
+          <div className="px-4 max-w-7xl mx-auto mb-3 flex items-center justify-between">
+            <div>
+              <h2 className="text-xl font-bold flex items-center gap-2" data-testid="text-section-novedades">
+                Novedades Verificadas
+                <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-blue-500 bg-blue-50 border border-blue-200 rounded-full px-2 py-0.5">
+                  <svg className="h-3 w-3 fill-blue-500" viewBox="0 0 24 24"><path d="M9 12l2 2 4-4M7.835 4.697a3.42 3.42 0 001.946-.806 3.42 3.42 0 014.438 0 3.42 3.42 0 001.946.806 3.42 3.42 0 013.138 3.138 3.42 3.42 0 00.806 1.946 3.42 3.42 0 010 4.438 3.42 3.42 0 00-.806 1.946 3.42 3.42 0 01-3.138 3.138 3.42 3.42 0 00-1.946.806 3.42 3.42 0 01-4.438 0 3.42 3.42 0 00-1.946-.806 3.42 3.42 0 01-3.138-3.138 3.42 3.42 0 00-.806-1.946 3.42 3.42 0 010-4.438 3.42 3.42 0 00.806-1.946 3.42 3.42 0 013.138-3.138z" strokeWidth="2" stroke="currentColor" fill="none"/></svg>
+                  Cuentas oficiales y comercios verificados
+                </span>
+              </h2>
+              <p className="text-sm text-muted-foreground mt-0.5">Información de municipios, organismos y marcas confirmadas</p>
+            </div>
+          </div>
+
+          {/* SCROLL CAROUSEL */}
+          <div className="relative">
+            <div
+              className="flex gap-3 overflow-x-auto pb-4 px-4 scroll-smooth hide-scrollbar"
+              style={{ scrollbarWidth: "none", msOverflowStyle: "none" }}
+            >
+              {novedadesData.map((nov) => (
+                <NovedadCard key={nov.id} novedad={nov} size="md" />
+              ))}
+              <div className="w-4 shrink-0" />
+            </div>
+          </div>
+        </section>
+      )}
+
+      {/* NOVEDADES LEGACY (keeps existing notices system) */}
+      {!noticesLoading && notices && notices.length > 0 && (novedadesData?.length ?? 0) === 0 && (
         <section className="px-4 py-6 max-w-7xl mx-auto">
           <h2 className="text-xl font-bold mb-4" data-testid="text-section-notices">
             Novedades

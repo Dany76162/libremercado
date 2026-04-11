@@ -2797,5 +2797,102 @@ Responde en formato JSON con la siguiente estructura:
     }
   });
 
+  // ─── NOVEDADES ──────────────────────────────────────────────────────────────
+
+  app.get("/api/novedades", async (req, res) => {
+    try {
+      const { provincia, official, category, limit } = req.query as Record<string, string>;
+      const items = await storage.getNovedades({
+        provinciaId: provincia || undefined,
+        isOfficial: official !== undefined ? official === "true" : undefined,
+        category: category || undefined,
+        limit: limit ? parseInt(limit) : undefined,
+      });
+      res.json(items);
+    } catch (err) {
+      res.status(500).json({ error: "Error fetching novedades" });
+    }
+  });
+
+  app.get("/api/novedades/:id", async (req, res) => {
+    const item = await storage.getNovedadById(req.params.id);
+    if (!item) return res.status(404).json({ error: "Not found" });
+    res.json(item);
+  });
+
+  app.get("/api/admin/novedades", requireRole("admin"), async (_req, res) => {
+    const items = await storage.getAllNovedadesAdmin();
+    res.json(items);
+  });
+
+  app.post("/api/admin/novedades", requireRole("admin"), async (req, res) => {
+    try {
+      const item = await storage.createNovedad(req.body);
+      res.status(201).json(item);
+    } catch (err) {
+      res.status(400).json({ error: "Invalid data" });
+    }
+  });
+
+  app.patch("/api/admin/novedades/:id", requireRole("admin"), async (req, res) => {
+    try {
+      const item = await storage.updateNovedad(req.params.id, req.body);
+      if (!item) return res.status(404).json({ error: "Not found" });
+      res.json(item);
+    } catch (err) {
+      res.status(400).json({ error: "Error updating novedad" });
+    }
+  });
+
+  app.delete("/api/admin/novedades/:id", requireRole("admin"), async (req, res) => {
+    await storage.deleteNovedad(req.params.id);
+    res.json({ ok: true });
+  });
+
+  // ─── PUBLIC ENTITIES ────────────────────────────────────────────────────────
+
+  app.get("/api/public-entities", async (req, res) => {
+    try {
+      const { provincia, status } = req.query as Record<string, string>;
+      const items = await storage.getPublicEntities({
+        provinciaId: provincia || undefined,
+        verificationStatus: status || undefined,
+      });
+      res.json(items);
+    } catch (err) {
+      res.status(500).json({ error: "Error fetching public entities" });
+    }
+  });
+
+  app.get("/api/public-entities/:id", async (req, res) => {
+    const item = await storage.getPublicEntityById(req.params.id);
+    if (!item) return res.status(404).json({ error: "Not found" });
+    res.json(item);
+  });
+
+  app.get("/api/admin/public-entities", requireRole("admin"), async (_req, res) => {
+    const items = await storage.getAllPublicEntitiesAdmin();
+    res.json(items);
+  });
+
+  app.post("/api/admin/public-entities", requireRole("admin"), async (req, res) => {
+    try {
+      const item = await storage.createPublicEntity(req.body);
+      res.status(201).json(item);
+    } catch (err) {
+      res.status(400).json({ error: "Invalid data" });
+    }
+  });
+
+  app.patch("/api/admin/public-entities/:id", requireRole("admin"), async (req, res) => {
+    try {
+      const item = await storage.updatePublicEntity(req.params.id, req.body);
+      if (!item) return res.status(404).json({ error: "Not found" });
+      res.json(item);
+    } catch (err) {
+      res.status(400).json({ error: "Error updating entity" });
+    }
+  });
+
   return httpServer;
 }

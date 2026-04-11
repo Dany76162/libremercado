@@ -574,3 +574,71 @@ export interface VideoFeedItem extends ShoppableVideo {
   store?: { id: string; name: string; category: string; rating: string | null; lat: string | null; lng: string | null; followersCount?: number; isFollowing?: boolean };
   product?: { id: string; name: string; price: string; image: string | null; originalPrice: string | null };
 }
+
+// ─── NOVEDADES VERIFICADAS ────────────────────────────────────────────────────
+
+export type PublicEntityType = "municipality" | "province" | "ministry" | "secretaria" | "organism";
+export type PublicEntityVerificationStatus = "pending" | "verified" | "rejected" | "suspended" | "renewal_pending";
+export type NovedadEmitterType = "municipality" | "province" | "ministry" | "secretaria" | "organism" | "store" | "brand" | "company";
+export type NovedadCategory = "health" | "tourism" | "culture" | "events" | "education" | "environment" | "fashion" | "launch" | "promo" | "news" | "campaign" | "other";
+export type NovedadContentType = "card" | "campaign" | "event" | "tourism" | "news" | "season" | "launch" | "reel";
+export type NovedadStatus = "draft" | "active" | "archived" | "expired";
+
+export const publicEntities = pgTable("public_entities", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  name: text("name").notNull(),
+  entityType: text("entity_type").$type<PublicEntityType>().notNull().default("municipality"),
+  logo: text("logo"),
+  banner: text("banner"),
+  provinciaId: text("provincia_id"),
+  municipioName: text("municipio_name"),
+  institutionalEmail: text("institutional_email"),
+  phone: text("phone"),
+  website: text("website"),
+  responsibleName: text("responsible_name"),
+  responsibleTitle: text("responsible_title"),
+  verificationStatus: text("verification_status").$type<PublicEntityVerificationStatus>().notNull().default("pending"),
+  verificationNote: text("verification_note"),
+  mandateStartDate: timestamp("mandate_start_date"),
+  mandateEndDate: timestamp("mandate_end_date"),
+  userId: varchar("user_id"),
+  isActive: boolean("is_active").notNull().default(true),
+  createdAt: timestamp("created_at").defaultNow(),
+  verifiedAt: timestamp("verified_at"),
+  verifiedBy: varchar("verified_by"),
+});
+
+export const novedades = pgTable("novedades", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  emitterType: text("emitter_type").$type<NovedadEmitterType>().notNull().default("store"),
+  emitterName: text("emitter_name").notNull(),
+  emitterLogo: text("emitter_logo"),
+  isOfficial: boolean("is_official").notNull().default(false),
+  publicEntityId: varchar("public_entity_id"),
+  storeId: varchar("store_id"),
+  title: text("title").notNull(),
+  summary: text("summary"),
+  description: text("description"),
+  image: text("image"),
+  videoUrl: text("video_url"),
+  contentType: text("content_type").$type<NovedadContentType>().notNull().default("card"),
+  category: text("category").$type<NovedadCategory>().notNull().default("news"),
+  link: text("link"),
+  provinciaId: text("provincia_id"),
+  municipioName: text("municipio_name"),
+  status: text("status").$type<NovedadStatus>().notNull().default("active"),
+  isFeatured: boolean("is_featured").notNull().default(false),
+  priority: integer("priority").notNull().default(0),
+  startsAt: timestamp("starts_at").defaultNow(),
+  endsAt: timestamp("ends_at"),
+  createdAt: timestamp("created_at").defaultNow(),
+  createdBy: varchar("created_by"),
+});
+
+export const insertPublicEntitySchema = createInsertSchema(publicEntities).omit({ id: true, createdAt: true, verifiedAt: true, verifiedBy: true });
+export type InsertPublicEntity = z.infer<typeof insertPublicEntitySchema>;
+export type PublicEntity = typeof publicEntities.$inferSelect;
+
+export const insertNovedadSchema = createInsertSchema(novedades).omit({ id: true, createdAt: true });
+export type InsertNovedad = z.infer<typeof insertNovedadSchema>;
+export type Novedad = typeof novedades.$inferSelect;

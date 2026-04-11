@@ -5,7 +5,7 @@ import {
   users, stores, products, orders, orderItems, promos,
   travelOffers, kycDocuments, subscriptionPlans, merchantApplications,
   riderProfiles, riderEarnings, platformCommissions, adBillings, reviews, notifications, travelBookings, disputes, favorites,
-  shoppableVideos, storeFollows, siteSettings,
+  shoppableVideos, storeFollows, siteSettings, novedades, publicEntities,
 } from "@workspace/db";
 import type {
   User, InsertUser,
@@ -33,6 +33,8 @@ import type {
   Dispute, InsertDispute, DisputeStatus,
   Favorite, InsertFavorite, FavoriteType,
   ShoppableVideo, InsertShoppableVideo, VideoStatus,
+  Novedad, InsertNovedad,
+  PublicEntity, InsertPublicEntity,
 } from "@workspace/db";
 import type { IStorage } from "./storage";
 
@@ -783,6 +785,70 @@ export class DatabaseStorage implements IStorage {
       .where(filtered)
       .orderBy(sql`(${products.originalPrice}::numeric - ${products.price}::numeric) / ${products.originalPrice}::numeric DESC`)
       .limit(limitN);
+  }
+
+  // ─── NOVEDADES ──────────────────────────────────────────────────────────────
+
+  async getNovedades(filters?: { provinciaId?: string; isOfficial?: boolean; category?: string; limit?: number }): Promise<Novedad[]> {
+    const conditions = [eq(novedades.status, "active")];
+    if (filters?.provinciaId) conditions.push(eq(novedades.provinciaId, filters.provinciaId));
+    if (filters?.isOfficial !== undefined) conditions.push(eq(novedades.isOfficial, filters.isOfficial));
+    if (filters?.category) conditions.push(eq(novedades.category, filters.category as any));
+    return db.select().from(novedades)
+      .where(and(...conditions))
+      .orderBy(desc(novedades.isFeatured), desc(novedades.priority), desc(novedades.createdAt))
+      .limit(filters?.limit ?? 20);
+  }
+
+  async getNovedadById(id: string): Promise<Novedad | undefined> {
+    const [r] = await db.select().from(novedades).where(eq(novedades.id, id));
+    return r;
+  }
+
+  async createNovedad(data: InsertNovedad): Promise<Novedad> {
+    const [r] = await db.insert(novedades).values(data).returning();
+    return r;
+  }
+
+  async updateNovedad(id: string, data: Partial<InsertNovedad>): Promise<Novedad | undefined> {
+    const [r] = await db.update(novedades).set(data).where(eq(novedades.id, id)).returning();
+    return r;
+  }
+
+  async deleteNovedad(id: string): Promise<void> {
+    await db.delete(novedades).where(eq(novedades.id, id));
+  }
+
+  async getAllNovedadesAdmin(): Promise<Novedad[]> {
+    return db.select().from(novedades).orderBy(desc(novedades.priority), desc(novedades.createdAt));
+  }
+
+  // ─── PUBLIC ENTITIES ────────────────────────────────────────────────────────
+
+  async getPublicEntities(filters?: { provinciaId?: string; verificationStatus?: string }): Promise<PublicEntity[]> {
+    const conditions = [eq(publicEntities.isActive, true)];
+    if (filters?.provinciaId) conditions.push(eq(publicEntities.provinciaId, filters.provinciaId));
+    if (filters?.verificationStatus) conditions.push(eq(publicEntities.verificationStatus, filters.verificationStatus as any));
+    return db.select().from(publicEntities).where(and(...conditions)).orderBy(publicEntities.name);
+  }
+
+  async getPublicEntityById(id: string): Promise<PublicEntity | undefined> {
+    const [r] = await db.select().from(publicEntities).where(eq(publicEntities.id, id));
+    return r;
+  }
+
+  async createPublicEntity(data: InsertPublicEntity): Promise<PublicEntity> {
+    const [r] = await db.insert(publicEntities).values(data).returning();
+    return r;
+  }
+
+  async updatePublicEntity(id: string, data: Partial<InsertPublicEntity>): Promise<PublicEntity | undefined> {
+    const [r] = await db.update(publicEntities).set(data).where(eq(publicEntities.id, id)).returning();
+    return r;
+  }
+
+  async getAllPublicEntitiesAdmin(): Promise<PublicEntity[]> {
+    return db.select().from(publicEntities).orderBy(publicEntities.verificationStatus, publicEntities.name);
   }
 }
 

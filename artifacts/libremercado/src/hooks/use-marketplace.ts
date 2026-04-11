@@ -285,3 +285,16 @@ export function useHomeSettings() {
     queryFn: () => fetch("/api/config/home-settings").then((r) => r.json()),
   });
 }
+
+export function useNovedades(filters?: { provincia?: string; official?: boolean; category?: string; limit?: number }) {
+  const params = new URLSearchParams();
+  if (filters?.provincia) params.set("provincia", filters.provincia);
+  if (filters?.official !== undefined) params.set("official", String(filters.official));
+  if (filters?.category) params.set("category", filters.category);
+  if (filters?.limit) params.set("limit", String(filters.limit));
+  const qs = params.toString();
+  return useQuery<import("@/components/feed/NovedadCard").Novedad[]>({
+    queryKey: ["/api/novedades", qs],
+    queryFn: () => fetch(`/api/novedades${qs ? `?${qs}` : ""}`).then((r) => r.json()),
+  });
+}
