@@ -238,62 +238,40 @@ export default function Home() {
                 key={index}
                 data-testid={`card-benefit-${index}`}
                 className={`
-                  relative overflow-hidden rounded-2xl cursor-pointer
-                  bg-gradient-to-br ${card.gradient}
+                  relative overflow-hidden rounded-xl cursor-pointer
+                  bg-gradient-to-r ${card.gradient}
                   transition-all duration-300 ease-out
-                  hover:scale-[1.03] hover:shadow-2xl
+                  hover:scale-[1.02] hover:brightness-110
                   group
                 `}
-                style={{ boxShadow: `0 4px 24px 0 ${card.glowColor}` }}
+                style={{ boxShadow: `0 2px 16px 0 ${card.glowColor}` }}
               >
-                {/* Decorative orbs */}
-                <div className={`absolute -top-8 -right-8 w-40 h-40 rounded-full blur-2xl ${card.orb1}`} />
-                <div className={`absolute -bottom-10 -left-6 w-36 h-36 rounded-full blur-2xl ${card.orb2}`} />
-                {/* Subtle grid texture overlay */}
-                <div className="absolute inset-0 opacity-[0.04]"
-                  style={{ backgroundImage: "repeating-linear-gradient(0deg,#fff 0,#fff 1px,transparent 1px,transparent 20px),repeating-linear-gradient(90deg,#fff 0,#fff 1px,transparent 1px,transparent 20px)" }}
-                />
-                {/* Gloss top shine */}
-                <div className="absolute top-0 left-0 right-0 h-1/2 bg-gradient-to-b from-white/10 to-transparent rounded-t-2xl pointer-events-none" />
+                {/* Decorative orb right side */}
+                <div className={`absolute -top-6 -right-6 w-28 h-28 rounded-full blur-2xl ${card.orb1}`} />
+                {/* Gloss shine */}
+                <div className="absolute top-0 left-0 right-0 h-1/2 bg-gradient-to-b from-white/10 to-transparent pointer-events-none" />
 
-                <div className="relative z-10 p-5 flex flex-col gap-3">
-                  {/* Top row: badge + icon */}
-                  <div className="flex items-center justify-between">
-                    <span className="text-[10px] font-bold tracking-widest text-white/70 bg-white/10 backdrop-blur-sm px-2.5 py-1 rounded-full border border-white/15">
+                <div className="relative z-10 px-4 py-3 flex items-center gap-3">
+                  {/* Icon circle */}
+                  <div className="shrink-0 w-11 h-11 rounded-xl bg-white/20 backdrop-blur-sm border border-white/25 flex items-center justify-center shadow-inner">
+                    <card.icon className="h-5 w-5 text-white drop-shadow" />
+                  </div>
+
+                  {/* Text block */}
+                  <div className="flex-1 min-w-0">
+                    <p className="text-[10px] font-bold tracking-widest text-white/60 uppercase leading-none mb-0.5">
                       {card.badge}
-                    </span>
-                    <div className="flex gap-1.5">
-                      <div className="w-9 h-9 rounded-xl bg-white/15 backdrop-blur-sm border border-white/20 flex items-center justify-center">
-                        <card.accentIcon className="h-4 w-4 text-white/80" />
-                      </div>
-                      <div className="w-9 h-9 rounded-xl bg-white/25 backdrop-blur-sm border border-white/30 flex items-center justify-center shadow-lg">
-                        <card.icon className="h-4.5 w-4.5 text-white" />
-                      </div>
+                    </p>
+                    <div className="flex items-baseline gap-1">
+                      <span className="text-2xl font-black text-white leading-none">{card.stat}</span>
+                      <span className="text-sm font-bold text-white/75 leading-none">{card.statSuffix}</span>
                     </div>
+                    <p className="text-xs font-semibold text-white leading-tight">{card.title}</p>
                   </div>
 
-                  {/* Big stat */}
-                  <div className="flex items-end gap-1 leading-none mt-1">
-                    <span className="text-5xl font-black text-white tracking-tight drop-shadow-sm">
-                      {card.stat}
-                    </span>
-                    <span className="text-2xl font-bold text-white/70 mb-1">
-                      {card.statSuffix}
-                    </span>
-                  </div>
-
-                  {/* Title + description */}
-                  <div>
-                    <p className="text-lg font-bold text-white leading-tight">{card.title}</p>
-                    <p className="text-xs text-white/65 mt-0.5 leading-snug">{card.description}</p>
-                  </div>
-
-                  {/* CTA row */}
-                  <div className="flex items-center justify-between mt-1 pt-3 border-t border-white/15">
-                    <span className="text-xs font-semibold text-white/80">{card.cta}</span>
-                    <div className="w-7 h-7 rounded-full bg-white/20 flex items-center justify-center transition-transform duration-200 group-hover:translate-x-1">
-                      <ArrowRight className="h-3.5 w-3.5 text-white" />
-                    </div>
+                  {/* Arrow */}
+                  <div className="shrink-0 w-7 h-7 rounded-full bg-white/15 border border-white/20 flex items-center justify-center transition-transform duration-200 group-hover:translate-x-1">
+                    <ArrowRight className="h-3.5 w-3.5 text-white" />
                   </div>
                 </div>
               </div>
