@@ -1,10 +1,11 @@
-import { useEffect, useRef, useState, useCallback } from "react";
+import { useEffect, useRef, useState, useCallback, useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { Link, useLocation } from "wouter";
+import { Link, useLocation, useSearch } from "wouter";
 import {
   Heart, ShoppingCart, Share2, Store, MapPin, Star, Play, Pause,
   Volume2, VolumeX, Clock, CheckCircle, ChevronUp, ChevronDown,
-  Sparkles, ArrowRight, BadgePercent, UserPlus, UserCheck, ArrowLeft
+  Sparkles, ArrowRight, BadgePercent, UserPlus, UserCheck, ArrowLeft,
+  Package
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -49,9 +50,29 @@ interface VideoCardProps {
   colorIdx: number;
   userLat?: number;
   userLng?: number;
+  returnTo?: string;
+  returnName?: string;
+  contextStoreName?: string;
+  isInStoreBlock?: boolean;
+  isFirstGeneral?: boolean;
+  storeBlockIndex?: number;
+  storeBlockTotal?: number;
 }
 
-function VideoCard({ video, isActive, colorIdx, userLat, userLng }: VideoCardProps) {
+function VideoCard({
+  video,
+  isActive,
+  colorIdx,
+  userLat,
+  userLng,
+  returnTo,
+  returnName,
+  contextStoreName,
+  isInStoreBlock,
+  isFirstGeneral,
+  storeBlockIndex,
+  storeBlockTotal,
+}: VideoCardProps) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const [isPaused, setIsPaused] = useState(false);
   const [isMuted, setIsMuted] = useState(false);
@@ -68,9 +89,6 @@ function VideoCard({ video, isActive, colorIdx, userLat, userLng }: VideoCardPro
   const [, navigate] = useLocation();
 
   const ambientColor = AMBIENT_COLORS[colorIdx % AMBIENT_COLORS.length];
-  const distanceKm = userLat && userLng && video.store?.lat && video.store?.lng
-    ? haversineKm(userLat, userLng, Number(video.store.lat), Number(video.store.lng))
-    : null;
 
   useEffect(() => {
     const v = videoRef.current;
@@ -78,8 +96,6 @@ function VideoCard({ video, isActive, colorIdx, userLat, userLng }: VideoCardPro
     if (isActive) {
       v.muted = false;
       v.play().catch(() => {
-        // Browser blocks unmuted autoplay — play muted but keep UI showing active
-        // Audio will unlock after first user interaction on the page
         v.muted = true;
         v.play().catch(() => {});
       });
@@ -124,6 +140,11 @@ function VideoCard({ video, isActive, colorIdx, userLat, userLng }: VideoCardPro
     toast({ title: "Agregado al carrito", description: video.product.name });
   };
 
+  const handleViewProduct = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (video.product) navigate(`/product/${video.product.id}`);
+  };
+
   const handleLike = (e: React.MouseEvent) => {
     e.stopPropagation();
     setLiked((v) => !v);
@@ -156,18 +177,23 @@ function VideoCard({ video, isActive, colorIdx, userLat, userLng }: VideoCardPro
     ? discountPercent(video.product.price, video.product.originalPrice)
     : 0;
 
+  const isContextual = !!returnTo;
+  const backLabel = returnName
+    ? `← ${returnName.length > 24 ? returnName.slice(0, 22) + "…" : returnName}`
+    : "← Volver";
+
   return (
     <div
       className="relative w-full h-full overflow-hidden bg-zinc-950"
       data-testid={`video-card-${video.id}`}
     >
-      {/* ── AMBIENT GLOW (desktop only, static color — no video element) ── */}
+      {/* AMBIENT GLOW */}
       <div
         className="hidden md:block absolute inset-0 pointer-events-none"
         style={{ background: `radial-gradient(ellipse at center, ${ambientColor} 0%, rgba(0,0,0,0.96) 65%)` }}
       />
 
-      {/* ── CENTERED PHONE FRAME ── */}
+      {/* CENTERED PHONE FRAME */}
       <div className="absolute inset-0 flex items-center justify-center">
         <div
           className="relative h-full overflow-hidden"
@@ -191,7 +217,7 @@ function VideoCard({ video, isActive, colorIdx, userLat, userLng }: VideoCardPro
             </div>
           )}
 
-          {/* Gradient — transparent in center so video is visible */}
+          {/* Gradient */}
           <div
             className="absolute inset-0 pointer-events-none"
             style={{ background: "linear-gradient(to top, rgba(0,0,0,0.88) 0%, rgba(0,0,0,0.08) 38%, transparent 55%, rgba(0,0,0,0.12) 100%)" }}
@@ -206,34 +232,73 @@ function VideoCard({ video, isActive, colorIdx, userLat, userLng }: VideoCardPro
             </div>
           )}
 
-          {/* Top badges + mute */}
-          <div className="absolute top-4 left-4 right-4 flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <Link href="/" onClick={(e) => e.stopPropagation()}>
-                <span
-                  className="inline-flex items-center gap-1 bg-primary text-white text-[10px] font-bold px-2 py-0.5 rounded-full shadow-lg cursor-pointer"
-                  data-testid="button-back-home"
+          {/* ── TOP BAR ── */}
+          <div className="absolute top-4 left-4 right-4 flex flex-col gap-2">
+            <div className="flex items-center justify-between">
+              {/* Back / Menu button */}
+              {isContextual ? (
+                <button
+                  className="inline-flex items-center gap-1 bg-black/60 backdrop-blur-sm text-white text-[11px] font-bold px-3 py-1.5 rounded-full shadow-lg"
+                  onClick={(e) => { e.stopPropagation(); navigate(returnTo); }}
+                  data-testid="button-back-context"
                 >
                   <ArrowLeft className="h-3 w-3" />
-                  Menú
-                </span>
-              </Link>
-              {video.isFeatured && (
-                <Badge className="bg-yellow-400 text-black text-[10px] font-bold px-2 py-0.5 shadow-lg">
-                  <Sparkles className="h-3 w-3 mr-1 fill-black" />Destacado
-                </Badge>
+                  {backLabel}
+                </button>
+              ) : (
+                <Link href="/" onClick={(e) => e.stopPropagation()}>
+                  <span
+                    className="inline-flex items-center gap-1 bg-primary text-white text-[10px] font-bold px-2 py-0.5 rounded-full shadow-lg cursor-pointer"
+                    data-testid="button-back-home"
+                  >
+                    <ArrowLeft className="h-3 w-3" />
+                    Menú
+                  </span>
+                </Link>
               )}
-              {video.isSponsored && (
-                <Badge className="bg-primary/90 text-white text-[10px] px-2 py-0.5 shadow-lg">Patrocinado</Badge>
-              )}
+
+              <div className="flex items-center gap-2">
+                {video.isFeatured && (
+                  <Badge className="bg-yellow-400 text-black text-[10px] font-bold px-2 py-0.5 shadow-lg">
+                    <Sparkles className="h-3 w-3 mr-1 fill-black" />Destacado
+                  </Badge>
+                )}
+                {video.isSponsored && (
+                  <Badge className="bg-primary/90 text-white text-[10px] px-2 py-0.5 shadow-lg">Patrocinado</Badge>
+                )}
+                <button
+                  className="bg-black/50 backdrop-blur-sm rounded-full p-2 text-white shadow-lg"
+                  onClick={toggleMute}
+                  data-testid="button-mute"
+                >
+                  {isMuted ? <VolumeX className="h-4 w-4" /> : <Volume2 className="h-4 w-4" />}
+                </button>
+              </div>
             </div>
-            <button
-              className="bg-black/50 backdrop-blur-sm rounded-full p-2 text-white shadow-lg"
-              onClick={toggleMute}
-              data-testid="button-mute"
-            >
-              {isMuted ? <VolumeX className="h-4 w-4" /> : <Volume2 className="h-4 w-4" />}
-            </button>
+
+            {/* Context banner — store block indicator */}
+            {isInStoreBlock && contextStoreName && (
+              <div
+                className="self-start inline-flex items-center gap-1.5 bg-black/60 backdrop-blur-sm border border-white/20 rounded-full px-3 py-1 text-white text-[11px] font-semibold"
+                data-testid="badge-store-context"
+              >
+                <Store className="h-3 w-3 text-primary" />
+                {storeBlockTotal && storeBlockTotal > 1
+                  ? `${(storeBlockIndex ?? 0) + 1} de ${storeBlockTotal} reels · ${contextStoreName}`
+                  : `Reels de ${contextStoreName}`}
+              </div>
+            )}
+
+            {/* Context banner — transition to general */}
+            {isFirstGeneral && (
+              <div
+                className="self-start inline-flex items-center gap-1.5 bg-primary/80 backdrop-blur-sm rounded-full px-3 py-1 text-white text-[11px] font-semibold"
+                data-testid="badge-general-transition"
+              >
+                <Sparkles className="h-3 w-3" />
+                Recomendados para vos
+              </div>
+            )}
           </div>
 
           {/* ── BOTTOM INFO ── */}
@@ -279,7 +344,7 @@ function VideoCard({ video, isActive, colorIdx, userLat, userLng }: VideoCardPro
               {video.title}
             </h3>
 
-            {/* Price — always inline, no glass card */}
+            {/* Price */}
             {video.product && (
               <div className="flex items-center gap-2">
                 <span className="text-white font-black text-xl tracking-tight">
@@ -298,6 +363,18 @@ function VideoCard({ video, isActive, colorIdx, userLat, userLng }: VideoCardPro
                 )}
               </div>
             )}
+
+            {/* Product CTA */}
+            {video.product && (
+              <button
+                className="flex items-center gap-1.5 bg-white/10 hover:bg-white/20 border border-white/20 rounded-full px-3 py-1 text-white text-xs font-semibold transition-colors"
+                onClick={handleViewProduct}
+                data-testid="button-view-product"
+              >
+                <Package className="h-3 w-3" />
+                Ver producto
+              </button>
+            )}
           </div>
         </div>
 
@@ -310,7 +387,7 @@ function VideoCard({ video, isActive, colorIdx, userLat, userLng }: VideoCardPro
           }}
           onClick={(e) => e.stopPropagation()}
         >
-          {/* Share — bottom */}
+          {/* Share */}
           <button className="flex flex-col items-center gap-0.5" onClick={handleShare} data-testid="button-share-mobile">
             <Share2 className="h-6 w-6 text-white" style={{ filter: "drop-shadow(0 1px 4px rgba(0,0,0,0.85))" }} />
             <span className="text-white text-[10px] font-semibold" style={{ textShadow: "0 1px 3px rgba(0,0,0,0.9)" }}>Compartir</span>
@@ -328,7 +405,6 @@ function VideoCard({ video, isActive, colorIdx, userLat, userLng }: VideoCardPro
             <span className="text-white text-[10px] font-semibold" style={{ textShadow: "0 1px 3px rgba(0,0,0,0.9)" }}>{video.addToCartCount}</span>
           </button>
 
-          {/* Heart — top */}
           <button className="flex flex-col items-center gap-0.5" onClick={handleLike} data-testid="button-like-mobile">
             <Heart
               className={`h-6 w-6 transition-colors ${liked ? "text-red-400 fill-red-400" : "text-white"}`}
@@ -359,13 +435,52 @@ function VideoSkeleton() {
   );
 }
 
+function buildContextualFeed(
+  productReel: VideoFeedItem | null | undefined,
+  storeReels: VideoFeedItem[] | undefined,
+  generalReels: VideoFeedItem[] | undefined,
+): { feed: VideoFeedItem[]; storeBlockEnd: number } {
+  const seen = new Set<string>();
+  const result: VideoFeedItem[] = [];
+
+  if (productReel) {
+    seen.add(productReel.id);
+    result.push(productReel);
+  }
+
+  for (const reel of storeReels ?? []) {
+    if (!seen.has(reel.id)) {
+      seen.add(reel.id);
+      result.push(reel);
+    }
+  }
+
+  const storeBlockEnd = result.length;
+
+  for (const reel of generalReels ?? []) {
+    if (!seen.has(reel.id)) {
+      seen.add(reel.id);
+      result.push(reel);
+    }
+  }
+
+  return { feed: result, storeBlockEnd };
+}
+
 export default function Videos() {
   const [activeIndex, setActiveIndex] = useState(0);
   const [feedHeight, setFeedHeight] = useState("100dvh");
   const containerRef = useRef<HTMLDivElement>(null);
   const itemRefs = useRef<(HTMLDivElement | null)[]>([]);
 
-  // Measure actual header height dynamically (re-runs on mount to capture after Navbar updates)
+  const search = useSearch();
+  const urlParams = new URLSearchParams(search);
+  const ctxProductId = urlParams.get("productId") ?? undefined;
+  const ctxStoreId = urlParams.get("storeId") ?? undefined;
+  const ctxReturnTo = urlParams.get("returnTo") ?? undefined;
+  const ctxReturnName = urlParams.get("returnName") ?? undefined;
+  const isContextual = !!(ctxProductId || ctxStoreId);
+
   useEffect(() => {
     const measure = () => {
       const header = document.querySelector("header");
@@ -375,7 +490,6 @@ export default function Videos() {
       }
     };
     measure();
-    // Re-measure after a tick so Navbar has re-rendered with hidden secondary nav
     const t = setTimeout(measure, 50);
     window.addEventListener("resize", measure);
     return () => { clearTimeout(t); window.removeEventListener("resize", measure); };
@@ -387,8 +501,27 @@ export default function Videos() {
   const provinciaId = locationStore.provinciaId ?? undefined;
   const ciudadId = locationStore.ciudadId ?? undefined;
 
-  const { data: videos, isLoading } = useQuery<VideoFeedItem[]>({
-    queryKey: ["/api/videos/feed", { provinciaId, ciudadId }],
+  const { data: productReel } = useQuery<VideoFeedItem | null>({
+    queryKey: ["/api/videos/feed", "ctx-product", ctxProductId],
+    queryFn: async () => {
+      const res = await fetch(`/api/videos/feed?productId=${ctxProductId}&limit=1`);
+      const data = await res.json();
+      return data[0] ?? null;
+    },
+    enabled: !!ctxProductId,
+  });
+
+  const { data: storeReels } = useQuery<VideoFeedItem[]>({
+    queryKey: ["/api/videos/feed", "ctx-store", ctxStoreId],
+    queryFn: async () => {
+      const res = await fetch(`/api/videos/feed?storeId=${ctxStoreId}&limit=20`);
+      return res.json();
+    },
+    enabled: !!ctxStoreId,
+  });
+
+  const { data: generalReels, isLoading: generalLoading } = useQuery<VideoFeedItem[]>({
+    queryKey: ["/api/videos/feed", "general", { provinciaId, ciudadId }],
     queryFn: async () => {
       const params = new URLSearchParams();
       if (provinciaId) params.set("provinciaId", provinciaId);
@@ -399,12 +532,28 @@ export default function Videos() {
     },
   });
 
-  // Ensure first video plays immediately on load
+  const { feed: videos, storeBlockEnd } = useMemo(() => {
+    if (!isContextual) {
+      return { feed: generalReels ?? [], storeBlockEnd: 0 };
+    }
+    return buildContextualFeed(productReel, storeReels, generalReels);
+  }, [isContextual, productReel, storeReels, generalReels]);
+
+  const isLoading = generalLoading && videos.length === 0;
+
+  const contextStoreName = useMemo(() => {
+    if (!isContextual) return undefined;
+    return (
+      productReel?.store?.name ||
+      storeReels?.[0]?.store?.name ||
+      undefined
+    );
+  }, [isContextual, productReel, storeReels]);
+
   useEffect(() => {
     if (videos && videos.length > 0) setActiveIndex(0);
-  }, [videos]);
+  }, [videos.length > 0]);
 
-  // IntersectionObserver with lower threshold for better detection
   useEffect(() => {
     const container = containerRef.current;
     if (!container || !videos?.length) return;
@@ -434,7 +583,6 @@ export default function Videos() {
 
   return (
     <div className="relative bg-black" style={{ height: feedHeight }}>
-      {/* Feed */}
       <div
         ref={containerRef}
         className="h-full overflow-y-scroll snap-y snap-mandatory"
@@ -458,26 +606,40 @@ export default function Videos() {
           </div>
         )}
 
-        {videos?.map((video, idx) => (
-          <div
-            key={video.id}
-            ref={(el) => { itemRefs.current[idx] = el; }}
-            className="snap-start snap-always"
-            style={{ height: feedHeight }}
-          >
-            <VideoCard
-              video={video}
-              isActive={activeIndex === idx}
-              colorIdx={idx}
-              userLat={userLat ? Number(userLat) : undefined}
-              userLng={userLng ? Number(userLng) : undefined}
-            />
-          </div>
-        ))}
+        {videos.map((video, idx) => {
+          const isInStoreBlock = isContextual && idx < storeBlockEnd;
+          const isFirstGeneral = isContextual && storeBlockEnd > 0 && idx === storeBlockEnd;
+          const storeBlockIndex = isInStoreBlock ? idx : undefined;
+          const storeBlockTotal = isContextual ? storeBlockEnd : undefined;
+
+          return (
+            <div
+              key={video.id}
+              ref={(el) => { itemRefs.current[idx] = el; }}
+              className="snap-start snap-always"
+              style={{ height: feedHeight }}
+            >
+              <VideoCard
+                video={video}
+                isActive={activeIndex === idx}
+                colorIdx={idx}
+                userLat={userLat ? Number(userLat) : undefined}
+                userLng={userLng ? Number(userLng) : undefined}
+                returnTo={ctxReturnTo}
+                returnName={ctxReturnName}
+                contextStoreName={isInStoreBlock ? contextStoreName : undefined}
+                isInStoreBlock={isInStoreBlock}
+                isFirstGeneral={isFirstGeneral}
+                storeBlockIndex={storeBlockIndex}
+                storeBlockTotal={storeBlockTotal}
+              />
+            </div>
+          );
+        })}
       </div>
 
       {/* Desktop: nav arrows */}
-      {videos && videos.length > 1 && (
+      {videos.length > 1 && (
         <div className="hidden md:flex flex-col gap-2 absolute left-4 top-1/2 -translate-y-1/2 z-30">
           <button
             onClick={() => activeIndex > 0 && scrollToIndex(activeIndex - 1)}
@@ -499,16 +661,20 @@ export default function Videos() {
       )}
 
       {/* Desktop: progress dots */}
-      {videos && videos.length > 1 && (
+      {videos.length > 1 && (
         <div className="hidden md:flex flex-col gap-1.5 absolute right-3 top-1/2 -translate-y-1/2 z-30">
           {videos.map((_, idx) => (
             <button
               key={idx}
               onClick={() => scrollToIndex(idx)}
               className={`rounded-full transition-all duration-300 ${
-                idx === activeIndex
-                  ? "h-7 w-1.5 bg-white shadow-lg shadow-white/30"
-                  : "h-1.5 w-1.5 bg-white/35 hover:bg-white/60"
+                isContextual && idx < storeBlockEnd
+                  ? idx === activeIndex
+                    ? "h-7 w-1.5 bg-primary shadow-lg shadow-primary/30"
+                    : "h-1.5 w-1.5 bg-primary/40 hover:bg-primary/70"
+                  : idx === activeIndex
+                    ? "h-7 w-1.5 bg-white shadow-lg shadow-white/30"
+                    : "h-1.5 w-1.5 bg-white/35 hover:bg-white/60"
               }`}
               data-testid={`dot-video-${idx}`}
             />

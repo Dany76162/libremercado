@@ -424,6 +424,47 @@ export interface InsertFavorite {
   targetId: string;
 }
 
+export interface VideoFeedItem {
+  id: string;
+  storeId: string;
+  productId?: string | null;
+  title: string;
+  description?: string | null;
+  videoUrl: string;
+  thumbnailUrl?: string | null;
+  status?: VideoStatus | null;
+  isFeatured?: boolean | null;
+  isSponsored?: boolean | null;
+  viewsCount: number;
+  clicksCount: number;
+  addToCartCount: number;
+  purchasesCount: number;
+  savesCount: number;
+  tags?: string | null;
+  contentType?: string | null;
+  targetProvince?: string | null;
+  targetCity?: string | null;
+  publishedAt?: Date | string | null;
+  createdAt?: Date | string | null;
+  store?: {
+    id: string;
+    name: string;
+    category: string;
+    rating: string | null;
+    lat: string | null;
+    lng: string | null;
+    followersCount: number;
+    isFollowing: boolean;
+  } | null;
+  product?: {
+    id: string;
+    name: string;
+    price: string;
+    image: string | null;
+    originalPrice: string | null;
+  } | null;
+}
+
 export interface ShoppableVideo {
   id: string;
   storeId: string;

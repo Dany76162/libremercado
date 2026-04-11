@@ -1,7 +1,7 @@
 import { useState } from "react";
-import { useRoute, Link } from "wouter";
+import { useRoute, Link, useLocation } from "wouter";
 import { useQuery } from "@tanstack/react-query";
-import { ArrowLeft, ShoppingCart, Star, Truck, Shield, Heart, Zap, ChevronLeft, ChevronRight, Play, X, Volume2, VolumeX } from "lucide-react";
+import { ArrowLeft, ShoppingCart, Star, Truck, Shield, Heart, Zap, ChevronLeft, ChevronRight, Play } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
@@ -25,9 +25,9 @@ export default function ProductDetail() {
   const [, params] = useRoute("/product/:id");
   const productId = params?.id || "";
   const [mainIdx, setMainIdx] = useState(0);
-  const [showReel, setShowReel] = useState(false);
   const [lightbox, setLightbox] = useState(false);
-  const [muted, setMuted] = useState(false);
+  const [, navigate] = useLocation();
+
   const addItem = useCart((s) => s.addItem);
   const { toast } = useToast();
   const { isAuthenticated } = useAuth();
@@ -77,6 +77,19 @@ export default function ProductDetail() {
   const formatPrice = (val: string | number) =>
     new Intl.NumberFormat("es-AR", { style: "currency", currency: "ARS", minimumFractionDigits: 0 }).format(Number(val));
 
+  const openContextualFeed = () => {
+    if (!product || !productReel) return;
+    const returnTo = `/product/${product.id}`;
+    const returnName = product.name;
+    const params = new URLSearchParams({
+      productId: product.id,
+      storeId: product.storeId,
+      returnTo,
+      returnName,
+    });
+    navigate(`/videos?${params.toString()}`);
+  };
+
   if (isLoading) {
     return (
       <div className="max-w-5xl mx-auto px-4 py-8">
@@ -122,27 +135,15 @@ export default function ProductDetail() {
   const hasDiscount = originalPrice && originalPrice > price;
   const discountPercent = hasDiscount ? Math.round(((originalPrice - price) / originalPrice) * 100) : 0;
   const hasReel = !!productReel?.videoUrl;
+  const totalSlots = images.length + (hasReel ? 1 : 0);
 
   const handleAddToCart = () => {
     addItem(product);
     toast({ title: "Agregado al carrito", description: `${product.name} se agregó correctamente` });
   };
 
-  const prevImage = () => {
-    setShowReel(false);
-    setMainIdx((i) => (i === 0 ? images.length - 1 : i - 1));
-  };
-  const nextImage = () => {
-    setShowReel(false);
-    setMainIdx((i) => (i === images.length - 1 ? 0 : i + 1));
-  };
-
-  const selectImage = (i: number) => {
-    setShowReel(false);
-    setMainIdx(i);
-  };
-
-  const totalSlots = images.length + (hasReel ? 1 : 0);
+  const prevImage = () => setMainIdx((i) => (i === 0 ? images.length - 1 : i - 1));
+  const nextImage = () => setMainIdx((i) => (i === images.length - 1 ? 0 : i + 1));
 
   return (
     <div className="min-h-screen bg-background">
@@ -170,90 +171,49 @@ export default function ProductDetail() {
         <div className="grid md:grid-cols-2 gap-8 lg:gap-12">
           {/* ── Media Gallery ── */}
           <div>
-            {/* Main display area */}
+            {/* Main image */}
             <div
-              className={`relative aspect-square rounded-xl overflow-hidden bg-muted mb-3 group ${showReel ? "cursor-default" : "cursor-zoom-in"}`}
-              onClick={() => { if (!showReel) setLightbox(true); }}
+              className="relative aspect-square rounded-xl overflow-hidden bg-muted mb-3 cursor-zoom-in group"
+              onClick={() => setLightbox(true)}
             >
-              {showReel && productReel ? (
-                /* ── Video Player ── */
-                <div className="w-full h-full bg-black flex items-center justify-center relative" data-testid="section-reel-player">
-                  <video
-                    key={productReel.videoUrl}
-                    src={productReel.videoUrl}
-                    autoPlay
-                    loop
-                    muted={muted}
-                    playsInline
-                    controls={false}
-                    className="w-full h-full object-contain"
-                    data-testid="video-reel-player"
-                  />
-                  {/* Mute toggle */}
-                  <button
-                    className="absolute bottom-3 right-3 bg-black/60 hover:bg-black/80 text-white rounded-full p-2 z-10"
-                    onClick={(e) => { e.stopPropagation(); setMuted((m) => !m); }}
-                    data-testid="btn-toggle-mute"
-                  >
-                    {muted ? <VolumeX className="h-4 w-4" /> : <Volume2 className="h-4 w-4" />}
-                  </button>
-                  {/* Reel badge */}
-                  <div className="absolute top-3 left-3 bg-primary text-primary-foreground text-xs font-bold px-2 py-1 rounded-full flex items-center gap-1">
-                    <Play className="h-3 w-3 fill-current" />
-                    REEL
-                  </div>
-                  {/* Close reel */}
-                  <button
-                    className="absolute top-3 right-3 bg-black/60 hover:bg-black/80 text-white rounded-full p-1.5 z-10"
-                    onClick={(e) => { e.stopPropagation(); setShowReel(false); }}
-                    data-testid="btn-close-reel"
-                  >
-                    <X className="h-4 w-4" />
-                  </button>
-                </div>
+              {mainImage ? (
+                <img
+                  src={mainImage}
+                  alt={product.name}
+                  className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                  data-testid="img-product-main"
+                />
               ) : (
-                /* ── Image ── */
+                <div className="w-full h-full flex items-center justify-center">
+                  <ShoppingCart className="h-16 w-16 text-muted-foreground/30" />
+                </div>
+              )}
+
+              {/* Nav arrows */}
+              {images.length > 1 && (
                 <>
-                  {mainImage ? (
-                    <img
-                      src={mainImage}
-                      alt={product.name}
-                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                      data-testid="img-product-main"
-                    />
-                  ) : (
-                    <div className="w-full h-full flex items-center justify-center">
-                      <ShoppingCart className="h-16 w-16 text-muted-foreground/30" />
-                    </div>
-                  )}
-
-                  {/* Nav arrows (images only) */}
-                  {images.length > 1 && (
-                    <>
-                      <button
-                        className="absolute left-2 top-1/2 -translate-y-1/2 bg-black/40 hover:bg-black/60 text-white rounded-full p-1.5 opacity-0 group-hover:opacity-100 transition-opacity"
-                        onClick={(e) => { e.stopPropagation(); prevImage(); }}
-                        data-testid="btn-prev-image"
-                      >
-                        <ChevronLeft className="h-5 w-5" />
-                      </button>
-                      <button
-                        className="absolute right-2 top-1/2 -translate-y-1/2 bg-black/40 hover:bg-black/60 text-white rounded-full p-1.5 opacity-0 group-hover:opacity-100 transition-opacity"
-                        onClick={(e) => { e.stopPropagation(); nextImage(); }}
-                        data-testid="btn-next-image"
-                      >
-                        <ChevronRight className="h-5 w-5" />
-                      </button>
-                    </>
-                  )}
-
-                  {/* Image counter */}
-                  {totalSlots > 1 && (
-                    <div className="absolute bottom-2 right-2 bg-black/50 text-white text-xs px-2 py-0.5 rounded-full">
-                      {showReel ? "REEL" : `${mainIdx + 1} / ${images.length}`}
-                    </div>
-                  )}
+                  <button
+                    className="absolute left-2 top-1/2 -translate-y-1/2 bg-black/40 hover:bg-black/60 text-white rounded-full p-1.5 opacity-0 group-hover:opacity-100 transition-opacity"
+                    onClick={(e) => { e.stopPropagation(); prevImage(); }}
+                    data-testid="btn-prev-image"
+                  >
+                    <ChevronLeft className="h-5 w-5" />
+                  </button>
+                  <button
+                    className="absolute right-2 top-1/2 -translate-y-1/2 bg-black/40 hover:bg-black/60 text-white rounded-full p-1.5 opacity-0 group-hover:opacity-100 transition-opacity"
+                    onClick={(e) => { e.stopPropagation(); nextImage(); }}
+                    data-testid="btn-next-image"
+                  >
+                    <ChevronRight className="h-5 w-5" />
+                  </button>
                 </>
+              )}
+
+              {/* Image counter */}
+              {totalSlots > 1 && (
+                <div className="absolute bottom-2 right-2 bg-black/50 text-white text-xs px-2 py-0.5 rounded-full">
+                  {mainIdx + 1} / {images.length}
+                </div>
               )}
             </div>
 
@@ -263,10 +223,10 @@ export default function ProductDetail() {
                 {images.map((src, i) => (
                   <button
                     key={i}
-                    onClick={() => selectImage(i)}
+                    onClick={() => setMainIdx(i)}
                     data-testid={`thumb-${i}`}
                     className={`shrink-0 w-20 h-20 rounded-lg overflow-hidden border-2 transition-all ${
-                      !showReel && i === mainIdx
+                      i === mainIdx
                         ? "border-primary ring-2 ring-primary/30"
                         : "border-transparent hover:border-muted-foreground/40"
                     }`}
@@ -275,18 +235,13 @@ export default function ProductDetail() {
                   </button>
                 ))}
 
-                {/* REEL thumbnail */}
+                {/* REEL thumbnail — opens contextual feed */}
                 {hasReel && (
                   <button
-                    onClick={() => setShowReel(true)}
+                    onClick={openContextualFeed}
                     data-testid="thumb-reel"
-                    className={`shrink-0 w-20 h-20 rounded-lg overflow-hidden border-2 transition-all relative flex items-center justify-center ${
-                      showReel
-                        ? "border-primary ring-2 ring-primary/30"
-                        : "border-transparent hover:border-primary/60"
-                    }`}
+                    className="shrink-0 w-20 h-20 rounded-lg overflow-hidden border-2 border-transparent hover:border-primary/60 transition-all relative flex items-center justify-center"
                   >
-                    {/* Background: thumbnail or gradient */}
                     {productReel?.thumbnailUrl ? (
                       <img
                         src={productReel.thumbnailUrl}
@@ -296,9 +251,7 @@ export default function ProductDetail() {
                     ) : (
                       <div className="absolute inset-0 bg-gradient-to-br from-zinc-800 to-zinc-900" />
                     )}
-                    {/* Overlay */}
                     <div className="absolute inset-0 bg-black/50" />
-                    {/* Play icon + REEL label */}
                     <div className="relative z-10 flex flex-col items-center gap-0.5">
                       <div className="bg-primary rounded-full p-1.5">
                         <Play className="h-3.5 w-3.5 text-primary-foreground fill-primary-foreground" />
@@ -330,7 +283,11 @@ export default function ProductDetail() {
                 <Badge variant="secondary">{product.category}</Badge>
               )}
               {hasReel && (
-                <Badge variant="outline" className="border-primary/50 text-primary flex items-center gap-1 cursor-pointer" onClick={() => setShowReel(true)}>
+                <Badge
+                  variant="outline"
+                  className="border-primary/50 text-primary flex items-center gap-1 cursor-pointer"
+                  onClick={openContextualFeed}
+                >
                   <Play className="h-3 w-3 fill-primary" />
                   Tiene Reel
                 </Badge>
@@ -414,16 +371,16 @@ export default function ProductDetail() {
               )}
             </div>
 
-            {/* Watch Reel CTA */}
-            {hasReel && !showReel && (
+            {/* Open ReelMark contextual CTA */}
+            {hasReel && (
               <Button
                 variant="outline"
                 className="gap-2 border-primary/40 text-primary hover:bg-primary/5"
-                onClick={() => setShowReel(true)}
+                onClick={openContextualFeed}
                 data-testid="btn-watch-reel-cta"
               >
                 <Play className="h-4 w-4 fill-primary" />
-                Ver Reel del producto
+                Ver Reel en ReelMark
               </Button>
             )}
 
@@ -448,26 +405,12 @@ export default function ProductDetail() {
                 <p className="text-sm text-muted-foreground leading-relaxed">{product.description}</p>
               </div>
             )}
-
-            {/* Reel description */}
-            {hasReel && showReel && productReel?.title && (
-              <div className="rounded-lg bg-muted/50 p-3 border border-primary/20">
-                <p className="text-xs text-primary font-semibold flex items-center gap-1 mb-1">
-                  <Play className="h-3 w-3 fill-primary" />
-                  Reel
-                </p>
-                <p className="text-sm text-muted-foreground">{productReel.title}</p>
-                {productReel.viewsCount != null && (
-                  <p className="text-xs text-muted-foreground/60 mt-1">{productReel.viewsCount.toLocaleString()} reproducciones</p>
-                )}
-              </div>
-            )}
           </div>
         </div>
       </div>
 
-      {/* Lightbox (images only) */}
-      {lightbox && mainImage && !showReel && (
+      {/* Lightbox */}
+      {lightbox && mainImage && (
         <div
           className="fixed inset-0 z-50 bg-black/95 flex items-center justify-center p-4"
           onClick={() => setLightbox(false)}
