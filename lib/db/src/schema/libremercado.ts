@@ -89,6 +89,7 @@ export const stores = pgTable("stores", {
   description: text("description"),
   logo: text("logo"),
   banner: text("banner"),
+  images: text("images"), // JSON array of gallery image URLs
   category: text("category").notNull(),
   rating: decimal("rating", { precision: 2, scale: 1 }).default("0"),
   isActive: boolean("is_active").notNull().default(true),
@@ -115,6 +116,7 @@ export const products = pgTable("products", {
   price: decimal("price", { precision: 10, scale: 2 }).notNull(),
   originalPrice: decimal("original_price", { precision: 10, scale: 2 }),
   image: text("image"),
+  images: text("images"), // JSON array of extra image URLs
   category: text("category"),
   stock: integer("stock").notNull().default(0),
   isActive: boolean("is_active").notNull().default(true),

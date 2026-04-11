@@ -1,0 +1,212 @@
+Quiero que completes y dejes funcionales **5 tiendas demo** dentro del sistema de LibreMercado, usando los **5 reels ya subidos** como base visual y comercial de cada tienda.
+
+## Objetivo
+
+Dejar armadas **5 tiendas completas y realistas**, listas para mostrarse en el marketplace, en el panel y en la home, como si ya estuvieran preparadas para salir en demo o presentación.
+
+## Lo que tenés que hacer
+
+### 1. Crear y completar 5 tiendas demo
+
+Cada una debe quedar con:
+
+* nombre de tienda
+* logo o imagen principal
+* banner o portada
+* descripción comercial
+* categoría
+* ubicación
+* reputación o rating simulado
+* cantidad de ventas simuladas
+* estado activo
+* datos completos visibles en el panel del vendedor y en la vista pública
+
+Las tiendas tienen que verse reales, atractivas y distintas entre sí.
+
+---
+
+### 2. Asociar un reel a cada tienda
+
+Ya hay **5 reels subidos de 5 tiendas**.
+Quiero que cada tienda tenga su reel correspondiente correctamente vinculado.
+
+Cada reel debe:
+
+* aparecer en la tienda
+* aparecer en la sección de videos / ReelMark
+* quedar asociado a un producto principal de esa tienda
+* verse también en el panel del vendedor si corresponde
+* tener miniatura si el sistema la usa
+* tener título, descripción corta y métricas simuladas (views, likes, etc.) si ya existe esa estructura
+
+---
+
+### 3. Generar productos para cada tienda
+
+Cada tienda debe tener productos completos y coherentes con el reel.
+
+Para cada tienda:
+
+* crear varios productos
+* al menos 1 producto principal vinculado al reel
+* al menos 3 productos visibles por tienda
+* cada producto debe tener:
+
+  * nombre
+  * descripción
+  * precio actual
+  * precio anterior si aplica
+  * stock
+  * categoría
+  * imágenes
+  * producto destacado si corresponde
+  * tienda asociada
+  * estado activo
+
+Los productos deben estar bien presentados y listos para mostrarse en:
+
+* tienda pública
+* home
+* destacados
+* panel del vendedor
+
+---
+
+### 4. Cargar imágenes relacionadas a cada tienda y producto
+
+Quiero que el sistema use imágenes **similares visualmente al contenido del reel** de cada tienda.
+
+Necesito que:
+
+* cada tienda tenga **3 imágenes**
+* esas imágenes sean coherentes con el estilo o producto mostrado en el reel
+* se usen como galería del producto o de la tienda
+* si no hay imágenes disponibles en base de datos, generar seed/demo assets o mock data visual coherente
+* si ya existe soporte de imágenes múltiples, cargar las 3 correctamente
+* si no existe, implementarlo para que cada producto o tienda pueda mostrar 3 imágenes
+
+La idea es que cuando entre a cada tienda se vea:
+
+* reel
+* producto principal
+* galería de imágenes
+* precio
+* descripción
+* información completa
+
+---
+
+### 5. Home / Explore: organizar lo visible
+
+Quiero que la home o la sección principal quede organizada así:
+
+#### Productos destacados
+
+Mostrar solamente productos destacados pertenecientes a **3 tiendas**
+
+* elegir 3 tiendas de las 5
+* mostrar sus productos destacados
+* que se vea prolijo, visual y bien distribuido
+* no saturar con demasiadas tarjetas
+
+#### Tiendas populares
+
+Más abajo mostrar solamente **2 o 3 tiendas populares**
+
+* elegir 2 o 3 tiendas de las 5
+* mostrar nombre, imagen, categoría, rating y acceso a ver tienda
+* que se note que son “tiendas populares”
+
+No quiero que aparezcan todas mezcladas sin criterio.
+Quiero que quede curado y visualmente limpio.
+
+---
+
+### 6. Panel del vendedor / admin
+
+Quiero que también se vea todo bien armado dentro del panel.
+
+Cada tienda debe aparecer con:
+
+* su información general
+* sus productos
+* su reel
+* sus imágenes
+* sus métricas básicas simuladas si hace falta
+* su estado de tienda activa
+* catálogo bien cargado
+
+Si existe panel admin:
+
+* que las 5 tiendas también se vean correctamente desde ahí
+
+---
+
+### 7. Seed de datos / mock data
+
+Si hace falta, crear o actualizar un seed para dejar estas 5 tiendas persistidas.
+
+Necesito:
+
+* 5 tiendas completas
+* cada una con su reel
+* cada una con mínimo 3 imágenes
+* cada una con varios productos
+* 3 tiendas elegidas para productos destacados
+* 2 o 3 tiendas elegidas para tiendas populares
+
+Que todo quede conectado entre sí correctamente en base de datos.
+
+---
+
+### 8. Criterio visual y de UX
+
+Quiero que quede armado con lógica comercial real.
+No cargar datos vacíos ni genéricos tipo “Producto 1”, “Tienda 1” si se puede evitar.
+
+Quiero nombres, categorías y descripciones más realistas.
+Que se sienta como un marketplace de verdad.
+
+---
+
+## Requisitos técnicos
+
+* revisar el schema actual y reutilizar las tablas existentes
+* si falta alguna relación para múltiples imágenes o relación reel-producto-tienda, implementarla correctamente
+* no romper la estructura actual
+* mantener compatibilidad con frontend, backend y base de datos
+* si hay datos mock anteriores, reemplazarlos o mejorarlos sin romper la app
+* dejar todo renderizando bien tanto en mobile como en desktop
+
+---
+
+## Validación final
+
+Al terminar, quiero que quede comprobable lo siguiente:
+
+1. Existen 5 tiendas completas y visibles
+2. Cada tienda tiene su reel asignado
+3. Cada tienda tiene 3 imágenes
+4. Cada tienda tiene productos con precio e información completa
+5. En “Productos destacados” aparecen productos de solo 3 tiendas
+6. En “Tiendas populares” aparecen solo 2 o 3 tiendas
+7. Todo se ve bien en la vista pública
+8. Todo se ve bien en el panel
+9. Todo queda consistente visual y funcionalmente
+
+---
+
+## Importante
+
+No quiero solo datos cargados en bruto.
+Quiero que queden **bien armadas**, con lógica visual, comercial y estructural, listas para demo.
+
+Si hace falta:
+
+* crear seed
+* ajustar componentes
+* corregir mapeos
+* vincular mejor reels, productos e imágenes
+* mejorar la UI de esas secciones
+
+Hacelo completo.

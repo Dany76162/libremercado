@@ -1,6 +1,7 @@
 import app, { httpServer } from "./app";
 import { logger } from "./lib/logger";
 import { registerRoutes } from "./routes/libremercado";
+import { seedIfEmpty, updateDemoData } from "./database-storage";
 
 const rawPort = process.env["PORT"];
 
@@ -18,6 +19,8 @@ if (Number.isNaN(port) || port <= 0) {
 
 (async () => {
   await registerRoutes(httpServer, app);
+  await seedIfEmpty();
+  await updateDemoData();
 
   httpServer.listen(port, "0.0.0.0", () => {
     logger.info({ port }, "Server listening");

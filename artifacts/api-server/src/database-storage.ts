@@ -132,6 +132,12 @@ export class DatabaseStorage implements IStorage {
     return db.select().from(products).where(eq(products.storeId, storeId));
   }
   async getFeaturedProducts(): Promise<Product[]> {
+    const sponsored = await db.select().from(products)
+      .where(and(eq(products.isActive, true), eq(products.isSponsored, true)))
+      .orderBy(desc(products.sponsoredPriority))
+      .limit(20);
+    if (sponsored.length > 0) return sponsored;
+    // Fallback: return regular active products if no sponsored ones exist
     return db.select().from(products).where(eq(products.isActive, true)).limit(20);
   }
   async createProduct(product: InsertProduct): Promise<Product> {
@@ -937,4 +943,413 @@ export async function seedIfEmpty() {
   ]).onConflictDoNothing();
 
   console.log("[db] Seed complete.");
+}
+
+// Helper: Unsplash CDN URL builder
+function uImg(id: string, w = 800, h = 600) {
+  return `https://images.unsplash.com/photo-${id}?w=${w}&h=${h}&fit=crop&auto=format&q=80`;
+}
+
+export async function updateDemoData() {
+  console.log("[db] Updating demo data...");
+
+  // ─── STORES ───────────────────────────────────────────────────────────────
+
+  // Store 1: Super Mercado Central
+  await db.update(stores).set({
+    name: "Super Mercado Central",
+    description: "Tu supermercado de confianza con los mejores precios, productos frescos y las mejores marcas todos los días. Envío a domicilio en 24 hs.",
+    logo: uImg("1542838132-92c53300491e", 200, 200),
+    banner: uImg("1608198093002-ad4e005484ec", 1200, 400),
+    images: JSON.stringify([
+      uImg("1567306301408-9b74779a11af", 800, 600),
+      uImg("1586201375761-83865001e31c", 800, 600),
+      uImg("1550583724-b2692b85b150", 800, 600),
+    ]),
+    rating: "4.5",
+    isFeatured: false,
+    featuredScore: 40,
+  }).where(eq(stores.id, "store-1"));
+
+  // Store 3: Electro Tech — FEATURED + POPULAR
+  await db.update(stores).set({
+    name: "Electro Tech",
+    description: "Lo último en tecnología y electrónica al mejor precio. Celulares, auriculares, accesorios y más. Garantía oficial en todos los productos.",
+    logo: uImg("1518770660439-4636190af475", 200, 200),
+    banner: uImg("1550009158-9ebf69173e03", 1200, 400),
+    images: JSON.stringify([
+      uImg("1468495244123-6c6c332eeece", 800, 600),
+      uImg("1574269909862-7e1d70bb8078", 800, 600),
+      uImg("1498049794561-7780e7231661", 800, 600),
+    ]),
+    rating: "4.8",
+    isFeatured: true,
+    featuredScore: 95,
+  }).where(eq(stores.id, "store-3"));
+
+  // Store 4: Pizzería Don Luigi — FEATURED + POPULAR
+  await db.update(stores).set({
+    name: "Pizzería Don Luigi",
+    description: "Las mejores pizzas artesanales de la ciudad. Masa madre, ingredientes frescos y horno a leña. Delivery en 30 minutos.",
+    logo: uImg("1513104890138-7c749659a591", 200, 200),
+    banner: uImg("1579871494447-9811cf80d66c", 1200, 400),
+    images: JSON.stringify([
+      uImg("1565299624946-b28f40a0ae38", 800, 600),
+      uImg("1571407970349-bc81e7e96d47", 800, 600),
+      uImg("1604382354936-07c5d9983bd3", 800, 600),
+    ]),
+    rating: "4.7",
+    isFeatured: true,
+    featuredScore: 85,
+  }).where(eq(stores.id, "store-4"));
+
+  // Store 5: Moda Express — FEATURED (productos destacados)
+  await db.update(stores).set({
+    name: "Moda Express",
+    description: "Ropa y accesorios de temporada para toda la familia. Última colección de verano con los mejores precios. Envío gratis en compras mayores a $10.000.",
+    logo: uImg("1441986300917-64674bd600d8", 200, 200),
+    banner: uImg("1523381210434-271e8be1f52b", 1200, 400),
+    images: JSON.stringify([
+      uImg("1558769132-cb1aea458c5e", 800, 600),
+      uImg("1487222477894-8943e31ef7b2", 800, 600),
+      uImg("1469334031218-e382a71b716b", 800, 600),
+    ]),
+    rating: "4.4",
+    isFeatured: false,
+    featuredScore: 60,
+  }).where(eq(stores.id, "store-5"));
+
+  // Store 6: Pet Shop Amigos — POPULAR
+  await db.update(stores).set({
+    name: "Pet Shop Amigos",
+    description: "Todo lo que tu mascota necesita: alimentos premium, accesorios, higiene y juguetes. Atención veterinaria online incluida.",
+    logo: uImg("1587300003388-59208cc962cb", 200, 200),
+    banner: uImg("1601758124510-52d02ddb7cbd", 1200, 400),
+    images: JSON.stringify([
+      uImg("1548199973-03cce0bbc87b", 800, 600),
+      uImg("1583511655857-d19b40a7a54e", 800, 600),
+      uImg("1561037404-61cd46aa615b", 800, 600),
+    ]),
+    rating: "4.6",
+    isFeatured: true,
+    featuredScore: 80,
+  }).where(eq(stores.id, "store-6"));
+
+  // ─── PRODUCTS (update existing + insert new) ──────────────────────────────
+
+  // --- Store 1: Super Mercado Central ---
+  await db.update(products).set({
+    name: "Aceite de Girasol Premium 1.5L",
+    description: "Aceite de girasol de primera prensada, bajo en grasas saturadas. Ideal para frituras y aderezos. Pack familiar.",
+    price: "2490",
+    originalPrice: "3100",
+    image: uImg("1474979266404-7eaacbcd87c5", 500, 500),
+    images: JSON.stringify([
+      uImg("1474979266404-7eaacbcd87c5", 800, 800),
+      uImg("1586201375761-83865001e31c", 800, 800),
+      uImg("1567306301408-9b74779a11af", 800, 800),
+    ]),
+    isSponsored: false,
+    sponsoredPriority: 0,
+  }).where(eq(products.id, "prod-3"));
+
+  await db.update(products).set({
+    description: "Leche entera UAT de primera calidad, sin aditivos. 1 litro.",
+    image: uImg("1550583724-b2692b85b150", 500, 500),
+    images: JSON.stringify([uImg("1550583724-b2692b85b150", 800, 800)]),
+  }).where(eq(products.id, "prod-1"));
+
+  await db.update(products).set({
+    description: "Pan lactal blanco suave, sin corteza. Ideal para sandwiches y tostadas. 500g.",
+    image: uImg("1509440159596-0249088772ff", 500, 500),
+    images: JSON.stringify([uImg("1509440159596-0249088772ff", 800, 800)]),
+  }).where(eq(products.id, "prod-2"));
+
+  await db.insert(products).values([
+    {
+      id: "prod-1b", storeId: "store-1",
+      name: "Yerba Mate Taragüí 500g",
+      description: "Yerba mate seleccionada de las mejores plantaciones de Misiones. Suave y fragante.",
+      price: "2800", originalPrice: "3400",
+      image: uImg("1576092768241-dec231879fc3", 500, 500),
+      images: JSON.stringify([uImg("1576092768241-dec231879fc3", 800, 800)]),
+      category: "Infusiones", stock: 60, isActive: true, isSponsored: false, sponsoredPriority: 0,
+    },
+    {
+      id: "prod-1c", storeId: "store-1",
+      name: "Arroz Largo Fino 1kg",
+      description: "Arroz largo fino de alta calidad, sin aditivos. Perfecto para guarniciones.",
+      price: "1200",
+      image: uImg("1586201375761-83865001e31c", 500, 500),
+      images: JSON.stringify([uImg("1586201375761-83865001e31c", 800, 800)]),
+      category: "Almacén", stock: 80, isActive: true, isSponsored: false, sponsoredPriority: 0,
+    },
+    {
+      id: "prod-1d", storeId: "store-1",
+      name: "Gaseosa Cola 1.5L",
+      description: "Bebida cola refrescante, versión retornable. Ideal para compartir.",
+      price: "1850", originalPrice: "2200",
+      image: uImg("1624557957-2d60f5afb36c", 500, 500),
+      images: JSON.stringify([uImg("1624557957-2d60f5afb36c", 800, 800)]),
+      category: "Bebidas", stock: 100, isActive: true, isSponsored: false, sponsoredPriority: 0,
+    },
+  ]).onConflictDoNothing();
+
+  // --- Store 3: Electro Tech ---
+  await db.update(products).set({
+    name: "Auriculares Bluetooth Premium",
+    description: "Auriculares inalámbricos con cancelación activa de ruido, 30hs de batería y sonido Hi-Fi. Compatibles con todos los dispositivos.",
+    price: "14999",
+    originalPrice: "20000",
+    image: uImg("1505740420928-5e560c06d30e", 500, 500),
+    images: JSON.stringify([
+      uImg("1505740420928-5e560c06d30e", 800, 800),
+      uImg("1484704849700-f032a568e944", 800, 800),
+      uImg("1574269909862-7e1d70bb8078", 800, 800),
+    ]),
+    isSponsored: true,
+    sponsoredPriority: 3,
+  }).where(eq(products.id, "prod-6"));
+
+  await db.update(products).set({
+    name: "Cargador USB-C 65W GaN",
+    description: "Cargador rápido USB-C con tecnología GaN. Compatible con notebooks, tablets y celulares. Carga tu laptop en menos de 1 hora.",
+    price: "6800",
+    image: uImg("1581091226825-a6a2a5aee158", 500, 500),
+    images: JSON.stringify([uImg("1581091226825-a6a2a5aee158", 800, 800)]),
+    isSponsored: true,
+    sponsoredPriority: 2,
+  }).where(eq(products.id, "prod-7"));
+
+  await db.insert(products).values([
+    {
+      id: "prod-3b", storeId: "store-3",
+      name: "Smart TV 55\" 4K UHD",
+      description: "Televisor Smart 4K Ultra HD con Android TV. Pantalla QLED de 55 pulgadas. HDR10+ y Dolby Vision.",
+      price: "245000", originalPrice: "290000",
+      image: uImg("1593359677879-a4bb92f829d1", 500, 500),
+      images: JSON.stringify([
+        uImg("1593359677879-a4bb92f829d1", 800, 800),
+        uImg("1546587687898-ba8fbcde5b93", 800, 800),
+      ]),
+      category: "Televisores", stock: 8, isActive: true, isSponsored: true, sponsoredPriority: 1,
+    },
+    {
+      id: "prod-3c", storeId: "store-3",
+      name: "Teclado Mecánico RGB",
+      description: "Teclado mecánico con switches Blue, retroiluminación RGB personalizable y diseño compacto TKL.",
+      price: "18500", originalPrice: "22000",
+      image: uImg("1587829741301-dc798b83add3", 500, 500),
+      images: JSON.stringify([uImg("1587829741301-dc798b83add3", 800, 800)]),
+      category: "Accesorios", stock: 20, isActive: true, isSponsored: false, sponsoredPriority: 0,
+    },
+    {
+      id: "prod-3d", storeId: "store-3",
+      name: "Parlante Bluetooth 20W",
+      description: "Parlante portátil con 20W de potencia, resistente al agua IPX7, 12hs de batería y sonido 360°.",
+      price: "22000", originalPrice: "26500",
+      image: uImg("1608043152269-423dbba4e7e1", 500, 500),
+      images: JSON.stringify([uImg("1608043152269-423dbba4e7e1", 800, 800)]),
+      category: "Audio", stock: 12, isActive: true, isSponsored: false, sponsoredPriority: 0,
+    },
+  ]).onConflictDoNothing();
+
+  // --- Store 4: Pizzería Don Luigi ---
+  await db.update(products).set({
+    name: "Pizza Muzzarella Grande",
+    description: "Pizza artesanal de masa madre con salsa de tomate casera y muzzarella de primera. 8 porciones.",
+    price: "8900",
+    image: uImg("1513104890138-7c749659a591", 500, 500),
+    images: JSON.stringify([
+      uImg("1513104890138-7c749659a591", 800, 800),
+      uImg("1565299624946-b28f40a0ae38", 800, 800),
+      uImg("1604382354936-07c5d9983bd3", 800, 800),
+    ]),
+    isSponsored: true,
+    sponsoredPriority: 2,
+  }).where(eq(products.id, "prod-8"));
+
+  await db.update(products).set({
+    name: "Pizza Especial Don Luigi",
+    description: "Pizza especial con jamón cocido, morrones asados, aceitunas negras, huevo duro y muzzarella extra.",
+    price: "12500",
+    originalPrice: "14000",
+    image: uImg("1565299624946-b28f40a0ae38", 500, 500),
+    images: JSON.stringify([uImg("1565299624946-b28f40a0ae38", 800, 800)]),
+    isSponsored: true,
+    sponsoredPriority: 1,
+  }).where(eq(products.id, "prod-9"));
+
+  await db.insert(products).values([
+    {
+      id: "prod-4b", storeId: "store-4",
+      name: "Pizza Napolitana Grande",
+      description: "Pizza con tomates cherry, ajo, albahaca fresca y aceite de oliva sobre base de muzzarella.",
+      price: "11000",
+      image: uImg("1571407970349-bc81e7e96d47", 500, 500),
+      images: JSON.stringify([uImg("1571407970349-bc81e7e96d47", 800, 800)]),
+      category: "Pizzas", stock: 99, isActive: true, isSponsored: false, sponsoredPriority: 0,
+    },
+    {
+      id: "prod-4c", storeId: "store-4",
+      name: "Docena de Empanadas Criolla",
+      description: "Empanadas caseras de carne cortada a cuchillo, cebolla, pimiento y huevo. Cocidas al horno.",
+      price: "9500", originalPrice: "11000",
+      image: uImg("1574484284028-3d37c4d9542c", 500, 500),
+      images: JSON.stringify([uImg("1574484284028-3d37c4d9542c", 800, 800)]),
+      category: "Empanadas", stock: 50, isActive: true, isSponsored: false, sponsoredPriority: 0,
+    },
+    {
+      id: "prod-4d", storeId: "store-4",
+      name: "Combo Familiar (2 Pizzas + Bebida)",
+      description: "2 pizzas grandes a elección + 1 gaseosa 1.5L. El combo perfecto para compartir.",
+      price: "21000", originalPrice: "25000",
+      image: uImg("1604382354936-07c5d9983bd3", 500, 500),
+      images: JSON.stringify([uImg("1604382354936-07c5d9983bd3", 800, 800)]),
+      category: "Combos", stock: 99, isActive: true, isSponsored: false, sponsoredPriority: 0,
+    },
+  ]).onConflictDoNothing();
+
+  // --- Store 5: Moda Express ---
+  await db.update(products).set({
+    name: "Remera Algodón 100% Premium",
+    description: "Remera de algodón peinado, corte regular fit. Disponible en 12 colores y todos los talles (XS al XXL).",
+    price: "4900",
+    originalPrice: "6500",
+    image: uImg("1521572163474-6864f9cf17ab", 500, 500),
+    images: JSON.stringify([
+      uImg("1521572163474-6864f9cf17ab", 800, 800),
+      uImg("1523381210434-271e8be1f52b", 800, 800),
+      uImg("1558769132-cb1aea458c5e", 800, 800),
+    ]),
+    isSponsored: true,
+    sponsoredPriority: 2,
+  }).where(eq(products.id, "prod-10"));
+
+  await db.insert(products).values([
+    {
+      id: "prod-5b", storeId: "store-5",
+      name: "Jean Slim Fit Elastizado",
+      description: "Jean de corte slim con elastano para mayor comodidad. Lavado clásico. Talles 28 al 42.",
+      price: "12500", originalPrice: "15000",
+      image: uImg("1542272604-787c3835535d", 500, 500),
+      images: JSON.stringify([uImg("1542272604-787c3835535d", 800, 800)]),
+      category: "Pantalones", stock: 40, isActive: true, isSponsored: true, sponsoredPriority: 1,
+    },
+    {
+      id: "prod-5c", storeId: "store-5",
+      name: "Zapatillas Running Urbanas",
+      description: "Zapatillas de running con suela amortiguadora. Ideales para correr y uso diario. Talles 36-45.",
+      price: "28000", originalPrice: "35000",
+      image: uImg("1542291026-7eec264c27ff", 500, 500),
+      images: JSON.stringify([uImg("1542291026-7eec264c27ff", 800, 800)]),
+      category: "Calzado", stock: 25, isActive: true, isSponsored: true, sponsoredPriority: 3,
+    },
+    {
+      id: "prod-5d", storeId: "store-5",
+      name: "Vestido Floral Verano",
+      description: "Vestido estampado floral en gasa liviana. Perfecto para el verano. Talles S, M, L, XL.",
+      price: "9800", originalPrice: "12000",
+      image: uImg("1595777457583-95e059d581b8", 500, 500),
+      images: JSON.stringify([uImg("1595777457583-95e059d581b8", 800, 800)]),
+      category: "Vestidos", stock: 30, isActive: true, isSponsored: false, sponsoredPriority: 0,
+    },
+    {
+      id: "prod-5e", storeId: "store-5",
+      name: "Campera Rompeviento Liviana",
+      description: "Campera cortaviento con capucha desmontable. Ideal para primavera-verano. Talle único.",
+      price: "16500", originalPrice: "19900",
+      image: uImg("1591047139829-d91aecb6caea", 500, 500),
+      images: JSON.stringify([uImg("1591047139829-d91aecb6caea", 800, 800)]),
+      category: "Camperas", stock: 20, isActive: true, isSponsored: false, sponsoredPriority: 0,
+    },
+  ]).onConflictDoNothing();
+
+  // --- Store 6: Pet Shop Amigos ---
+  await db.update(products).set({
+    name: "Alimento Perro Adulto Premium 15kg",
+    description: "Alimento balanceado premium formulado con proteínas de pollo y arroz. Sin colorantes artificiales. Para razas medianas y grandes.",
+    price: "24500",
+    originalPrice: "28000",
+    image: uImg("1589924691701-c85e27f9f2d8", 500, 500),
+    images: JSON.stringify([
+      uImg("1589924691701-c85e27f9f2d8", 800, 800),
+      uImg("1587300003388-59208cc962cb", 800, 800),
+      uImg("1548199973-03cce0bbc87b", 800, 800),
+    ]),
+    isSponsored: false,
+    sponsoredPriority: 0,
+  }).where(eq(products.id, "prod-11"));
+
+  await db.update(products).set({
+    name: "Arena Sanitaria Aglomerante 10kg",
+    description: "Arena aglomerante con control de olores y anti-bacteriana. Sin polvo. Duración 4 semanas para 1 gato.",
+    price: "7800",
+    image: uImg("1574158622682-e40e69881006", 500, 500),
+    images: JSON.stringify([uImg("1574158622682-e40e69881006", 800, 800)]),
+  }).where(eq(products.id, "prod-12"));
+
+  await db.insert(products).values([
+    {
+      id: "prod-6b", storeId: "store-6",
+      name: "Correa y Arnés Regulable",
+      description: "Set de correa y arnés acolchado para perros. Cierre de seguridad doble. Talle S al XL.",
+      price: "5200", originalPrice: "6500",
+      image: uImg("1591758369239-ac2b76e23eac", 500, 500),
+      images: JSON.stringify([uImg("1591758369239-ac2b76e23eac", 800, 800)]),
+      category: "Accesorios", stock: 35, isActive: true, isSponsored: false, sponsoredPriority: 0,
+    },
+    {
+      id: "prod-6c", storeId: "store-6",
+      name: "Cama Ortopédica para Mascotas",
+      description: "Cama con espuma viscoelástica ortopédica. Funda lavable. Talla M (60x80cm). Ideal para perros y gatos.",
+      price: "12800", originalPrice: "15500",
+      image: uImg("1590031905406-f18a426d772d", 500, 500),
+      images: JSON.stringify([uImg("1590031905406-f18a426d772d", 800, 800)]),
+      category: "Descanso", stock: 15, isActive: true, isSponsored: false, sponsoredPriority: 0,
+    },
+    {
+      id: "prod-6d", storeId: "store-6",
+      name: "Juguete Interactivo para Gatos",
+      description: "Juguete electrónico con movimiento aleatorio. Estimula el instinto cazador. Pilas incluidas.",
+      price: "3500",
+      image: uImg("1572635148818-ef6fd45eb394", 500, 500),
+      images: JSON.stringify([uImg("1572635148818-ef6fd45eb394", 800, 800)]),
+      category: "Juguetes", stock: 40, isActive: true, isSponsored: false, sponsoredPriority: 0,
+    },
+  ]).onConflictDoNothing();
+
+  // ─── VIDEOS: update to local URLs + thumbnails ────────────────────────────
+
+  await db.update(shoppableVideos).set({
+    videoUrl: "/videos/video-1.mp4",
+    thumbnailUrl: "/thumbnails/thumb-1.jpg",
+    viewsCount: 312, savesCount: 22, clicksCount: 47,
+  }).where(eq(shoppableVideos.id, "video-1"));
+
+  await db.update(shoppableVideos).set({
+    videoUrl: "/videos/video-2.mp4",
+    thumbnailUrl: "/thumbnails/thumb-2.jpg",
+    viewsCount: 891, savesCount: 45, clicksCount: 134,
+  }).where(eq(shoppableVideos.id, "video-2"));
+
+  await db.update(shoppableVideos).set({
+    videoUrl: "/videos/video-3.mp4",
+    thumbnailUrl: "/thumbnails/thumb-3.jpg",
+    viewsCount: 156, savesCount: 10, clicksCount: 28,
+  }).where(eq(shoppableVideos.id, "video-3"));
+
+  await db.update(shoppableVideos).set({
+    videoUrl: "/videos/video-4.mp4",
+    thumbnailUrl: "/thumbnails/thumb-4.jpg",
+    viewsCount: 203, savesCount: 17, clicksCount: 31,
+  }).where(eq(shoppableVideos.id, "video-4"));
+
+  await db.update(shoppableVideos).set({
+    videoUrl: "/videos/video-5.mp4",
+    thumbnailUrl: "/thumbnails/thumb-5.jpg",
+    viewsCount: 78, savesCount: 8, clicksCount: 11,
+  }).where(eq(shoppableVideos.id, "video-5"));
+
+  console.log("[db] Demo data updated.");
 }

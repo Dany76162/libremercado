@@ -1,6 +1,7 @@
 import { useRoute } from "wouter";
-import { Star, MapPin, Clock, Phone, ArrowLeft, MessageSquare } from "lucide-react";
+import { Star, MapPin, Clock, Phone, ArrowLeft, MessageSquare, Images } from "lucide-react";
 import { Link } from "wouter";
+import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -15,6 +16,7 @@ import type { Review } from "@shared/schema";
 export default function StoreDetails() {
   const [match, params] = useRoute("/store/:id");
   const storeId = params?.id || "";
+  const [lightboxImg, setLightboxImg] = useState<string | null>(null);
 
   const { data: store, isLoading: storeLoading } = useStore(storeId);
   const { data: products, isLoading: productsLoading } = useStoreProducts(storeId);
@@ -209,6 +211,42 @@ export default function StoreDetails() {
             </TabsContent>
           ))}
         </Tabs>
+
+        {/* Gallery section */}
+        {(() => {
+          let galleryImgs: string[] = [];
+          try { galleryImgs = JSON.parse((store as any).images || "[]"); } catch {}
+          if (galleryImgs.length === 0) return null;
+          return (
+            <div className="mb-6">
+              <h3 className="text-base font-semibold flex items-center gap-2 mb-3">
+                <Images className="h-4 w-4 text-muted-foreground" />
+                Galería
+              </h3>
+              <div className="grid grid-cols-3 gap-2">
+                {galleryImgs.map((src, i) => (
+                  <div
+                    key={i}
+                    className="aspect-video rounded-lg overflow-hidden cursor-pointer hover:opacity-90 transition-opacity bg-muted"
+                    onClick={() => setLightboxImg(src)}
+                  >
+                    <img src={src} alt={`${store.name} ${i + 1}`} className="w-full h-full object-cover" />
+                  </div>
+                ))}
+              </div>
+            </div>
+          );
+        })()}
+
+        {/* Lightbox */}
+        {lightboxImg && (
+          <div
+            className="fixed inset-0 z-50 bg-black/90 flex items-center justify-center p-4"
+            onClick={() => setLightboxImg(null)}
+          >
+            <img src={lightboxImg} alt="Galería" className="max-w-full max-h-full rounded-lg object-contain" />
+          </div>
+        )}
 
         {/* Reviews section */}
         <Card className="mt-6" data-testid="section-reviews">
