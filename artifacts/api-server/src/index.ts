@@ -19,9 +19,11 @@ if (Number.isNaN(port) || port <= 0) {
 
 (async () => {
   await registerRoutes(httpServer, app);
-  await seedIfEmpty();
-  if (process.env["NODE_ENV"] !== "production" && process.env["SKIP_DEMO_UPDATE"] !== "true") {
-    await updateDemoData();
+  if (process.env["NODE_ENV"] !== "production") {
+    await seedIfEmpty();
+    if (process.env["SKIP_DEMO_UPDATE"] !== "true") {
+      await updateDemoData();
+    }
   }
 
   httpServer.listen(port, "0.0.0.0", () => {
