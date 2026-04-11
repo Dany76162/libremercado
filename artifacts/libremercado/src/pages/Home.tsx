@@ -88,8 +88,8 @@ const benefitCards = [
   {
     icon: CreditCard,
     accentIcon: Smile,
-    iconAnim: "",
-    accentIconAnim: "animate-smile-bounce",
+    iconAnim: "animate-card-tap",
+    accentIconAnim: "animate-wink",
     badge: "FINANCIACIÓN",
     stat: "18",
     statSuffix: "x",

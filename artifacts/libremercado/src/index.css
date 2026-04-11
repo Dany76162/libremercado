@@ -330,3 +330,18 @@
   80%      { transform: scale(1.05) rotate(-3deg); }
 }
 .animate-smile-bounce { animation: smile-bounce 2s ease-in-out infinite; }
+
+@keyframes wink {
+  0%, 55%, 100% { transform: scale(1) rotate(0deg); }
+  60%           { transform: scaleY(0.35) scaleX(1.15) rotate(-4deg); }
+  68%           { transform: scaleY(0.6) scaleX(1.08) rotate(-2deg); }
+  75%           { transform: scale(1) rotate(1deg); }
+}
+@keyframes card-tap {
+  0%, 100% { transform: translateY(0) rotate(0deg); }
+  25%      { transform: translateY(-4px) rotate(-8deg); }
+  50%      { transform: translateY(-2px) rotate(5deg); }
+  75%      { transform: translateY(-1px) rotate(-3deg); }
+}
+.animate-wink     { animation: wink 2.5s ease-in-out infinite; }
+.animate-card-tap { animation: card-tap 2.5s ease-in-out infinite 1.2s; }
