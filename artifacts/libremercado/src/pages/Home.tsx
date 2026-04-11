@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { ArrowRight, Truck, Shield, Clock, CreditCard, Package, UtensilsCrossed, ShoppingCart, Pill, Smartphone, Shirt, Home as HomeIcon, Sparkles, PawPrint, Bus, MapPin, Store, Bike, Tag, type LucideIcon } from "lucide-react";
+import { ArrowRight, Truck, Shield, Clock, CreditCard, Package, UtensilsCrossed, ShoppingCart, Pill, Smartphone, Shirt, Home as HomeIcon, Sparkles, PawPrint, Bus, MapPin, Store, Bike, Tag, Plane, Zap, type LucideIcon } from "lucide-react";
 import { Link } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -84,10 +84,55 @@ const SMALL_CATEGORIES: { id: string; name: string; icon: LucideIcon }[] = [
   { id: "pets", name: "Mascotas", icon: PawPrint },
 ];
 
-const benefitBanners = [
-  { icon: CreditCard, title: "Hasta 18 CUOTAS", subtitle: "SIN INTERÉS", bgColor: "bg-gradient-to-r from-amber-400 to-yellow-500", link: null, travelTab: null },
-  { icon: Package, title: "ENVÍOS EN", subtitle: "24 HORAS", bgColor: "bg-gradient-to-r from-emerald-400 to-green-500", link: null, travelTab: null },
-  { icon: Bus, title: "VIAJES", subtitle: "MICROS Y VUELOS", bgColor: "bg-gradient-to-r from-blue-400 to-cyan-500", link: null, travelTab: "bus" },
+const benefitCards = [
+  {
+    icon: CreditCard,
+    accentIcon: Zap,
+    badge: "FINANCIACIÓN",
+    stat: "18",
+    statSuffix: "x",
+    title: "Sin interés",
+    description: "Pagá en cuotas sin recargo con todas las tarjetas",
+    cta: "Ver cuotas",
+    gradient: "from-[#f59e0b] via-[#d97706] to-[#b45309]",
+    glowColor: "rgba(251,191,36,0.4)",
+    orb1: "bg-yellow-300/25",
+    orb2: "bg-amber-200/20",
+    link: null,
+    travelTab: null,
+  },
+  {
+    icon: Package,
+    accentIcon: Truck,
+    badge: "LOGÍSTICA",
+    stat: "24",
+    statSuffix: "hs",
+    title: "Envío express",
+    description: "Recibí tu pedido al día siguiente en todo el país",
+    cta: "Cómo funciona",
+    gradient: "from-[#059669] via-[#047857] to-[#065f46]",
+    glowColor: "rgba(16,185,129,0.4)",
+    orb1: "bg-emerald-300/25",
+    orb2: "bg-green-200/20",
+    link: null,
+    travelTab: null,
+  },
+  {
+    icon: Plane,
+    accentIcon: Bus,
+    badge: "VIAJES",
+    stat: "500",
+    statSuffix: "+",
+    title: "Destinos",
+    description: "Micros y vuelos al mejor precio desde cualquier provincia",
+    cta: "Buscar viaje",
+    gradient: "from-[#2563eb] via-[#1d4ed8] to-[#1e3a8a]",
+    glowColor: "rgba(59,130,246,0.4)",
+    orb1: "bg-blue-300/25",
+    orb2: "bg-sky-200/20",
+    link: null,
+    travelTab: "bus",
+  },
 ];
 
 function LargeCategoryCard({ cat }: { cat: CategoryDef }) {
@@ -187,34 +232,84 @@ export default function Home() {
 
       <section className="px-4 py-3 max-w-7xl mx-auto">
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          {benefitBanners.map((banner, index) => {
-            const cardContent = (
-              <Card
-                className={`${banner.bgColor} border-0 overflow-hidden hover-elevate cursor-pointer`}
+          {benefitCards.map((card, index) => {
+            const inner = (
+              <div
+                key={index}
                 data-testid={`card-benefit-${index}`}
+                className={`
+                  relative overflow-hidden rounded-2xl cursor-pointer
+                  bg-gradient-to-br ${card.gradient}
+                  transition-all duration-300 ease-out
+                  hover:scale-[1.03] hover:shadow-2xl
+                  group
+                `}
+                style={{ boxShadow: `0 4px 24px 0 ${card.glowColor}` }}
               >
-                <CardContent className="p-4 flex items-center gap-4">
-                  <div className="w-14 h-14 rounded-lg bg-white/20 flex items-center justify-center shrink-0">
-                    <banner.icon className="h-7 w-7 text-white" />
+                {/* Decorative orbs */}
+                <div className={`absolute -top-8 -right-8 w-40 h-40 rounded-full blur-2xl ${card.orb1}`} />
+                <div className={`absolute -bottom-10 -left-6 w-36 h-36 rounded-full blur-2xl ${card.orb2}`} />
+                {/* Subtle grid texture overlay */}
+                <div className="absolute inset-0 opacity-[0.04]"
+                  style={{ backgroundImage: "repeating-linear-gradient(0deg,#fff 0,#fff 1px,transparent 1px,transparent 20px),repeating-linear-gradient(90deg,#fff 0,#fff 1px,transparent 1px,transparent 20px)" }}
+                />
+                {/* Gloss top shine */}
+                <div className="absolute top-0 left-0 right-0 h-1/2 bg-gradient-to-b from-white/10 to-transparent rounded-t-2xl pointer-events-none" />
+
+                <div className="relative z-10 p-5 flex flex-col gap-3">
+                  {/* Top row: badge + icon */}
+                  <div className="flex items-center justify-between">
+                    <span className="text-[10px] font-bold tracking-widest text-white/70 bg-white/10 backdrop-blur-sm px-2.5 py-1 rounded-full border border-white/15">
+                      {card.badge}
+                    </span>
+                    <div className="flex gap-1.5">
+                      <div className="w-9 h-9 rounded-xl bg-white/15 backdrop-blur-sm border border-white/20 flex items-center justify-center">
+                        <card.accentIcon className="h-4 w-4 text-white/80" />
+                      </div>
+                      <div className="w-9 h-9 rounded-xl bg-white/25 backdrop-blur-sm border border-white/30 flex items-center justify-center shadow-lg">
+                        <card.icon className="h-4.5 w-4.5 text-white" />
+                      </div>
+                    </div>
                   </div>
-                  <div className="text-white">
-                    <p className="text-sm font-medium opacity-90">{banner.title}</p>
-                    <p className="text-xl font-bold">{banner.subtitle}</p>
+
+                  {/* Big stat */}
+                  <div className="flex items-end gap-1 leading-none mt-1">
+                    <span className="text-5xl font-black text-white tracking-tight drop-shadow-sm">
+                      {card.stat}
+                    </span>
+                    <span className="text-2xl font-bold text-white/70 mb-1">
+                      {card.statSuffix}
+                    </span>
                   </div>
-                </CardContent>
-              </Card>
+
+                  {/* Title + description */}
+                  <div>
+                    <p className="text-lg font-bold text-white leading-tight">{card.title}</p>
+                    <p className="text-xs text-white/65 mt-0.5 leading-snug">{card.description}</p>
+                  </div>
+
+                  {/* CTA row */}
+                  <div className="flex items-center justify-between mt-1 pt-3 border-t border-white/15">
+                    <span className="text-xs font-semibold text-white/80">{card.cta}</span>
+                    <div className="w-7 h-7 rounded-full bg-white/20 flex items-center justify-center transition-transform duration-200 group-hover:translate-x-1">
+                      <ArrowRight className="h-3.5 w-3.5 text-white" />
+                    </div>
+                  </div>
+                </div>
+              </div>
             );
-            if (banner.travelTab) {
+
+            if (card.travelTab) {
               return (
-                <div key={index} onClick={() => setTravelModal({ open: true, tab: banner.travelTab as "bus" | "flights" })}>
-                  {cardContent}
+                <div key={index} onClick={() => setTravelModal({ open: true, tab: card.travelTab as "bus" | "flights" })}>
+                  {inner}
                 </div>
               );
             }
-            if (banner.link) {
-              return <Link key={index} href={banner.link}>{cardContent}</Link>;
+            if (card.link) {
+              return <Link key={index} href={card.link}>{inner}</Link>;
             }
-            return <div key={index}>{cardContent}</div>;
+            return <div key={index}>{inner}</div>;
           })}
         </div>
       </section>
