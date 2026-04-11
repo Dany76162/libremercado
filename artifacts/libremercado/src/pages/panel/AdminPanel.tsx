@@ -1,7 +1,7 @@
 import { useState } from "react";
 import {
   Users, Store, Package, Megaphone, Settings, Shield,
-  Bike, Building2, Activity, AlertCircle, Headphones, Percent, Truck, Plane, BarChart3, ShieldAlert, Play
+  Bike, Building2, Activity, AlertCircle, Headphones, Percent, Truck, Plane, BarChart3, ShieldAlert, Play, LayoutGrid
 } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -24,6 +24,7 @@ import { AdminSettingsTab } from "./tabs/AdminSettingsTab";
 import { AdminCampaignsTab } from "./tabs/AdminCampaignsTab";
 import AdminDisputesTab from "./tabs/AdminDisputesTab";
 import { AdminVideosTab } from "./tabs/AdminVideosTab";
+import { AdminHomeSettingsTab } from "./tabs/AdminHomeSettingsTab";
 
 interface PlatformStats {
   users: { total: number; byRole: { customer: number; merchant: number; rider: number; admin: number } };
@@ -124,6 +125,9 @@ export default function AdminPanel() {
           </TabsTrigger>
           <TabsTrigger value="videos" data-testid="tab-videos">
             <Play className="h-4 w-4 mr-2" />Reelmark
+          </TabsTrigger>
+          <TabsTrigger value="home-settings" data-testid="tab-home-settings">
+            <LayoutGrid className="h-4 w-4 mr-2" />Inicio
           </TabsTrigger>
           <TabsTrigger value="settings" data-testid="tab-settings">
             <Settings className="h-4 w-4 mr-2" />Configuracion
@@ -237,6 +241,10 @@ export default function AdminPanel() {
 
         <TabsContent value="videos" className="mt-0">
           <AdminVideosTab />
+        </TabsContent>
+
+        <TabsContent value="home-settings" className="mt-0">
+          <AdminHomeSettingsTab />
         </TabsContent>
 
         <TabsContent value="settings" className="mt-0">

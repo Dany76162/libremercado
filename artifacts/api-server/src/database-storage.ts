@@ -5,7 +5,7 @@ import {
   users, stores, products, orders, orderItems, promos,
   travelOffers, kycDocuments, subscriptionPlans, merchantApplications,
   riderProfiles, riderEarnings, platformCommissions, adBillings, reviews, notifications, travelBookings, disputes, favorites,
-  shoppableVideos, storeFollows,
+  shoppableVideos, storeFollows, siteSettings,
 } from "@workspace/db";
 import type {
   User, InsertUser,
@@ -753,6 +753,37 @@ export class DatabaseStorage implements IStorage {
     return db.select().from(shoppableVideos)
       .orderBy(desc(shoppableVideos.createdAt));
   }
+
+  async getSiteSetting(key: string): Promise<string | null> {
+    const [row] = await db.select().from(siteSettings).where(eq(siteSettings.key, key));
+    return row?.value ?? null;
+  }
+
+  async getAllSiteSettings(): Promise<Record<string, string>> {
+    const rows = await db.select().from(siteSettings);
+    return Object.fromEntries(rows.map((r) => [r.key, r.value]));
+  }
+
+  async setSiteSetting(key: string, value: string): Promise<void> {
+    await db.insert(siteSettings)
+      .values({ key, value, updatedAt: new Date() })
+      .onConflictDoUpdate({ target: siteSettings.key, set: { value, updatedAt: new Date() } });
+  }
+
+  async getDiscountedProducts(category?: string, limitN = 8): Promise<Product[]> {
+    const where = and(
+      eq(products.isActive, true),
+      gt(products.stock, 0),
+      sql`${products.originalPrice} IS NOT NULL AND ${products.originalPrice} > ${products.price}`
+    );
+    const filtered = category && category !== "all"
+      ? and(where, ilike(products.category, `%${category}%`))
+      : where;
+    return db.select().from(products)
+      .where(filtered)
+      .orderBy(sql`(${products.originalPrice}::numeric - ${products.price}::numeric) / ${products.originalPrice}::numeric DESC`)
+      .limit(limitN);
+  }
 }
 
 // ─── SEED ──────────────────────────────────────────────────────────────────
@@ -838,11 +869,106 @@ export async function seedIfEmpty() {
 
   const promoBase = { isActive: true, generatedByAi: false, targetType: "global" as const, impressions: 0, clicks: 0, mediaType: "image" as const, placement: "hero_home" as const, pricingModel: "flat" as const, budget: "0", spentAmount: "0", commercialStatus: "active" as const };
 
-  // Promos
+  // Promos — use upsert so images are always in sync
+  const bannerPromos = [
+    {
+      ...promoBase,
+      id: "promo-1",
+      title: "FECHAS DOBLES",
+      description: "Hasta 40% OFF y hasta 18 cuotas sin interés en miles de productos",
+      image: uImg("1607082348824-0a96f2a4b9da", 1200, 500),
+      link: "/explore?filter=ofertas",
+      type: "banner" as const,
+      advertiser: "PachaPay",
+      discount: "40% OFF",
+      priority: 10,
+    },
+    {
+      ...promoBase,
+      id: "promo-2",
+      title: "Envío Gratis en tu primer pedido",
+      description: "Registrate y obtené envío gratis en tu primera compra",
+      image: uImg("1553062407-98eeb64c6a62", 1200, 500),
+      link: "/account",
+      type: "banner" as const,
+      advertiser: "PachaPay",
+      discount: "ENVÍO GRATIS",
+      priority: 9,
+    },
+    {
+      ...promoBase,
+      id: "promo-video-1",
+      title: "Hot Sale PachaPay",
+      description: "Los mejores descuentos del año están aquí. No te los pierdas.",
+      videoUrl: "https://storage.googleapis.com/gtv-videos-bucket/sample/ForBiggerMeltdowns.mp4",
+      mediaType: "video" as const,
+      link: "/explore?filter=hotsale",
+      type: "banner" as const,
+      advertiser: "PachaPay",
+      discount: "HASTA 70% OFF",
+      priority: 8,
+    },
+    {
+      ...promoBase,
+      id: "promo-kirquincho",
+      title: "Kirquincho — Tu viaje en bus",
+      description: "Comprá tu pasaje online con los mejores precios. Rutas en todo el país.",
+      image: uImg("1570125909517-53cb21c89ff2", 1200, 500),
+      link: "/explore?filter=viajes",
+      type: "banner" as const,
+      advertiser: "Kirquincho",
+      discount: "RESERVA YA",
+      priority: 7,
+    },
+    {
+      ...promoBase,
+      id: "promo-jetmart",
+      title: "JetMart — Vuelos desde $12.999",
+      description: "Comprá tu pasaje aéreo al mejor precio. Salidas desde Buenos Aires, Córdoba y Mendoza.",
+      image: uImg("1474302770737-173ee21bab63", 1200, 500),
+      link: "/explore?filter=vuelos",
+      type: "banner" as const,
+      advertiser: "JetMart",
+      discount: "DESDE $12.999",
+      priority: 6,
+    },
+    {
+      ...promoBase,
+      id: "promo-electro",
+      title: "Hot Sale Electrodomésticos",
+      description: "Heladeras, lavarropas, TV y más con hasta 60% OFF. 24 cuotas sin interés.",
+      image: uImg("1518770660439-4636190af475", 1200, 500),
+      link: "/explore?category=electronics",
+      type: "banner" as const,
+      advertiser: "ElectroHogar",
+      discount: "HASTA 60% OFF",
+      priority: 5,
+    },
+  ];
+
+  for (const promo of bannerPromos) {
+    const existing = await db.select({ id: promos.id }).from(promos).where(eq(promos.id, promo.id));
+    if (existing.length > 0) {
+      await db.update(promos).set({
+        title: promo.title,
+        description: promo.description,
+        image: (promo as any).image ?? null,
+        videoUrl: (promo as any).videoUrl ?? null,
+        mediaType: promo.mediaType,
+        link: promo.link ?? null,
+        discount: promo.discount ?? null,
+        advertiser: promo.advertiser ?? null,
+        priority: promo.priority,
+        isActive: true,
+        placement: promo.placement,
+        commercialStatus: promo.commercialStatus,
+      }).where(eq(promos.id, promo.id));
+    } else {
+      await db.insert(promos).values(promo);
+    }
+  }
+
   await db.insert(promos).values([
-    { ...promoBase, id: "promo-1", title: "LLEGARON LAS FECHAS DOBLES", description: "Hasta 40% OFF y hasta 18 cuotas sin interés", link: "/explore?filter=ofertas", type: "banner", advertiser: "PachaPay", discount: "40% OFF", priority: 1 },
-    { ...promoBase, id: "promo-2", title: "Envío Gratis en tu primer pedido", description: "Registrate y obtené envío gratis en tu primera compra", link: "/account", type: "banner", advertiser: "PachaPay", discount: "ENVÍO GRATIS", priority: 2 },
-    { ...promoBase, id: "promo-video-1", title: "Hot Sale PachaPay", description: "Los mejores descuentos del año están aquí. No te los pierdas.", videoUrl: "https://storage.googleapis.com/gtv-videos-bucket/sample/ForBiggerMeltdowns.mp4", mediaType: "video" as const, link: "/explore?filter=hotsale", type: "banner", advertiser: "PachaPay", discount: "HASTA 70% OFF", priority: 3 },
     { ...promoBase, id: "promo-3", title: "Celulares y Tablets", description: "Los mejores precios en tecnología móvil", link: "/explore?category=electronics", type: "category", discount: "Hasta 40% OFF", priority: 1 },
     { ...promoBase, id: "promo-4", title: "Computación", description: "Notebooks, PCs y accesorios", link: "/explore?category=electronics", type: "category", discount: "Hasta 40% OFF", priority: 2 },
     { ...promoBase, id: "promo-5", title: "Zapatillas", description: "Las mejores marcas deportivas", link: "/explore?category=fashion", type: "category", discount: "Hasta 40% OFF", priority: 3 },

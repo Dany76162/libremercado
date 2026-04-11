@@ -718,6 +718,17 @@ export async function registerRoutes(
     res.json(products.slice(0, 10));
   });
 
+  app.get("/api/products/discounted", async (req, res) => {
+    try {
+      const category = req.query.category as string | undefined;
+      const limit = parseInt((req.query.limit as string) || "8", 10);
+      const result = await storage.getDiscountedProducts(category, limit);
+      res.json(result);
+    } catch (err) {
+      res.status(500).json({ error: "Error fetching discounted products" });
+    }
+  });
+
   app.get("/api/products/:id", async (req, res) => {
     const product = await storage.getProduct(req.params.id);
     if (!product) {
@@ -2762,6 +2773,28 @@ Responde en formato JSON con la siguiente estructura:
     if (!video) return res.status(404).json({ error: "Video no encontrado" });
     const updated = await storage.updateVideo(req.params.id, { isSponsored: !video.isSponsored });
     res.json(updated);
+  });
+
+  // Site settings: get all
+  app.get("/api/config/home-settings", async (_req, res) => {
+    try {
+      const settings = await storage.getAllSiteSettings();
+      res.json(settings);
+    } catch (err) {
+      res.status(500).json({ error: "Error fetching home settings" });
+    }
+  });
+
+  // Site settings: update one
+  app.patch("/api/config/home-settings", requireAuth, requireRole("admin"), async (req, res) => {
+    try {
+      const { key, value } = req.body as { key: string; value: string };
+      if (!key || value === undefined) return res.status(400).json({ error: "key and value required" });
+      await storage.setSiteSetting(key, value);
+      res.json({ ok: true });
+    } catch (err) {
+      res.status(500).json({ error: "Error updating home setting" });
+    }
   });
 
   return httpServer;

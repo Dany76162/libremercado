@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { ArrowRight, Truck, Shield, Clock, CreditCard, Package, UtensilsCrossed, ShoppingCart, Pill, Smartphone, Shirt, Home as HomeIcon, Sparkles, PawPrint, Bus, MapPin, Store, Bike, type LucideIcon } from "lucide-react";
+import { ArrowRight, Truck, Shield, Clock, CreditCard, Package, UtensilsCrossed, ShoppingCart, Pill, Smartphone, Shirt, Home as HomeIcon, Sparkles, PawPrint, Bus, MapPin, Store, Bike, Tag, type LucideIcon } from "lucide-react";
 import { Link } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -10,10 +10,70 @@ import { NoticeCard } from "@/components/feed/NoticeCard";
 import { ProductCard } from "@/components/marketplace/ProductCard";
 import { StoreCard } from "@/components/marketplace/StoreCard";
 import { TravelModal } from "@/components/travel/TravelModal";
-import { useFeaturedProducts, useFeaturedStores, useStores, usePromoBanners, usePromoNotices, usePromoCategories } from "@/hooks/use-marketplace";
+import { useFeaturedProducts, useFeaturedStores, useStores, usePromoBanners, usePromoNotices, usePromoCategories, useDiscountedProducts, useHomeSettings } from "@/hooks/use-marketplace";
 import { useLocation as useUserLocation } from "@/hooks/use-location";
 
-const categories: { id: string; name: string; icon: LucideIcon }[] = [
+const DEFAULT_CATEGORY_IMAGES: Record<string, string> = {
+  food: "https://images.unsplash.com/photo-1504674900247-0877df9cc836?w=300&h=200&fit=crop&auto=format&q=80",
+  grocery: "https://images.unsplash.com/photo-1542838132-92c53300491e?w=300&h=200&fit=crop&auto=format&q=80",
+  pharmacy: "https://images.unsplash.com/photo-1584308666744-24d5c474f2ae?w=300&h=200&fit=crop&auto=format&q=80",
+  electronics: "https://images.unsplash.com/photo-1498049794561-7780e7231661?w=300&h=200&fit=crop&auto=format&q=80",
+  fashion: "https://images.unsplash.com/photo-1445205170230-053b83016050?w=300&h=200&fit=crop&auto=format&q=80",
+  home: "https://images.unsplash.com/photo-1484101403633-562f891dc89a?w=300&h=200&fit=crop&auto=format&q=80",
+  beauty: "https://images.unsplash.com/photo-1522335789203-aabd1fc54bc9?w=300&h=200&fit=crop&auto=format&q=80",
+  pets: "https://images.unsplash.com/photo-1415369629372-26f2fe60c467?w=300&h=200&fit=crop&auto=format&q=80",
+};
+
+interface CategoryDef {
+  id: string;
+  name: string;
+  icon: LucideIcon;
+  queryCategory: string;
+  link: string;
+  fallbackImage: string;
+  discountLabel: string;
+}
+
+const LARGE_CATEGORIES: CategoryDef[] = [
+  {
+    id: "electronics-mobile",
+    name: "Celulares y Tablets",
+    icon: Smartphone,
+    queryCategory: "celulares",
+    link: "/explore?category=electronics",
+    fallbackImage: "https://images.unsplash.com/photo-1610945415295-d9bbf067e59c?w=400&h=280&fit=crop&auto=format&q=80",
+    discountLabel: "Hasta 40% OFF",
+  },
+  {
+    id: "electronics-pc",
+    name: "Computación",
+    icon: Smartphone,
+    queryCategory: "computacion",
+    link: "/explore?category=electronics",
+    fallbackImage: "https://images.unsplash.com/photo-1593642632559-0c6d3fc62b89?w=400&h=280&fit=crop&auto=format&q=80",
+    discountLabel: "Hasta 40% OFF",
+  },
+  {
+    id: "fashion-shoes",
+    name: "Zapatillas",
+    icon: Shirt,
+    queryCategory: "zapatillas",
+    link: "/explore?category=fashion",
+    fallbackImage: "https://images.unsplash.com/photo-1542291026-7eec264c27ff?w=400&h=280&fit=crop&auto=format&q=80",
+    discountLabel: "Hasta 40% OFF",
+  },
+  {
+    id: "fashion-clothes",
+    name: "Moda",
+    icon: Shirt,
+    queryCategory: "ropa",
+    link: "/explore?category=fashion",
+    fallbackImage: "https://images.unsplash.com/photo-1490481651871-ab68de25d43d?w=400&h=280&fit=crop&auto=format&q=80",
+    discountLabel: "Hasta 40% OFF",
+  },
+];
+
+const SMALL_CATEGORIES: { id: string; name: string; icon: LucideIcon }[] = [
   { id: "food", name: "Comida", icon: UtensilsCrossed },
   { id: "grocery", name: "Supermercado", icon: ShoppingCart },
   { id: "pharmacy", name: "Farmacia", icon: Pill },
@@ -25,38 +85,73 @@ const categories: { id: string; name: string; icon: LucideIcon }[] = [
 ];
 
 const benefitBanners = [
-  {
-    icon: CreditCard,
-    title: "Hasta 18 CUOTAS",
-    subtitle: "SIN INTERÉS",
-    bgColor: "bg-gradient-to-r from-amber-400 to-yellow-500",
-    link: null,
-    travelTab: null,
-  },
-  {
-    icon: Package,
-    title: "ENVÍOS EN",
-    subtitle: "24 HORAS",
-    bgColor: "bg-gradient-to-r from-emerald-400 to-green-500",
-    link: null,
-    travelTab: null,
-  },
-  {
-    icon: Bus,
-    title: "VIAJES",
-    subtitle: "MICROS Y VUELOS",
-    bgColor: "bg-gradient-to-r from-blue-400 to-cyan-500",
-    link: null,
-    travelTab: "bus",
-  },
+  { icon: CreditCard, title: "Hasta 18 CUOTAS", subtitle: "SIN INTERÉS", bgColor: "bg-gradient-to-r from-amber-400 to-yellow-500", link: null, travelTab: null },
+  { icon: Package, title: "ENVÍOS EN", subtitle: "24 HORAS", bgColor: "bg-gradient-to-r from-emerald-400 to-green-500", link: null, travelTab: null },
+  { icon: Bus, title: "VIAJES", subtitle: "MICROS Y VUELOS", bgColor: "bg-gradient-to-r from-blue-400 to-cyan-500", link: null, travelTab: "bus" },
 ];
 
-const categoryCards = [
-  { id: "electronics-mobile", name: "Celulares y Tablets", discount: "Hasta 40% OFF", icon: Smartphone, link: "/explore?category=electronics" },
-  { id: "electronics-pc", name: "Computación", discount: "Hasta 40% OFF", icon: Smartphone, link: "/explore?category=electronics" },
-  { id: "fashion-shoes", name: "Zapatillas", discount: "Hasta 40% OFF", icon: Shirt, link: "/explore?category=fashion" },
-  { id: "fashion-clothes", name: "Moda", discount: "Hasta 40% OFF", icon: Shirt, link: "/explore?category=fashion" },
-];
+function LargeCategoryCard({ cat }: { cat: CategoryDef }) {
+  const { data: discounted, isLoading } = useDiscountedProducts(cat.queryCategory, 4);
+  const firstProduct = discounted?.[0];
+  const productImages = (discounted ?? [])
+    .map((p) => {
+      try { return (JSON.parse(p.images || "[]") as string[])[0]; } catch { return p.images || ""; }
+    })
+    .filter(Boolean)
+    .slice(0, 4);
+
+  const heroImage = productImages[0] || cat.fallbackImage;
+
+  const discountPct = firstProduct && firstProduct.originalPrice
+    ? Math.round((1 - parseFloat(firstProduct.price) / parseFloat(firstProduct.originalPrice)) * 100)
+    : null;
+
+  return (
+    <Link href={cat.link}>
+      <Card className="hover-elevate cursor-pointer h-full overflow-hidden group" data-testid={`card-category-promo-${cat.id}`}>
+        <div className="relative h-[180px] bg-muted overflow-hidden">
+          <img
+            src={heroImage}
+            alt={cat.name}
+            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+            onError={(e) => { (e.target as HTMLImageElement).src = cat.fallbackImage; }}
+          />
+          <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent" />
+          {productImages.length > 1 && (
+            <div className="absolute bottom-2 right-2 flex gap-1">
+              {productImages.slice(1, 4).map((img, i) => (
+                <div key={i} className="w-10 h-10 rounded border-2 border-white/70 overflow-hidden bg-muted">
+                  <img src={img} alt="" className="w-full h-full object-cover" onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }} />
+                </div>
+              ))}
+            </div>
+          )}
+          <div className="absolute top-2 left-2">
+            {isLoading ? (
+              <Skeleton className="h-5 w-20" />
+            ) : (
+              <Badge className="bg-primary text-white font-bold text-xs shadow">
+                {discountPct ? `Hasta ${discountPct}% OFF` : cat.discountLabel}
+              </Badge>
+            )}
+          </div>
+        </div>
+        <CardContent className="p-3">
+          <h3 className="font-semibold text-foreground text-sm">{cat.name}</h3>
+          {firstProduct && (
+            <p className="text-xs text-muted-foreground line-clamp-1 mt-0.5">{firstProduct.name}</p>
+          )}
+          <div className="flex items-center gap-1 mt-1">
+            <Tag className="h-3 w-3 text-primary" />
+            <span className="text-xs text-primary font-medium">
+              {isLoading ? "Cargando..." : `${discounted?.length ?? 0} productos en oferta`}
+            </span>
+          </div>
+        </CardContent>
+      </Card>
+    </Link>
+  );
+}
 
 export default function Home() {
   const [travelModal, setTravelModal] = useState<{ open: boolean; tab: "bus" | "flights" }>({ open: false, tab: "bus" });
@@ -78,6 +173,7 @@ export default function Home() {
   const { data: banners, isLoading: bannersLoading } = usePromoBanners(bannerLocationFilter);
   const { data: notices, isLoading: noticesLoading } = usePromoNotices();
   const { data: promoCategories } = usePromoCategories();
+  const { data: homeSettings } = useHomeSettings();
 
   return (
     <div className="min-h-screen bg-muted/30">
@@ -93,7 +189,7 @@ export default function Home() {
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           {benefitBanners.map((banner, index) => {
             const cardContent = (
-              <Card 
+              <Card
                 className={`${banner.bgColor} border-0 overflow-hidden hover-elevate cursor-pointer`}
                 data-testid={`card-benefit-${index}`}
               >
@@ -108,23 +204,15 @@ export default function Home() {
                 </CardContent>
               </Card>
             );
-
             if (banner.travelTab) {
               return (
-                <div
-                  key={index}
-                  onClick={() => setTravelModal({ open: true, tab: banner.travelTab as "bus" | "flights" })}
-                >
+                <div key={index} onClick={() => setTravelModal({ open: true, tab: banner.travelTab as "bus" | "flights" })}>
                   {cardContent}
                 </div>
               );
             }
             if (banner.link) {
-              return (
-                <Link key={index} href={banner.link}>
-                  {cardContent}
-                </Link>
-              );
+              return <Link key={index} href={banner.link}>{cardContent}</Link>;
             }
             return <div key={index}>{cardContent}</div>;
           })}
@@ -141,53 +229,61 @@ export default function Home() {
       )}
 
       <section className="px-4 py-4 max-w-7xl mx-auto">
+        <div className="flex items-center justify-between mb-3">
+          <h2 className="text-lg font-bold">Categorías en oferta</h2>
+          <Link href="/explore">
+            <Button variant="ghost" size="sm">Ver todo <ArrowRight className="h-4 w-4 ml-1" /></Button>
+          </Link>
+        </div>
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          {categoryCards.map((cat, index) => (
-            <Link key={cat.id} href={cat.link}>
-              <Card 
-                className="bg-card hover-elevate cursor-pointer h-full"
-                data-testid={`card-category-promo-${cat.id}`}
-              >
-                <CardContent className="p-4 flex flex-col justify-between h-full min-h-[140px]">
-                  <div>
-                    <h3 className="font-semibold text-foreground mb-1">
-                      {cat.name}
-                    </h3>
-                    <p className="text-sm text-primary font-bold">
-                      {cat.discount}
-                    </p>
-                  </div>
-                  <div className="flex justify-end mt-2">
-                    <div className="w-16 h-16 rounded-lg bg-muted flex items-center justify-center">
-                      <cat.icon className="h-8 w-8 text-muted-foreground" />
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            </Link>
+          {LARGE_CATEGORIES.map((cat) => (
+            <LargeCategoryCard key={cat.id} cat={cat} />
           ))}
         </div>
       </section>
 
       <section className="px-4 py-4 max-w-7xl mx-auto">
         <div className="grid grid-cols-4 md:grid-cols-8 gap-3">
-          {categories.map((category) => (
-            <Link key={category.id} href={`/explore?category=${category.id}`}>
-              <Card
-                className="hover-elevate active-elevate-2 cursor-pointer"
-                data-testid={`card-category-${category.id}`}
-              >
-                <CardContent className="p-3 text-center">
-                  <div className="w-8 h-8 md:w-10 md:h-10 mx-auto mb-1 rounded-full bg-primary/10 flex items-center justify-center">
-                    <category.icon className="h-4 w-4 md:h-5 md:w-5 text-primary" />
-                  </div>
-                  <span className="text-xs font-medium line-clamp-1">
-                    {category.name}
-                  </span>
-                </CardContent>
-              </Card>
-            </Link>
-          ))}
+          {SMALL_CATEGORIES.map((category) => {
+            const img = homeSettings?.[`cat_img_${category.id}`] || DEFAULT_CATEGORY_IMAGES[category.id];
+            return (
+              <Link key={category.id} href={`/explore?category=${category.id}`}>
+                <Card
+                  className="hover-elevate active-elevate-2 cursor-pointer overflow-hidden"
+                  data-testid={`card-category-${category.id}`}
+                >
+                  <CardContent className="p-0">
+                    <div className="relative w-full aspect-square">
+                      {img ? (
+                        <>
+                          <img
+                            src={img}
+                            alt={category.name}
+                            className="w-full h-full object-cover"
+                            onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }}
+                          />
+                          <div className="absolute inset-0 bg-black/40" />
+                          <div className="absolute inset-0 flex flex-col items-center justify-center">
+                            <category.icon className="h-5 w-5 md:h-6 md:w-6 text-white drop-shadow-md" />
+                            <span className="text-[10px] md:text-xs font-semibold text-white drop-shadow-md mt-1 text-center px-1 line-clamp-1">
+                              {category.name}
+                            </span>
+                          </div>
+                        </>
+                      ) : (
+                        <div className="flex flex-col items-center justify-center h-full p-3">
+                          <div className="w-8 h-8 md:w-10 md:h-10 mx-auto mb-1 rounded-full bg-primary/10 flex items-center justify-center">
+                            <category.icon className="h-4 w-4 md:h-5 md:w-5 text-primary" />
+                          </div>
+                          <span className="text-xs font-medium line-clamp-1">{category.name}</span>
+                        </div>
+                      )}
+                    </div>
+                  </CardContent>
+                </Card>
+              </Link>
+            );
+          })}
         </div>
       </section>
 

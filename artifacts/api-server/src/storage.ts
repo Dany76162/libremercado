@@ -192,6 +192,14 @@ export interface IStorage {
   trackVideoView(id: string): Promise<void>;
   trackVideoAddToCart(id: string): Promise<void>;
   getAllVideosForAdmin(status?: VideoStatus): Promise<ShoppableVideo[]>;
+
+  // Site Settings
+  getSiteSetting(key: string): Promise<string | null>;
+  getAllSiteSettings(): Promise<Record<string, string>>;
+  setSiteSetting(key: string, value: string): Promise<void>;
+
+  // Discounted Products
+  getDiscountedProducts(category?: string, limit?: number): Promise<Product[]>;
 }
 
 export class MemStorage implements IStorage {
@@ -1496,6 +1504,21 @@ export class MemStorage implements IStorage {
   async isFollowingStore(_userId: string, _storeId: string): Promise<boolean> { return false; }
   async getStoreFollowersCount(_storeId: string): Promise<number> { return 0; }
   async getFollowedStoreIds(_userId: string): Promise<string[]> { return []; }
+
+  async getSiteSetting(_key: string): Promise<string | null> { return null; }
+  async getAllSiteSettings(): Promise<Record<string, string>> { return {}; }
+  async setSiteSetting(_key: string, _value: string): Promise<void> {}
+  async getDiscountedProducts(_category?: string, _limit?: number): Promise<Product[]> { return []; }
+
+  async getAllVideosForAdmin(_status?: VideoStatus): Promise<ShoppableVideo[]> { return []; }
+  async getVideoFeed(_params: { provinciaId?: string; ciudadId?: string; limit?: number; offset?: number; userId?: string }): Promise<ShoppableVideo[]> { return []; }
+  async getVideosByMerchant(_merchantId: string): Promise<ShoppableVideo[]> { return []; }
+  async getVideo(_id: string): Promise<ShoppableVideo | undefined> { return undefined; }
+  async createVideo(_data: InsertShoppableVideo): Promise<ShoppableVideo> { throw new Error("Not implemented"); }
+  async updateVideo(_id: string, _data: Partial<InsertShoppableVideo>): Promise<ShoppableVideo | undefined> { return undefined; }
+  async deleteVideo(_id: string): Promise<boolean> { return false; }
+  async trackVideoView(_id: string): Promise<void> {}
+  async trackVideoAddToCart(_id: string): Promise<void> {}
 }
 
 export const storage = new MemStorage();

@@ -268,3 +268,20 @@ export function useUpdateOrder() {
     },
   });
 }
+
+export function useDiscountedProducts(category?: string, limit = 8) {
+  const params = new URLSearchParams();
+  if (category) params.set("category", category);
+  params.set("limit", String(limit));
+  return useQuery<Product[]>({
+    queryKey: ["/api/products/discounted", category, limit],
+    queryFn: () => fetch(`/api/products/discounted?${params.toString()}`).then((r) => r.json()),
+  });
+}
+
+export function useHomeSettings() {
+  return useQuery<Record<string, string>>({
+    queryKey: ["/api/config/home-settings"],
+    queryFn: () => fetch("/api/config/home-settings").then((r) => r.json()),
+  });
+}

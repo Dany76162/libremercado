@@ -1,5 +1,7 @@
 import { useState } from "react";
-import { Megaphone, Plus, Sparkles, Image, Video, Edit, Trash2, Calendar, RefreshCw, CheckCircle, LayoutTemplate } from "lucide-react";
+import { Megaphone, Plus, Sparkles, Image, Video, Edit, Trash2, Calendar, RefreshCw, CheckCircle, LayoutTemplate, Link2 } from "lucide-react";
+import { Textarea } from "@/components/ui/textarea";
+import { Switch } from "@/components/ui/switch";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -40,9 +42,25 @@ interface AIGeneratedContent {
   suggestedEndDate: string;
 }
 
+const EMPTY_FORM = {
+  title: "",
+  description: "",
+  image: "",
+  discount: "",
+  advertiser: "",
+  link: "",
+  type: "banner" as const,
+  mediaType: "image" as const,
+  placement: "hero_home" as const,
+  priority: 5,
+  isActive: true,
+};
+
 export function AdminPromosTab() {
   const { toast } = useToast();
   const [showAiDialog, setShowAiDialog] = useState(false);
+  const [showCreateDialog, setShowCreateDialog] = useState(false);
+  const [createForm, setCreateForm] = useState(EMPTY_FORM);
   const [aiContent, setAiContent] = useState<AIGeneratedContent | null>(null);
   const [aiParams, setAiParams] = useState({ type: "banner", targetAudience: "", productCategory: "", tone: "profesional", duration: "7 dias" });
 
@@ -80,6 +98,41 @@ export function AdminPromosTab() {
       setAiContent(null);
     },
     onError: () => toast({ title: "Error", description: "No se pudo crear la publicidad", variant: "destructive" }),
+  });
+
+  const createPromoMutation = useMutation({
+    mutationFn: async (data: typeof EMPTY_FORM) => {
+      const res = await apiRequest("POST", "/api/promos", {
+        ...data,
+        generatedByAi: false,
+        targetType: "global",
+        commercialStatus: "active",
+        pricingModel: "flat",
+        budget: "0",
+        spentAmount: "0",
+      });
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/promos/banners"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/promos/notices"] });
+      toast({ title: "Banner creado", description: "La publicidad fue creada exitosamente" });
+      setShowCreateDialog(false);
+      setCreateForm(EMPTY_FORM);
+    },
+    onError: () => toast({ title: "Error", description: "No se pudo crear la publicidad", variant: "destructive" }),
+  });
+
+  const deletePromoMutation = useMutation({
+    mutationFn: async (id: string) => {
+      await apiRequest("DELETE", `/api/promos/${id}`, {});
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/promos/banners"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/promos/notices"] });
+      toast({ title: "Eliminado", description: "La publicidad fue eliminada" });
+    },
+    onError: () => toast({ title: "Error al eliminar", variant: "destructive" }),
   });
 
   const cleanupExpiredMutation = useMutation({
@@ -124,7 +177,7 @@ export function AdminPromosTab() {
               <Button size="sm" variant="outline" onClick={() => setShowAiDialog(true)} data-testid="button-generate-ai-promo">
                 <Sparkles className="h-4 w-4 mr-2" />Generar con IA
               </Button>
-              <Button size="sm" data-testid="button-add-promo">
+              <Button size="sm" onClick={() => setShowCreateDialog(true)} data-testid="button-add-promo">
                 <Plus className="h-4 w-4 mr-2" />Crear Publicidad
               </Button>
             </div>
@@ -197,7 +250,7 @@ export function AdminPromosTab() {
                           </SelectContent>
                         </Select>
                         <Button variant="outline" size="icon" data-testid={`button-edit-banner-${banner.id}`}><Edit className="h-4 w-4" /></Button>
-                        <Button variant="outline" size="icon" data-testid={`button-delete-banner-${banner.id}`}><Trash2 className="h-4 w-4" /></Button>
+                        <Button variant="outline" size="icon" onClick={() => deletePromoMutation.mutate(banner.id)} data-testid={`button-delete-banner-${banner.id}`}><Trash2 className="h-4 w-4" /></Button>
                       </div>
                     </div>
                   );
@@ -255,6 +308,95 @@ export function AdminPromosTab() {
           </CardContent>
         </Card>
       </div>
+
+      {/* Create Promo Dialog */}
+      <Dialog open={showCreateDialog} onOpenChange={setShowCreateDialog}>
+        <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Plus className="h-5 w-5 text-primary" />
+              Crear Publicidad Manual
+            </DialogTitle>
+            <DialogDescription>Completá los datos para crear un nuevo banner o aviso</DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <Label>Tipo</Label>
+              <Select value={createForm.type} onValueChange={(v) => setCreateForm((f) => ({ ...f, type: v as any }))}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="banner">Banner (slider principal)</SelectItem>
+                  <SelectItem value="notice">Aviso / Novedad</SelectItem>
+                  <SelectItem value="category">Categoría</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Label>Título *</Label>
+              <Input placeholder="Ej: Hasta 50% OFF en Electrónica" value={createForm.title} onChange={(e) => setCreateForm((f) => ({ ...f, title: e.target.value }))} />
+            </div>
+            <div className="space-y-2">
+              <Label>Descripción</Label>
+              <Textarea placeholder="Descripción de la publicidad..." value={createForm.description} onChange={(e) => setCreateForm((f) => ({ ...f, description: e.target.value }))} rows={3} />
+            </div>
+            <div className="space-y-2">
+              <Label className="flex items-center gap-1"><Image className="h-3 w-3" /> URL de imagen</Label>
+              <Input placeholder="https://images.unsplash.com/..." value={createForm.image} onChange={(e) => setCreateForm((f) => ({ ...f, image: e.target.value }))} />
+              {createForm.image && (
+                <div className="mt-2 rounded-md overflow-hidden border h-24">
+                  <img src={createForm.image} alt="preview" className="w-full h-full object-cover" onError={(e) => { (e.target as HTMLImageElement).src = ""; }} />
+                </div>
+              )}
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-2">
+                <Label>Texto de descuento</Label>
+                <Input placeholder="Ej: 40% OFF" value={createForm.discount} onChange={(e) => setCreateForm((f) => ({ ...f, discount: e.target.value }))} />
+              </div>
+              <div className="space-y-2">
+                <Label>Anunciante</Label>
+                <Input placeholder="Ej: PachaPay" value={createForm.advertiser} onChange={(e) => setCreateForm((f) => ({ ...f, advertiser: e.target.value }))} />
+              </div>
+            </div>
+            <div className="space-y-2">
+              <Label className="flex items-center gap-1"><Link2 className="h-3 w-3" /> Enlace (CTA)</Label>
+              <Input placeholder="/explore?filter=ofertas" value={createForm.link} onChange={(e) => setCreateForm((f) => ({ ...f, link: e.target.value }))} />
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-2">
+                <Label>Placement</Label>
+                <Select value={createForm.placement} onValueChange={(v) => setCreateForm((f) => ({ ...f, placement: v as any }))}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="hero_home">Hero Home</SelectItem>
+                    <SelectItem value="secondary_home">Secundario Home</SelectItem>
+                    <SelectItem value="explore_top">Explore Top</SelectItem>
+                    <SelectItem value="store_featured">Tienda Destacada</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label>Prioridad</Label>
+                <Input type="number" min={0} max={100} value={createForm.priority} onChange={(e) => setCreateForm((f) => ({ ...f, priority: parseInt(e.target.value) || 0 }))} />
+              </div>
+            </div>
+            <div className="flex items-center gap-3">
+              <Switch checked={createForm.isActive} onCheckedChange={(v) => setCreateForm((f) => ({ ...f, isActive: v }))} />
+              <Label>Activa inmediatamente</Label>
+            </div>
+          </div>
+          <DialogFooter className="mt-4">
+            <Button variant="outline" onClick={() => setShowCreateDialog(false)}>Cancelar</Button>
+            <Button
+              onClick={() => createPromoMutation.mutate(createForm)}
+              disabled={createPromoMutation.isPending || !createForm.title}
+              data-testid="button-create-promo-submit"
+            >
+              {createPromoMutation.isPending ? <><RefreshCw className="h-4 w-4 mr-2 animate-spin" />Guardando...</> : <><CheckCircle className="h-4 w-4 mr-2" />Crear Banner</>}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* AI Dialog */}
       <Dialog open={showAiDialog} onOpenChange={setShowAiDialog}>

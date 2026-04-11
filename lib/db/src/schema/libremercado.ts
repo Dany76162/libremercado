@@ -564,6 +564,12 @@ export const insertShoppableVideoSchema = createInsertSchema(shoppableVideos).om
 export type InsertShoppableVideo = z.infer<typeof insertShoppableVideoSchema>;
 export type ShoppableVideo = typeof shoppableVideos.$inferSelect;
 
+export const siteSettings = pgTable("site_settings", {
+  key: varchar("key").primaryKey(),
+  value: text("value").notNull(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
 export interface VideoFeedItem extends ShoppableVideo {
   store?: { id: string; name: string; category: string; rating: string | null; lat: string | null; lng: string | null; followersCount?: number; isFollowing?: boolean };
   product?: { id: string; name: string; price: string; image: string | null; originalPrice: string | null };
