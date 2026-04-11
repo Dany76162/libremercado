@@ -209,6 +209,15 @@ function VideoCard({ video, isActive, colorIdx, userLat, userLng }: VideoCardPro
           {/* Top badges + mute */}
           <div className="absolute top-4 left-4 right-4 flex items-center justify-between">
             <div className="flex items-center gap-2">
+              <Link href="/" onClick={(e) => e.stopPropagation()}>
+                <span
+                  className="inline-flex items-center gap-1 bg-primary text-white text-[10px] font-bold px-2 py-0.5 rounded-full shadow-lg cursor-pointer"
+                  data-testid="button-back-home"
+                >
+                  <ArrowLeft className="h-3 w-3" />
+                  Menú
+                </span>
+              </Link>
               {video.isFeatured && (
                 <Badge className="bg-yellow-400 text-black text-[10px] font-bold px-2 py-0.5 shadow-lg">
                   <Sparkles className="h-3 w-3 mr-1 fill-black" />Destacado
@@ -422,19 +431,6 @@ export default function Videos() {
 
   return (
     <div className="relative bg-black" style={{ height: feedHeight }}>
-      {/* Back to menu button — top left, always visible */}
-      <div className="absolute top-4 left-4 z-50">
-        <Link href="/">
-          <button
-            className="flex items-center gap-1.5 bg-black/50 backdrop-blur-sm text-white text-sm font-semibold px-3 py-1.5 rounded-full shadow-lg hover:bg-black/70 transition-colors"
-            data-testid="button-back-home"
-          >
-            <ArrowLeft className="h-4 w-4" />
-            Menú
-          </button>
-        </Link>
-      </div>
-
       {/* Feed */}
       <div
         ref={containerRef}
