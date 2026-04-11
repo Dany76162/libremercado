@@ -41,6 +41,8 @@ export function Navbar() {
   const canSeePanel = isAuthenticated && user?.role && user.role !== "customer";
   const isVideosRoute = location === "/videos";
 
+  if (isVideosRoute) return null;
+
   const handleLogout = async () => {
     try {
       await logout();
