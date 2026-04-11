@@ -54,7 +54,7 @@ interface VideoCardProps {
 function VideoCard({ video, isActive, colorIdx, userLat, userLng }: VideoCardProps) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const [isPaused, setIsPaused] = useState(false);
-  const [isMuted, setIsMuted] = useState(true);
+  const [isMuted, setIsMuted] = useState(false);
   const [isLoaded, setIsLoaded] = useState(false);
   const [viewTracked, setViewTracked] = useState(false);
   const [localLikes, setLocalLikes] = useState(video.savesCount);
@@ -72,17 +72,17 @@ function VideoCard({ video, isActive, colorIdx, userLat, userLng }: VideoCardPro
     ? haversineKm(userLat, userLng, Number(video.store.lat), Number(video.store.lng))
     : null;
 
-  // Force muted attribute via ref (React muted prop bug)
-  useEffect(() => {
-    const v = videoRef.current;
-    if (v) v.muted = true;
-  }, []);
-
   useEffect(() => {
     const v = videoRef.current;
     if (!v) return;
     if (isActive) {
-      v.play().catch(() => {});
+      v.muted = false;
+      v.play().catch(() => {
+        // Browser blocks unmuted autoplay — play muted but keep UI showing active
+        // Audio will unlock after first user interaction on the page
+        v.muted = true;
+        v.play().catch(() => {});
+      });
       if (!viewTracked) {
         apiRequest("POST", `/api/videos/${video.id}/view`).catch(() => {});
         setViewTracked(true);
@@ -179,7 +179,7 @@ function VideoCard({ video, isActive, colorIdx, userLat, userLng }: VideoCardPro
             className="absolute inset-0 w-full h-full object-cover"
             src={video.videoUrl}
             poster={video.thumbnailUrl ?? undefined}
-            loop muted playsInline preload="auto"
+            loop playsInline preload="auto"
             onCanPlay={() => setIsLoaded(true)}
             onClick={togglePause}
           />
