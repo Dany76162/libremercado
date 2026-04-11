@@ -215,7 +215,7 @@ export default function StoreDetails() {
         {/* Gallery section */}
         {(() => {
           let galleryImgs: string[] = [];
-          try { galleryImgs = JSON.parse((store as any).images || "[]"); } catch {}
+          try { galleryImgs = JSON.parse(store.images || "[]"); } catch {}
           if (galleryImgs.length === 0) return null;
           return (
             <div className="mb-6">

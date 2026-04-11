@@ -98,6 +98,7 @@ export interface Store {
   ownerId: string;
   imageUrl?: string | null;
   coverImageUrl?: string | null;
+  images?: string | null;
   address?: string | null;
   provinciaId?: string | null;
   ciudadId?: string | null;
@@ -111,6 +112,8 @@ export interface Store {
   isPaused?: boolean | null;
   followerCount?: number | null;
   createdAt?: Date | null;
+  logo?: string | null;
+  banner?: string | null;
 }
 
 export interface InsertStore {
