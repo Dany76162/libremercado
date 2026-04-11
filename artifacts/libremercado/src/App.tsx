@@ -1,4 +1,4 @@
-import { Switch, Route } from "wouter";
+import { Switch, Route, useRoute } from "wouter";
 import { queryClient } from "./lib/queryClient";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
@@ -61,17 +61,24 @@ function Router() {
   );
 }
 
+function AppLayout() {
+  const [isVideos] = useRoute("/videos");
+  return (
+    <div className={`min-h-screen flex flex-col${isVideos ? " h-screen overflow-hidden" : ""}`}>
+      <Navbar />
+      <main className={isVideos ? "flex-1 overflow-hidden" : "flex-1"}>
+        <Router />
+      </main>
+      {!isVideos && <Footer />}
+    </div>
+  );
+}
+
 function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <TooltipProvider>
-        <div className="min-h-screen flex flex-col">
-          <Navbar />
-          <main className="flex-1">
-            <Router />
-          </main>
-          <Footer />
-        </div>
+        <AppLayout />
         <Toaster />
       </TooltipProvider>
     </QueryClientProvider>

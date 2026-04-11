@@ -276,7 +276,7 @@ export function Navbar() {
         </div>
       </div>
 
-      <nav className={`${isVideosRoute ? "hidden" : "hidden md:block"} bg-primary/95 border-t border-primary-foreground/10`}>
+      {!isVideosRoute && <nav className="hidden md:block bg-primary/95 border-t border-primary-foreground/10">
         <div className="mx-auto max-w-7xl px-4">
           <div className="flex items-center h-10 gap-1 overflow-x-auto">
             <DropdownMenu>
@@ -448,7 +448,7 @@ export function Navbar() {
             </div>
           </div>
         </div>
-      </nav>
+      </nav>}
     </header>
   );
 }
