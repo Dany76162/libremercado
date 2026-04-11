@@ -47,3 +47,6 @@ Thumbs.db
 # Replit
 .cache/
 .local/
+
+# Prompt transcripts — do not commit
+attached_assets/Pasted-*.txt
