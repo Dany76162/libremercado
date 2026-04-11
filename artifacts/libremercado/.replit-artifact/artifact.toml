@@ -1,0 +1,31 @@
+kind = "web"
+previewPath = "/"
+title = "libremercado"
+version = "1.0.0"
+id = "artifacts/libremercado"
+router = "path"
+
+[[integratedSkills]]
+name = "react-vite"
+version = "1.0.0"
+
+[[services]]
+name = "web"
+paths = [ "/" ]
+localPort = 21680
+
+[services.development]
+run = "pnpm --filter @workspace/libremercado run dev"
+
+[services.production]
+build = [ "pnpm", "--filter", "@workspace/libremercado", "run", "build" ]
+publicDir = "artifacts/libremercado/dist/public"
+serve = "static"
+
+[[services.production.rewrites]]
+from = "/*"
+to = "/index.html"
+
+[services.env]
+PORT = "21680"
+BASE_PATH = "/"
