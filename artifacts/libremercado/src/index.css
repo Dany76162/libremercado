@@ -284,3 +284,23 @@
     overflow: hidden;
   }
 }
+
+/* Benefit card icon animations */
+@keyframes plane-takeoff {
+  0%   { transform: translate(0, 0) rotate(0deg); opacity: 1; }
+  35%  { transform: translate(5px, -7px) rotate(-20deg); opacity: 1; }
+  60%  { transform: translate(13px, -16px) rotate(-30deg); opacity: 0; }
+  61%  { transform: translate(-8px, 6px) rotate(15deg); opacity: 0; }
+  85%  { transform: translate(-2px, 2px) rotate(5deg); opacity: 0.7; }
+  100% { transform: translate(0, 0) rotate(0deg); opacity: 1; }
+}
+@keyframes bus-drive {
+  0%   { transform: translateX(0) scaleX(1); }
+  15%  { transform: translateX(3px) scaleX(1.04); }
+  30%  { transform: translateX(5px) scaleX(1); }
+  45%  { transform: translateX(3px) scaleX(0.97); }
+  60%  { transform: translateX(0) scaleX(1); }
+  100% { transform: translateX(0) scaleX(1); }
+}
+.animate-plane-takeoff { animation: plane-takeoff 2.8s ease-in-out infinite; }
+.animate-bus-drive     { animation: bus-drive 1.8s ease-in-out infinite; }

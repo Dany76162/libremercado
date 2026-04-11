@@ -87,7 +87,9 @@ const SMALL_CATEGORIES: { id: string; name: string; icon: LucideIcon }[] = [
 const benefitCards = [
   {
     icon: CreditCard,
-    accentIcon: Zap,
+    accentIcon: null,
+    iconAnim: "",
+    accentIconAnim: "",
     badge: "FINANCIACIÓN",
     stat: "18",
     statSuffix: "x",
@@ -103,7 +105,9 @@ const benefitCards = [
   },
   {
     icon: Package,
-    accentIcon: Truck,
+    accentIcon: null,
+    iconAnim: "",
+    accentIconAnim: "",
     badge: "LOGÍSTICA",
     stat: "24",
     statSuffix: "hs",
@@ -120,6 +124,8 @@ const benefitCards = [
   {
     icon: Plane,
     accentIcon: Bus,
+    iconAnim: "animate-plane-takeoff",
+    accentIconAnim: "animate-bus-drive",
     badge: "VIAJES",
     stat: "500",
     statSuffix: "+",
@@ -252,10 +258,21 @@ export default function Home() {
                 <div className="absolute top-0 left-0 right-0 h-1/2 bg-gradient-to-b from-white/10 to-transparent pointer-events-none" />
 
                 <div className="relative z-10 px-4 py-3 flex items-center gap-3">
-                  {/* Icon circle */}
-                  <div className="shrink-0 w-11 h-11 rounded-xl bg-white/20 backdrop-blur-sm border border-white/25 flex items-center justify-center shadow-inner">
-                    <card.icon className="h-5 w-5 text-white drop-shadow" />
-                  </div>
+                  {/* Icon area — single or dual animated */}
+                  {card.accentIcon ? (
+                    <div className="shrink-0 flex gap-1.5">
+                      <div className="w-10 h-10 rounded-xl bg-white/20 backdrop-blur-sm border border-white/25 flex items-center justify-center shadow-inner overflow-hidden">
+                        <card.icon className={`h-5 w-5 text-white drop-shadow ${card.iconAnim}`} />
+                      </div>
+                      <div className="w-10 h-10 rounded-xl bg-white/15 backdrop-blur-sm border border-white/20 flex items-center justify-center shadow-inner overflow-hidden">
+                        <card.accentIcon className={`h-5 w-5 text-white/90 drop-shadow ${card.accentIconAnim}`} />
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="shrink-0 w-11 h-11 rounded-xl bg-white/20 backdrop-blur-sm border border-white/25 flex items-center justify-center shadow-inner">
+                      <card.icon className="h-5 w-5 text-white drop-shadow" />
+                    </div>
+                  )}
 
                   {/* Text block */}
                   <div className="flex-1 min-w-0">
