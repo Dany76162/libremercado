@@ -173,20 +173,22 @@ export function MerchantVideosTab() {
         <div>
           <h2 className="text-xl font-bold flex items-center gap-2">
             <Video className="h-5 w-5 text-primary" />
-            Mis Videos
+            Reels de productos
           </h2>
-          <p className="text-muted-foreground text-sm">Publicá videos para mostrar tus productos en el feed de Explorar</p>
+          <p className="text-muted-foreground text-sm">
+            Cada Reel se asocia a un producto. Aparece en la ficha del producto y en el feed ReelMark.
+          </p>
         </div>
         <Dialog open={showDialog} onOpenChange={setShowDialog}>
           <DialogTrigger asChild>
             <Button className="gap-2" onClick={openCreate} data-testid="button-new-video">
               <Plus className="h-4 w-4" />
-              Nuevo video
+              Nuevo Reel
             </Button>
           </DialogTrigger>
           <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
             <DialogHeader>
-              <DialogTitle>{editingVideo ? "Editar video" : "Nuevo video"}</DialogTitle>
+              <DialogTitle>{editingVideo ? "Editar Reel" : "Nuevo Reel de producto"}</DialogTitle>
             </DialogHeader>
             <div className="space-y-4 py-2">
               <div className="space-y-1.5">
@@ -262,10 +264,16 @@ export function MerchantVideosTab() {
 
               {products && products.length > 0 && (
                 <div className="space-y-1.5">
-                  <Label>Vincular a producto (opcional)</Label>
+                  <Label className="flex items-center gap-1.5">
+                    <Package className="h-3.5 w-3.5 text-primary" />
+                    Producto del Reel *
+                  </Label>
+                  <p className="text-xs text-muted-foreground -mt-1">
+                    El Reel aparecerá en la galería de este producto y en ReelMark.
+                  </p>
                   <Select value={form.productId || "none"} onValueChange={(v) => setForm((f) => ({ ...f, productId: v === "none" ? "" : v }))}>
                     <SelectTrigger data-testid="select-product">
-                      <SelectValue placeholder="Sin producto vinculado" />
+                      <SelectValue placeholder="Elegí el producto" />
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="none">Sin producto vinculado</SelectItem>
@@ -356,13 +364,13 @@ export function MerchantVideosTab() {
         <Card>
           <CardContent className="flex flex-col items-center justify-center py-16 text-center">
             <Video className="h-12 w-12 text-muted-foreground mb-4 opacity-40" />
-            <h3 className="font-semibold mb-1">Todavía no tenés videos</h3>
+            <h3 className="font-semibold mb-1">Todavía no tenés Reels</h3>
             <p className="text-muted-foreground text-sm max-w-xs mb-4">
-              Subí tu primer video y mostrá tus productos en el feed de Explorar.
+              Asociá un Reel a cada producto. Aparecerá en la galería del producto y en el feed ReelMark.
             </p>
             <Button onClick={openCreate} className="gap-2">
               <Plus className="h-4 w-4" />
-              Crear primer video
+              Crear primer Reel
             </Button>
           </CardContent>
         </Card>

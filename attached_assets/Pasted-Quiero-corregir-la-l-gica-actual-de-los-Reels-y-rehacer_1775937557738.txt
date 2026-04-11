@@ -1,0 +1,207 @@
+Quiero corregir la lógica actual de los Reels y rehacerla bien.
+
+## Problema actual
+
+Hoy el Reel está apareciendo como “Reel de la tienda” dentro de la página de tienda, en un bloque grande arriba de los productos.
+
+Eso no es lo que quiero.
+
+La lógica correcta es esta:
+
+* el Reel no debe pertenecer visualmente a la tienda como bloque principal
+* el Reel debe pertenecer al producto
+* cada producto puede tener:
+
+  * múltiples imágenes
+  * un Reel asociado
+* en la página de detalle del producto, junto a las miniaturas de imágenes, debe aparecer una miniatura o botón que diga **REEL**
+* al hacer click en **REEL**, debe mostrarse o reproducirse el video de ese producto
+* ese mismo Reel luego debe aparecer también en la sección general de ReelMark / videos
+
+---
+
+## Objetivo
+
+Reestructurar el sistema para que los Reels sean una propiedad del producto y no un bloque principal de la tienda.
+
+---
+
+## Lo que quiero que hagas
+
+### 1. Cambiar la lógica de relación de datos
+
+Revisá el schema actual y ajustalo para que:
+
+* cada Reel quede asociado a un `productId`
+* opcionalmente también conserve `storeId`, pero la relación principal debe ser con el producto
+* cada producto pueda tener:
+
+  * varias imágenes
+  * un Reel asociado
+* la tienda solo muestra productos
+* el Reel se consume desde el producto
+
+Si hoy el schema está modelado más como “video de tienda”, corregilo.
+
+---
+
+### 2. Quitar el bloque “Reel de la tienda” de la página de tienda
+
+Quiero eliminar ese bloque grande que aparece arriba en la tienda con:
+
+* thumbnail grande
+* botón “Ver Reel”
+* botón “Ver producto”
+
+Eso no debe estar más en la vista de tienda.
+
+La tienda debe mostrar:
+
+* banner
+* datos de tienda
+* categorías
+* productos
+* galería si corresponde
+  Pero no un bloque principal de Reel de tienda.
+
+---
+
+### 3. Mover la experiencia del Reel a la ficha del producto
+
+En la página de detalle del producto, donde hoy están las miniaturas de imágenes, quiero que aparezca también una miniatura o botón que diga:
+
+**REEL**
+
+Tal como en el ejemplo que te pasé.
+
+### Comportamiento esperado:
+
+* el producto tiene 3 o más imágenes
+* debajo o al costado de la imagen principal aparecen las miniaturas
+* junto a esas miniaturas debe aparecer un bloque/thumbnail adicional que diga **REEL**
+* al hacer click en ese bloque:
+
+  * se reemplaza la imagen principal por el video, o
+  * se abre un reproductor embebido, o
+  * se muestra un modal con el Reel
+* debe sentirse integrado a la galería del producto
+
+La experiencia tiene que ser similar a una galería multimedia de producto.
+
+---
+
+### 4. Mantener múltiples imágenes por producto
+
+Cada producto debe seguir teniendo:
+
+* varias imágenes reales
+* distintas perspectivas del mismo producto
+* miniaturas seleccionables
+* cambio de imagen principal al hacer click
+
+Y además de esas imágenes, sumar el Reel como un item más de la galería multimedia.
+
+Ejemplo:
+
+* imagen 1
+* imagen 2
+* imagen 3
+* REEL
+
+---
+
+### 5. Hacer que ReelMark tome los Reels desde productos
+
+La sección `/videos` o `ReelMark` debe alimentarse de los Reels asociados a productos.
+
+Cada Reel debe mostrar:
+
+* video o thumbnail
+* producto asociado
+* precio
+* tienda
+* botón para ver producto
+* interacción que ya exista
+
+O sea:
+
+* el comerciante crea/sube un producto
+* le carga imágenes
+* le asocia un Reel
+* ese Reel vive en la ficha del producto
+* y además aparece en ReelMark
+
+Esa es la lógica correcta que quiero implementar.
+
+---
+
+### 6. Panel de vendedor: producto con imágenes + Reel
+
+En el panel del vendedor, cuando crea o edita un producto, quiero que exista soporte para:
+
+* subir múltiples imágenes del producto
+* asociar o subir un Reel para ese producto
+* guardar todo correctamente
+* visualizar si ese producto tiene Reel o no
+
+No quiero que el Reel se gestione como una entidad separada solamente a nivel tienda.
+Quiero que se entienda claramente que es parte del producto.
+
+---
+
+### 7. Seed / demo data
+
+Actualizar los datos demo para que:
+
+* los productos principales de las tiendas tengan múltiples imágenes
+* varios productos tengan Reel asociado
+* el Reel ya no se renderice en la tienda como bloque principal
+* sí aparezca dentro de la ficha del producto
+* sí aparezca en ReelMark
+
+---
+
+## Resultado esperado
+
+Al terminar, quiero esta experiencia:
+
+### En la tienda:
+
+* entro a una tienda
+* veo sus productos
+* no veo un bloque grande “Reel de la tienda”
+
+### En el producto:
+
+* entro al detalle de un producto
+* veo la imagen principal
+* veo varias miniaturas de imágenes
+* veo un bloque adicional que dice **REEL**
+* hago click en REEL y se reproduce o se muestra el video del producto
+
+### En ReelMark:
+
+* ese mismo Reel del producto aparece en el feed general de videos
+
+---
+
+## Importante
+
+No quiero una solución improvisada.
+Quiero que rehagas la lógica visual y de datos correctamente para que el Reel sea parte del producto.
+
+---
+
+## Validación obligatoria
+
+Antes de dar por terminado, verificá y mostrame evidencia real de esto:
+
+1. La tienda ya no muestra el bloque grande “Reel de la tienda”
+2. El producto muestra varias imágenes
+3. El producto muestra una miniatura o bloque “REEL” dentro de la galería
+4. Al hacer click en “REEL”, se ve el video del producto
+5. Ese Reel también aparece en ReelMark
+6. El panel de vendedor permite entender que el Reel pertenece al producto
+
+No me lo confirmes solo por código.
+Quiero confirmación visual real de la UI funcionando.
