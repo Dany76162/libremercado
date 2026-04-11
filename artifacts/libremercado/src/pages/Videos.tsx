@@ -301,10 +301,13 @@ function VideoCard({ video, isActive, colorIdx, userLat, userLng }: VideoCardPro
           </div>
         </div>
 
-        {/* ── ACTION BUTTONS (right strip — same style on mobile & desktop) ── */}
+        {/* ── ACTION BUTTONS ── */}
         <div
-          className="absolute right-4 flex flex-col-reverse items-center gap-5"
-          style={{ bottom: "max(0.75rem, env(safe-area-inset-bottom, 0.75rem))" }}
+          className="absolute flex flex-col-reverse items-center gap-5"
+          style={{
+            bottom: "max(0.75rem, env(safe-area-inset-bottom, 0.75rem))",
+            right: "max(8px, calc((100vw - calc(100vh * 9 / 16)) / 2 - 60px))",
+          }}
           onClick={(e) => e.stopPropagation()}
         >
           {/* Share — bottom */}
