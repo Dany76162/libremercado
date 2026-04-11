@@ -322,3 +322,11 @@
 }
 .animate-truck-drive { animation: truck-drive 2.2s ease-in-out infinite; }
 .animate-bike-zip    { animation: bike-zip 1.4s ease-in-out infinite; }
+
+@keyframes smile-bounce {
+  0%,100% { transform: scale(1) rotate(0deg); }
+  30%      { transform: scale(1.18) rotate(-8deg); }
+  60%      { transform: scale(1.1) rotate(6deg); }
+  80%      { transform: scale(1.05) rotate(-3deg); }
+}
+.animate-smile-bounce { animation: smile-bounce 2s ease-in-out infinite; }

@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { ArrowRight, Truck, Shield, Clock, CreditCard, Package, UtensilsCrossed, ShoppingCart, Pill, Smartphone, Shirt, Home as HomeIcon, Sparkles, PawPrint, Bus, MapPin, Store, Bike, Tag, Plane, Zap, type LucideIcon } from "lucide-react";
+import { ArrowRight, Truck, Shield, Clock, CreditCard, Package, UtensilsCrossed, ShoppingCart, Pill, Smartphone, Shirt, Home as HomeIcon, Sparkles, PawPrint, Bus, MapPin, Store, Bike, Tag, Plane, Zap, Smile, type LucideIcon } from "lucide-react";
 import { Link } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -87,9 +87,9 @@ const SMALL_CATEGORIES: { id: string; name: string; icon: LucideIcon }[] = [
 const benefitCards = [
   {
     icon: CreditCard,
-    accentIcon: null,
+    accentIcon: Smile,
     iconAnim: "",
-    accentIconAnim: "",
+    accentIconAnim: "animate-smile-bounce",
     badge: "FINANCIACIÓN",
     stat: "18",
     statSuffix: "x",
