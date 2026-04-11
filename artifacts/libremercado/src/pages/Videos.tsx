@@ -229,21 +229,21 @@ function VideoCard({ video, isActive, colorIdx, userLat, userLng }: VideoCardPro
 
           {/* ── BOTTOM INFO ── */}
           <div
-            className="absolute bottom-0 left-0 right-16 md:right-0 p-4 md:p-5 space-y-2 md:space-y-3"
+            className="absolute bottom-0 left-0 right-16 p-4 space-y-2"
             style={{ paddingBottom: "max(1rem, env(safe-area-inset-bottom, 1rem))" }}
             onClick={(e) => e.stopPropagation()}
           >
             {/* Store row */}
             <div className="flex items-center gap-2">
-              <div className="w-8 h-8 md:w-9 md:h-9 rounded-full bg-primary flex items-center justify-center shadow-lg flex-none">
-                <Store className="h-3.5 w-3.5 md:h-4 md:w-4 text-white" />
+              <div className="w-8 h-8 rounded-full bg-primary flex items-center justify-center shadow-lg flex-none">
+                <Store className="h-3.5 w-3.5 text-white" />
               </div>
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2">
                   <p className="text-white font-bold text-sm leading-tight truncate">{video.store?.name ?? "Tienda"}</p>
                   {video.storeId && (
                     <button
-                      className={`md:hidden flex-none text-[11px] font-semibold px-2 py-0.5 rounded-full border transition-all ${
+                      className={`flex-none text-[11px] font-semibold px-2 py-0.5 rounded-full border transition-all ${
                         isFollowing
                           ? "text-white/50 border-white/25"
                           : "text-white border-white/60"
@@ -266,38 +266,13 @@ function VideoCard({ video, isActive, colorIdx, userLat, userLng }: VideoCardPro
             </div>
 
             {/* Title */}
-            <h3 className="text-white font-extrabold text-sm md:text-lg leading-snug line-clamp-2 drop-shadow-sm">
+            <h3 className="text-white font-extrabold text-sm leading-snug line-clamp-2 drop-shadow-sm">
               {video.title}
             </h3>
 
-            {/* Description — desktop only */}
-            {video.description && (
-              <p className="hidden md:block text-white/60 text-xs line-clamp-1">{video.description}</p>
-            )}
-
-            {/* Badges — desktop only */}
-            <div className="hidden md:flex items-center gap-1.5 flex-wrap">
-              {distanceKm !== null && (
-                <Badge className="bg-emerald-600/90 text-white text-[10px] py-0.5 px-2 rounded-full gap-1">
-                  <MapPin className="h-2.5 w-2.5" />
-                  {distanceKm < 1 ? "Cerca tuyo" : `${distanceKm.toFixed(1)} km`}
-                </Badge>
-              )}
-              {distanceKm !== null && distanceKm < 5 && (
-                <Badge className="bg-sky-600/90 text-white text-[10px] py-0.5 px-2 rounded-full gap-1">
-                  <Clock className="h-2.5 w-2.5" />
-                  Entrega hoy
-                </Badge>
-              )}
-              <Badge className="bg-white/15 text-white/90 text-[10px] py-0.5 px-2 rounded-full border border-white/20 gap-1">
-                <CheckCircle className="h-2.5 w-2.5 text-emerald-400" />
-                Comercio local
-              </Badge>
-            </div>
-
-            {/* Mobile: price as inline text (no buttons — sidebar handles actions) */}
+            {/* Price — always inline, no glass card */}
             {video.product && (
-              <div className="flex items-center gap-2 md:hidden">
+              <div className="flex items-center gap-2">
                 <span className="text-white font-black text-xl tracking-tight">
                   {formatPrice(video.product.price)}
                 </span>
@@ -314,169 +289,42 @@ function VideoCard({ video, isActive, colorIdx, userLat, userLng }: VideoCardPro
                 )}
               </div>
             )}
-
-            {/* Desktop: full glass card with CTAs */}
-            {video.product ? (
-              <div className="hidden md:block bg-black/50 backdrop-blur-md rounded-2xl p-4 border border-white/10 shadow-xl space-y-3">
-                <div className="flex items-baseline gap-2">
-                  <span className="text-white font-black text-3xl tracking-tight">
-                    {formatPrice(video.product.price)}
-                  </span>
-                  {discount > 0 && (
-                    <>
-                      <span className="text-white/40 text-sm line-through">
-                        {formatPrice(video.product.originalPrice!)}
-                      </span>
-                      <Badge className="bg-primary text-white text-xs font-bold px-2 py-0.5 rounded-full ml-auto">
-                        <BadgePercent className="h-3 w-3 mr-1" />
-                        -{discount}%
-                      </Badge>
-                    </>
-                  )}
-                </div>
-                <div className="flex gap-2">
-                  <Button
-                    className="flex-1 bg-primary hover:bg-primary/90 text-white font-bold rounded-xl h-11 shadow-lg shadow-primary/30 gap-2"
-                    onClick={handleAddToCart}
-                    data-testid="button-add-to-cart-main"
-                  >
-                    <ShoppingCart className="h-4 w-4" />
-                    Agregar
-                  </Button>
-                  <Link href={`/store/${video.storeId}`}>
-                    <Button
-                      variant="outline"
-                      className="border-white/25 text-white hover:bg-white/10 rounded-xl h-11 px-3 gap-1.5"
-                      data-testid="button-view-store-cta"
-                    >
-                      <Store className="h-4 w-4" />
-                      Ver tienda
-                    </Button>
-                  </Link>
-                </div>
-              </div>
-            ) : (
-              <div className="hidden md:block bg-black/50 backdrop-blur-md rounded-2xl p-3.5 border border-white/10 shadow-xl">
-                <Link href={`/store/${video.storeId}`}>
-                  <Button
-                    className="w-full bg-primary hover:bg-primary/90 text-white font-bold rounded-xl h-11 shadow-lg shadow-primary/30 gap-2"
-                    data-testid="button-view-store-cta"
-                  >
-                    <Store className="h-4 w-4" />
-                    Visitar tienda
-                    <ArrowRight className="h-4 w-4 ml-auto" />
-                  </Button>
-                </Link>
-              </div>
-            )}
-
-            {/* Tags — desktop only */}
-            {video.tags && (
-              <div className="hidden md:flex gap-1.5 flex-wrap pb-1">
-                {video.tags.split(",").slice(0, 4).map((tag) => (
-                  <span key={tag} className="text-primary/80 text-xs font-medium">#{tag.trim()}</span>
-                ))}
-              </div>
-            )}
           </div>
         </div>
 
-        {/* ── RIGHT SIDEBAR (desktop side action buttons) ── */}
+        {/* ── ACTION BUTTONS (right strip — same style on mobile & desktop) ── */}
         <div
-          className="hidden md:flex flex-col items-center gap-6 px-6 py-8"
+          className="absolute right-4 flex flex-col-reverse items-center gap-5"
+          style={{ bottom: "max(0.75rem, env(safe-area-inset-bottom, 0.75rem))" }}
           onClick={(e) => e.stopPropagation()}
         >
-          <button
-            className="flex flex-col items-center gap-1.5 group"
-            onClick={handleLike}
-            data-testid="button-like"
-          >
-            <div className={`rounded-full p-3.5 transition-all shadow-lg ${liked ? "bg-red-500 shadow-red-500/40" : "bg-white/15 backdrop-blur-sm group-hover:bg-white/25"}`}>
-              <Heart className={`h-6 w-6 ${liked ? "text-white fill-white" : "text-white"}`} />
-            </div>
-            <span className="text-white/80 text-xs font-semibold">{localLikes}</span>
-          </button>
-
-          <button
-            className="flex flex-col items-center gap-1.5 group"
-            onClick={handleFollow}
-            data-testid="button-follow"
-          >
-            <div className={`rounded-full p-3.5 transition-all shadow-lg ${isFollowing ? "bg-primary shadow-primary/40" : "bg-white/15 backdrop-blur-sm group-hover:bg-white/25"}`}>
-              {isFollowing
-                ? <UserCheck className="h-6 w-6 text-white" />
-                : <UserPlus className="h-6 w-6 text-white" />}
-            </div>
-            <span className="text-white/80 text-xs font-semibold">{followersCount}</span>
-          </button>
-
-          <button
-            className="flex flex-col items-center gap-1.5 group"
-            onClick={handleAddToCart}
-            data-testid="button-add-to-cart"
-          >
-            <div className="bg-white/15 backdrop-blur-sm rounded-full p-3.5 transition-all shadow-lg group-hover:bg-primary">
-              <ShoppingCart className="h-6 w-6 text-white" />
-            </div>
-            <span className="text-white/80 text-xs font-semibold">{video.addToCartCount}</span>
+          {/* Share — bottom */}
+          <button className="flex flex-col items-center gap-0.5" onClick={handleShare} data-testid="button-share-mobile">
+            <Share2 className="h-6 w-6 text-white" style={{ filter: "drop-shadow(0 1px 4px rgba(0,0,0,0.85))" }} />
+            <span className="text-white text-[10px] font-semibold" style={{ textShadow: "0 1px 3px rgba(0,0,0,0.9)" }}>Compartir</span>
           </button>
 
           <Link href={`/store/${video.storeId}`} onClick={(e) => e.stopPropagation()}>
-            <button className="flex flex-col items-center gap-1.5 group" data-testid="button-go-store">
-              <div className="bg-white/15 backdrop-blur-sm rounded-full p-3.5 transition-all shadow-lg group-hover:bg-white/25">
-                <Store className="h-6 w-6 text-white" />
-              </div>
-              <span className="text-white/80 text-xs font-semibold">Tienda</span>
+            <button className="flex flex-col items-center gap-0.5" data-testid="button-go-store-mobile">
+              <Store className="h-6 w-6 text-white" style={{ filter: "drop-shadow(0 1px 4px rgba(0,0,0,0.85))" }} />
+              <span className="text-white text-[10px] font-semibold" style={{ textShadow: "0 1px 3px rgba(0,0,0,0.9)" }}>Tienda</span>
             </button>
           </Link>
 
-          <button
-            className="flex flex-col items-center gap-1.5 group"
-            onClick={handleShare}
-            data-testid="button-share"
-          >
-            <div className="bg-white/15 backdrop-blur-sm rounded-full p-3.5 transition-all shadow-lg group-hover:bg-white/25">
-              <Share2 className="h-6 w-6 text-white" />
-            </div>
-            <span className="text-white/80 text-xs font-semibold">Compartir</span>
+          <button className="flex flex-col items-center gap-0.5" onClick={handleAddToCart} data-testid="button-add-to-cart-mobile">
+            <ShoppingCart className="h-6 w-6 text-white" style={{ filter: "drop-shadow(0 1px 4px rgba(0,0,0,0.85))" }} />
+            <span className="text-white text-[10px] font-semibold" style={{ textShadow: "0 1px 3px rgba(0,0,0,0.9)" }}>{video.addToCartCount}</span>
+          </button>
+
+          {/* Heart — top */}
+          <button className="flex flex-col items-center gap-0.5" onClick={handleLike} data-testid="button-like-mobile">
+            <Heart
+              className={`h-6 w-6 transition-colors ${liked ? "text-red-400 fill-red-400" : "text-white"}`}
+              style={{ filter: "drop-shadow(0 1px 4px rgba(0,0,0,0.85))" }}
+            />
+            <span className="text-white text-[10px] font-semibold" style={{ textShadow: "0 1px 3px rgba(0,0,0,0.9)" }}>{localLikes}</span>
           </button>
         </div>
-      </div>
-
-      {/* Mobile action buttons (right strip — anchored to bottom, growing upward) */}
-      {/* flex-col-reverse: first HTML child = visual bottom; last HTML child = visual top */}
-      {/* Visual order top→bottom: Heart, Cart, Store, Share */}
-      <div
-        className="md:hidden absolute right-4 flex flex-col-reverse items-center gap-5"
-        style={{ bottom: "max(0.75rem, env(safe-area-inset-bottom, 0.75rem))" }}
-        onClick={(e) => e.stopPropagation()}
-      >
-        {/* Share — first in HTML = visual BOTTOM */}
-        <button className="flex flex-col items-center gap-0.5" onClick={handleShare} data-testid="button-share-mobile">
-          <Share2 className="h-6 w-6 text-white" style={{ filter: "drop-shadow(0 1px 4px rgba(0,0,0,0.85))" }} />
-          <span className="text-white text-[10px] font-semibold" style={{ textShadow: "0 1px 3px rgba(0,0,0,0.9)" }}>Compartir</span>
-        </button>
-
-        <Link href={`/store/${video.storeId}`} onClick={(e) => e.stopPropagation()}>
-          <button className="flex flex-col items-center gap-0.5" data-testid="button-go-store-mobile">
-            <Store className="h-6 w-6 text-white" style={{ filter: "drop-shadow(0 1px 4px rgba(0,0,0,0.85))" }} />
-            <span className="text-white text-[10px] font-semibold" style={{ textShadow: "0 1px 3px rgba(0,0,0,0.9)" }}>Tienda</span>
-          </button>
-        </Link>
-
-        <button className="flex flex-col items-center gap-0.5" onClick={handleAddToCart} data-testid="button-add-to-cart-mobile">
-          <ShoppingCart className="h-6 w-6 text-white" style={{ filter: "drop-shadow(0 1px 4px rgba(0,0,0,0.85))" }} />
-          <span className="text-white text-[10px] font-semibold" style={{ textShadow: "0 1px 3px rgba(0,0,0,0.9)" }}>{video.addToCartCount}</span>
-        </button>
-
-        {/* Heart — last in HTML = visual TOP */}
-        <button className="flex flex-col items-center gap-0.5" onClick={handleLike} data-testid="button-like-mobile">
-          <Heart
-            className={`h-6 w-6 transition-colors ${liked ? "text-red-400 fill-red-400" : "text-white"}`}
-            style={{ filter: "drop-shadow(0 1px 4px rgba(0,0,0,0.85))" }}
-          />
-          <span className="text-white text-[10px] font-semibold" style={{ textShadow: "0 1px 3px rgba(0,0,0,0.9)" }}>{localLikes}</span>
-        </button>
       </div>
     </div>
   );
