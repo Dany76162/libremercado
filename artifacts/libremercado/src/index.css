@@ -304,3 +304,21 @@
 }
 .animate-plane-takeoff { animation: plane-takeoff 2.8s ease-in-out infinite; }
 .animate-bus-drive     { animation: bus-drive 1.8s ease-in-out infinite; }
+
+@keyframes truck-drive {
+  0%   { transform: translateX(0) scaleY(1); }
+  20%  { transform: translateX(4px) scaleY(0.97); }
+  40%  { transform: translateX(7px) scaleY(1.02); }
+  60%  { transform: translateX(4px) scaleY(0.98); }
+  80%  { transform: translateX(1px) scaleY(1); }
+  100% { transform: translateX(0) scaleY(1); }
+}
+@keyframes bike-zip {
+  0%   { transform: translateX(0) rotate(0deg); }
+  25%  { transform: translateX(5px) rotate(-6deg); }
+  50%  { transform: translateX(9px) rotate(-3deg); }
+  75%  { transform: translateX(5px) rotate(-6deg); }
+  100% { transform: translateX(0) rotate(0deg); }
+}
+.animate-truck-drive { animation: truck-drive 2.2s ease-in-out infinite; }
+.animate-bike-zip    { animation: bike-zip 1.4s ease-in-out infinite; }
