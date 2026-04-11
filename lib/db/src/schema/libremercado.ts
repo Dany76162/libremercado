@@ -120,6 +120,7 @@ export const products = pgTable("products", {
   category: text("category"),
   stock: integer("stock").notNull().default(0),
   isActive: boolean("is_active").notNull().default(true),
+  attributes: text("attributes"), // JSON object of key-value attributes (e.g. {"Talle":"M","Color":"Rojo"})
   // M2 — Patrocinio comercial
   isSponsored: boolean("is_sponsored").notNull().default(false),
   sponsoredUntil: timestamp("sponsored_until"),

@@ -1,22 +1,33 @@
 import { useRoute } from "wouter";
-import { Star, MapPin, Clock, Phone, ArrowLeft, MessageSquare, Images } from "lucide-react";
+import { Star, MapPin, Clock, Phone, ArrowLeft, MessageSquare, Images, Send, Loader2 } from "lucide-react";
 import { Link } from "wouter";
 import { useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Separator } from "@/components/ui/separator";
+import { Textarea } from "@/components/ui/textarea";
 import { ProductCard } from "@/components/marketplace/ProductCard";
 import { useStore, useStoreProducts } from "@/hooks/use-marketplace";
+import { useAuth } from "@/hooks/use-auth";
+import { useToast } from "@/hooks/use-toast";
 import type { Review } from "@shared/schema";
 
 export default function StoreDetails() {
   const [match, params] = useRoute("/store/:id");
   const storeId = params?.id || "";
   const [lightboxImg, setLightboxImg] = useState<string | null>(null);
+  const [reviewRating, setReviewRating] = useState(0);
+  const [hoverRating, setHoverRating] = useState(0);
+  const [reviewComment, setReviewComment] = useState("");
+  const [showReviewForm, setShowReviewForm] = useState(false);
+
+  const { user } = useAuth();
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
 
   const { data: store, isLoading: storeLoading } = useStore(storeId);
   const { data: products, isLoading: productsLoading } = useStoreProducts(storeId);
@@ -29,6 +40,36 @@ export default function StoreDetails() {
     },
     enabled: !!storeId,
   });
+
+  const submitReviewMutation = useMutation({
+    mutationFn: async (data: { rating: number; comment?: string }) => {
+      const res = await fetch(`/api/stores/${storeId}/review`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify(data),
+      });
+      if (!res.ok) {
+        const err = await res.json();
+        throw new Error(err.error || "Error al enviar la reseña");
+      }
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/stores", storeId, "reviews"] });
+      toast({ title: "¡Reseña enviada!", description: "Gracias por tu opinión." });
+      setReviewRating(0);
+      setReviewComment("");
+      setShowReviewForm(false);
+    },
+    onError: (err: Error) => {
+      toast({ title: err.message, variant: "destructive" });
+    },
+  });
+
+  const alreadyReviewed = user
+    ? reviewsData?.reviews.some((r) => r.userId === user.id)
+    : false;
 
   if (storeLoading) {
     return (
@@ -251,23 +292,98 @@ export default function StoreDetails() {
         {/* Reviews section */}
         <Card className="mt-6" data-testid="section-reviews">
           <CardHeader>
-            <CardTitle className="text-base flex items-center gap-2">
-              <MessageSquare className="h-5 w-5" />
-              Reseñas de clientes
-              {reviewsData?.total !== undefined && (
-                <span className="font-normal text-muted-foreground text-sm">
-                  ({reviewsData.total})
-                </span>
+            <div className="flex items-center justify-between gap-2">
+              <CardTitle className="text-base flex items-center gap-2">
+                <MessageSquare className="h-5 w-5" />
+                Reseñas de clientes
+                {reviewsData?.total !== undefined && (
+                  <span className="font-normal text-muted-foreground text-sm">
+                    ({reviewsData.total})
+                  </span>
+                )}
+                {reviewsData?.avgRating !== undefined && reviewsData.avgRating > 0 && (
+                  <span className="flex items-center gap-1 text-yellow-500 font-medium text-sm">
+                    <Star className="h-4 w-4 fill-yellow-500" />
+                    {reviewsData.avgRating.toFixed(1)}
+                  </span>
+                )}
+              </CardTitle>
+              {user && !alreadyReviewed && !showReviewForm && (
+                <Button size="sm" variant="outline" onClick={() => setShowReviewForm(true)} data-testid="button-write-review">
+                  Escribir reseña
+                </Button>
               )}
-              {reviewsData?.avgRating !== undefined && reviewsData.avgRating > 0 && (
-                <span className="flex items-center gap-1 text-yellow-500 font-medium text-sm ml-auto">
-                  <Star className="h-4 w-4 fill-yellow-500" />
-                  {reviewsData.avgRating.toFixed(1)}
-                </span>
+              {alreadyReviewed && (
+                <Badge variant="secondary" className="text-xs">Ya reseñaste esta tienda</Badge>
               )}
-            </CardTitle>
+            </div>
           </CardHeader>
-          <CardContent>
+          <CardContent className="space-y-4">
+            {showReviewForm && (
+              <div className="border rounded-lg p-4 bg-muted/20 space-y-3" data-testid="form-review">
+                <p className="font-medium text-sm">Tu calificación</p>
+                <div className="flex gap-1">
+                  {[1, 2, 3, 4, 5].map((s) => (
+                    <button
+                      key={s}
+                      type="button"
+                      onClick={() => setReviewRating(s)}
+                      onMouseEnter={() => setHoverRating(s)}
+                      onMouseLeave={() => setHoverRating(0)}
+                      data-testid={`star-${s}`}
+                    >
+                      <Star
+                        className={`h-7 w-7 transition-colors ${
+                          s <= (hoverRating || reviewRating)
+                            ? "fill-yellow-400 text-yellow-400"
+                            : "text-muted-foreground"
+                        }`}
+                      />
+                    </button>
+                  ))}
+                </div>
+                <Textarea
+                  placeholder="Contá tu experiencia (opcional)"
+                  value={reviewComment}
+                  onChange={(e) => setReviewComment(e.target.value)}
+                  className="resize-none"
+                  rows={3}
+                  maxLength={500}
+                  data-testid="textarea-review-comment"
+                />
+                <div className="flex gap-2 justify-end">
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => {
+                      setShowReviewForm(false);
+                      setReviewRating(0);
+                      setReviewComment("");
+                    }}
+                  >
+                    Cancelar
+                  </Button>
+                  <Button
+                    size="sm"
+                    disabled={reviewRating === 0 || submitReviewMutation.isPending}
+                    onClick={() =>
+                      submitReviewMutation.mutate({
+                        rating: reviewRating,
+                        comment: reviewComment || undefined,
+                      })
+                    }
+                    data-testid="button-submit-review"
+                  >
+                    {submitReviewMutation.isPending ? (
+                      <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                    ) : (
+                      <Send className="h-4 w-4 mr-2" />
+                    )}
+                    Enviar reseña
+                  </Button>
+                </div>
+              </div>
+            )}
             {!reviewsData || reviewsData.reviews.length === 0 ? (
               <p className="text-muted-foreground text-sm text-center py-4">
                 Todavía no hay reseñas para esta tienda

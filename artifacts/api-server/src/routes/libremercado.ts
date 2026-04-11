@@ -1084,6 +1084,8 @@ export async function registerRoutes(
     price: z.string().min(1, "El precio es requerido"),
     originalPrice: z.string().nullable().optional(),
     image: z.string().nullable().optional(),
+    images: z.string().nullable().optional(), // JSON array of image URLs
+    attributes: z.string().nullable().optional(), // JSON object of key-value attributes
     category: z.string().optional(),
     stock: z.number().min(0).optional(),
     isActive: z.boolean().optional(),
@@ -1114,10 +1116,12 @@ export async function registerRoutes(
         price: data.price,
         originalPrice: data.originalPrice || null,
         image: data.image || null,
+        images: data.images || null,
+        attributes: data.attributes || null,
         category: data.category || null,
         stock: data.stock ?? 0,
         isActive: data.isActive ?? true,
-      });
+      } as any);
 
       res.status(201).json(product);
     } catch (error) {
@@ -1520,6 +1524,30 @@ export async function registerRoutes(
     const reviews = await storage.getReviewsByStore(req.params.id);
     const avgRating = await storage.getAverageRating(req.params.id);
     res.json({ reviews, avgRating, total: reviews.length });
+  });
+
+  // Submit a direct review for a store (no order required)
+  app.post("/api/stores/:id/review", requireAuth, async (req, res) => {
+    const user = await getCurrentUser(req);
+    if (!user) return res.status(401).json({ error: "No autenticado" });
+
+    const store = await storage.getStore(req.params.id);
+    if (!store) return res.status(404).json({ error: "Tienda no encontrada" });
+
+    const existing = await storage.getReviewByStoreAndUser(req.params.id, user.id);
+    if (existing) return res.status(409).json({ error: "Ya enviaste una reseña para esta tienda" });
+
+    const parsed = reviewSchema.safeParse(req.body);
+    if (!parsed.success) return res.status(400).json({ error: parsed.error.issues[0].message });
+
+    const review = await storage.createReview({
+      userId: user.id,
+      storeId: req.params.id,
+      rating: parsed.data.rating,
+      comment: parsed.data.comment ?? null,
+    });
+
+    res.status(201).json(review);
   });
 
   // Check if user can review an order

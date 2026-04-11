@@ -405,6 +405,27 @@ export default function ProductDetail() {
                 <p className="text-sm text-muted-foreground leading-relaxed">{product.description}</p>
               </div>
             )}
+
+            {/* Attributes */}
+            {(() => {
+              let parsedAttrs: Record<string, string> = {};
+              try { parsedAttrs = JSON.parse((product as any).attributes || "{}"); } catch {}
+              const attrEntries = Object.entries(parsedAttrs);
+              if (attrEntries.length === 0) return null;
+              return (
+                <div>
+                  <h3 className="font-semibold mb-2">Características</h3>
+                  <div className="grid grid-cols-2 gap-x-6 gap-y-1">
+                    {attrEntries.map(([key, val]) => (
+                      <div key={key} className="flex justify-between text-sm border-b py-1">
+                        <span className="text-muted-foreground">{key}</span>
+                        <span className="font-medium">{val}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              );
+            })()}
           </div>
         </div>
       </div>

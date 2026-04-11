@@ -141,6 +141,7 @@ export interface IStorage {
   createReview(review: InsertReview): Promise<Review>;
   getReviewsByStore(storeId: string): Promise<Review[]>;
   getReviewByOrderAndUser(orderId: string, userId: string): Promise<Review | undefined>;
+  getReviewByStoreAndUser(storeId: string, userId: string): Promise<Review | undefined>;
   getAverageRating(storeId: string): Promise<number>;
 
   // Disputes
@@ -1438,6 +1439,7 @@ export class MemStorage implements IStorage {
   }
   async getReviewsByStore(_storeId: string): Promise<Review[]> { return []; }
   async getReviewByOrderAndUser(_orderId: string, _userId: string): Promise<Review | undefined> { return undefined; }
+  async getReviewByStoreAndUser(_storeId: string, _userId: string): Promise<Review | undefined> { return undefined; }
   async getAverageRating(_storeId: string): Promise<number> { return 0; }
 
   async searchProducts(q: string, _category?: string, limit = 20): Promise<Product[]> {

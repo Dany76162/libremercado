@@ -28,6 +28,7 @@ import ResetPassword from "@/pages/ResetPassword";
 import AccountFavorites from "@/pages/account/Favorites";
 import Videos from "@/pages/Videos";
 import ProductDetail from "@/pages/ProductDetail";
+import Help from "@/pages/Help";
 import NotFound from "@/pages/not-found";
 
 function Router() {
@@ -58,6 +59,7 @@ function Router() {
       <Route path="/privacy" component={Privacy} />
       <Route path="/vender" component={MerchantOnboarding} />
       <Route path="/repartidor" component={RiderOnboarding} />
+      <Route path="/help" component={Help} />
       <Route component={NotFound} />
     </Switch>
   );

@@ -138,6 +138,7 @@ export interface Product {
   imageUrl?: string | null;
   image?: string | null;
   images?: string | null;
+  attributes?: string | null;
   category?: string | null;
   stock?: number | null;
   isActive?: boolean | null;

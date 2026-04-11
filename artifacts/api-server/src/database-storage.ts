@@ -460,6 +460,13 @@ export class DatabaseStorage implements IStorage {
     return review;
   }
 
+  async getReviewByStoreAndUser(storeId: string, userId: string): Promise<Review | undefined> {
+    const [review] = await db.select().from(reviews).where(
+      and(eq(reviews.storeId, storeId), eq(reviews.userId, userId))
+    );
+    return review;
+  }
+
   async getAverageRating(storeId: string): Promise<number> {
     const [result] = await db.select({ avg: sql<string>`AVG(${reviews.rating})` }).from(reviews).where(eq(reviews.storeId, storeId));
     return result?.avg ? parseFloat(result.avg) : 0;

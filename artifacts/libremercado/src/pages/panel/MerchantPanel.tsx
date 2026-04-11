@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
-import { Package, ShoppingBag, BarChart3, Settings, Plus, Edit, Eye, Trash2, MapPin, Clock, Store, CheckCircle, XCircle, TrendingUp, DollarSign, ShoppingCart, AlertTriangle, Play } from "lucide-react";
+import { Package, ShoppingBag, BarChart3, Settings, Plus, Edit, Eye, Trash2, MapPin, Clock, Store, CheckCircle, XCircle, TrendingUp, DollarSign, ShoppingCart, AlertTriangle, Play, X, ImagePlus } from "lucide-react";
 import { ImageUpload } from "@/components/ui/ImageUpload";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -58,6 +58,8 @@ export default function MerchantPanel() {
     stock: 0,
     imageUrl: "",
   });
+  const [extraImages, setExtraImages] = useState<string[]>([]);
+  const [attrs, setAttrs] = useState<{ key: string; value: string }[]>([]);
 
   const { data: stores, isLoading: storesLoading } = useQuery<StoreType[]>({
     queryKey: ["/api/merchant/stores"],
@@ -122,12 +124,26 @@ export default function MerchantPanel() {
     },
   });
 
+  const buildProductPayload = (data: typeof productForm) => {
+    const allImages = [data.imageUrl, ...extraImages].filter(Boolean);
+    const attrsObj = attrs.reduce((acc, { key, value }) => {
+      if (key.trim()) acc[key.trim()] = value.trim();
+      return acc;
+    }, {} as Record<string, string>);
+    return {
+      ...data,
+      image: data.imageUrl || null,
+      images: allImages.length > 0 ? JSON.stringify(allImages) : null,
+      attributes: Object.keys(attrsObj).length > 0 ? JSON.stringify(attrsObj) : null,
+      originalPrice: data.originalPrice || null,
+    };
+  };
+
   const createProductMutation = useMutation({
     mutationFn: async (data: typeof productForm) => {
       const response = await apiRequest("POST", "/api/merchant/products", {
-        ...data,
+        ...buildProductPayload(data),
         storeId: store?.id,
-        originalPrice: data.originalPrice || null,
       });
       return response.json();
     },
@@ -174,26 +190,43 @@ export default function MerchantPanel() {
 
   const resetProductForm = () => {
     setProductForm({ name: "", description: "", price: "", originalPrice: "", category: "", stock: 0, imageUrl: "" });
+    setExtraImages([]);
+    setAttrs([]);
   };
 
   const openEditProduct = (product: Product) => {
     setEditingProduct(product);
+    const existingImages: string[] = [];
+    try {
+      const parsed = JSON.parse(product.images || "[]");
+      existingImages.push(...parsed);
+    } catch {}
+    const primaryImg = product.image || product.imageUrl || existingImages[0] || "";
+    const rest = existingImages.filter((img) => img !== primaryImg);
+    const existingAttrs: { key: string; value: string }[] = [];
+    try {
+      const parsed = JSON.parse(product.attributes || "{}");
+      Object.entries(parsed).forEach(([k, v]) => existingAttrs.push({ key: k, value: String(v) }));
+    } catch {}
     setProductForm({
       name: product.name,
       description: product.description || "",
       price: product.price,
       originalPrice: product.originalPrice || "",
       category: product.category || "",
-      stock: product.stock,
-      imageUrl: (product as any).imageUrl || "",
+      stock: product.stock ?? 0,
+      imageUrl: primaryImg,
     });
+    setExtraImages(rest);
+    setAttrs(existingAttrs);
     setShowProductDialog(true);
   };
 
   const handleProductSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    const payload = buildProductPayload(productForm);
     if (editingProduct) {
-      updateProductMutation.mutate({ id: editingProduct.id, data: productForm });
+      updateProductMutation.mutate({ id: editingProduct.id, data: payload as any });
     } else {
       createProductMutation.mutate(productForm);
     }
@@ -260,17 +293,63 @@ export default function MerchantPanel() {
               <DialogHeader>
                 <DialogTitle>{editingProduct ? "Editar Producto" : "Nuevo Producto"}</DialogTitle>
               </DialogHeader>
-              <form onSubmit={handleProductSubmit} className="space-y-4">
+              <form onSubmit={handleProductSubmit} className="space-y-4 max-h-[70vh] overflow-y-auto pr-1">
+                {/* Images section */}
                 <div className="space-y-2">
-                  <Label>Foto del producto</Label>
+                  <Label>Foto principal</Label>
                   <ImageUpload
                     endpoint="product"
                     value={productForm.imageUrl}
                     onChange={(url) => setProductForm({ ...productForm, imageUrl: url })}
-                    label="Subir foto del producto"
+                    label="Subir foto principal"
                     aspectRatio="square"
                   />
                 </div>
+                {/* Extra images */}
+                {extraImages.length > 0 && (
+                  <div className="space-y-2">
+                    <Label>Fotos adicionales</Label>
+                    {extraImages.map((img, idx) => (
+                      <div key={idx} className="flex items-center gap-2">
+                        <div className="flex-1">
+                          <ImageUpload
+                            endpoint="product"
+                            value={img}
+                            onChange={(url) => {
+                              const updated = [...extraImages];
+                              updated[idx] = url;
+                              setExtraImages(updated);
+                            }}
+                            label={`Foto ${idx + 2}`}
+                            aspectRatio="square"
+                          />
+                        </div>
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="icon"
+                          className="shrink-0 mt-1"
+                          onClick={() => setExtraImages(extraImages.filter((_, i) => i !== idx))}
+                        >
+                          <X className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+                {extraImages.length < 4 && (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    className="gap-1 w-full"
+                    onClick={() => setExtraImages([...extraImages, ""])}
+                  >
+                    <ImagePlus className="h-4 w-4" />
+                    Agregar otra foto
+                  </Button>
+                )}
+
                 <div className="space-y-2">
                   <Label htmlFor="product-name">Nombre</Label>
                   <Input
@@ -336,6 +415,57 @@ export default function MerchantPanel() {
                     />
                   </div>
                 </div>
+
+                {/* Attributes section */}
+                <div className="space-y-2">
+                  <Label>Características del producto</Label>
+                  {attrs.map((attr, idx) => (
+                    <div key={idx} className="flex gap-2 items-center">
+                      <Input
+                        placeholder="Ej: Talle, Color, Material"
+                        value={attr.key}
+                        onChange={(e) => {
+                          const updated = [...attrs];
+                          updated[idx] = { ...updated[idx], key: e.target.value };
+                          setAttrs(updated);
+                        }}
+                        className="flex-1"
+                        data-testid={`attr-key-${idx}`}
+                      />
+                      <Input
+                        placeholder="Ej: M, Rojo, 100% algodón"
+                        value={attr.value}
+                        onChange={(e) => {
+                          const updated = [...attrs];
+                          updated[idx] = { ...updated[idx], value: e.target.value };
+                          setAttrs(updated);
+                        }}
+                        className="flex-1"
+                        data-testid={`attr-value-${idx}`}
+                      />
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => setAttrs(attrs.filter((_, i) => i !== idx))}
+                      >
+                        <X className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  ))}
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    className="gap-1"
+                    onClick={() => setAttrs([...attrs, { key: "", value: "" }])}
+                    data-testid="button-add-attr"
+                  >
+                    <Plus className="h-4 w-4" />
+                    Agregar característica
+                  </Button>
+                </div>
+
                 <DialogFooter>
                   <DialogClose asChild>
                     <Button type="button" variant="outline">Cancelar</Button>

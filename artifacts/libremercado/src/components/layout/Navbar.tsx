@@ -189,7 +189,7 @@ export function Navbar() {
                           </Link>
                         </DropdownMenuItem>
                         <DropdownMenuItem asChild>
-                          <Link href="/account">
+                          <Link href="/account/orders">
                             <span className="flex items-center gap-2" data-testid="link-my-orders">
                               <ShoppingCart className="h-4 w-4" />
                               Mis compras
@@ -362,7 +362,7 @@ export function Navbar() {
               </Button>
             </Link>
 
-            <Link href="/explore">
+            <Link href="/explore?filter=oficial">
               <Button
                 variant="ghost"
                 size="sm"
@@ -374,7 +374,7 @@ export function Navbar() {
               </Button>
             </Link>
 
-            <Link href="/explore?filter=favoritos">
+            <Link href="/account/favorites">
               <Button
                 variant="ghost"
                 size="sm"
@@ -423,7 +423,7 @@ export function Navbar() {
                 </Button>
               </Link>
 
-              <Link href="/account">
+              <Link href="/help">
                 <Button
                   variant="ghost"
                   size="sm"
