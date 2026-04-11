@@ -131,10 +131,16 @@ export interface Product {
   name: string;
   description?: string | null;
   price: string;
+  originalPrice?: string | null;
   imageUrl?: string | null;
+  image?: string | null;
+  images?: string | null;
   category?: string | null;
   stock?: number | null;
   isActive?: boolean | null;
+  isSponsored?: boolean | null;
+  sponsoredPriority?: number | null;
+  isFeatured?: boolean | null;
   createdAt?: Date | null;
 }
 

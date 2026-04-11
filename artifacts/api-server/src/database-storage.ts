@@ -1056,13 +1056,21 @@ export async function updateDemoData() {
   await db.update(products).set({
     description: "Leche entera UAT de primera calidad, sin aditivos. 1 litro.",
     image: uImg("1550583724-b2692b85b150", 500, 500),
-    images: JSON.stringify([uImg("1550583724-b2692b85b150", 800, 800)]),
+    images: JSON.stringify([
+      uImg("1550583724-b2692b85b150", 800, 800),
+      uImg("1567306301408-9b74779a11af", 800, 800),
+      uImg("1608198093002-ad4e005484ec", 800, 800),
+    ]),
   }).where(eq(products.id, "prod-1"));
 
   await db.update(products).set({
     description: "Pan lactal blanco suave, sin corteza. Ideal para sandwiches y tostadas. 500g.",
     image: uImg("1509440159596-0249088772ff", 500, 500),
-    images: JSON.stringify([uImg("1509440159596-0249088772ff", 800, 800)]),
+    images: JSON.stringify([
+      uImg("1509440159596-0249088772ff", 800, 800),
+      uImg("1586201375761-83865001e31c", 800, 800),
+      uImg("1567306301408-9b74779a11af", 800, 800),
+    ]),
   }).where(eq(products.id, "prod-2"));
 
   await db.insert(products).values([
@@ -1072,7 +1080,7 @@ export async function updateDemoData() {
       description: "Yerba mate seleccionada de las mejores plantaciones de Misiones. Suave y fragante.",
       price: "2800", originalPrice: "3400",
       image: uImg("1576092768241-dec231879fc3", 500, 500),
-      images: JSON.stringify([uImg("1576092768241-dec231879fc3", 800, 800)]),
+      images: JSON.stringify([uImg("1576092768241-dec231879fc3",800,800),uImg("1544787219-7f47ccb76574",800,800),uImg("1589365278-7da5de724b51",800,800)]),
       category: "Infusiones", stock: 60, isActive: true, isSponsored: false, sponsoredPriority: 0,
     },
     {
@@ -1081,7 +1089,7 @@ export async function updateDemoData() {
       description: "Arroz largo fino de alta calidad, sin aditivos. Perfecto para guarniciones.",
       price: "1200",
       image: uImg("1586201375761-83865001e31c", 500, 500),
-      images: JSON.stringify([uImg("1586201375761-83865001e31c", 800, 800)]),
+      images: JSON.stringify([uImg("1586201375761-83865001e31c",800,800),uImg("1567306301408-9b74779a11af",800,800),uImg("1542838132-92c53300491e",800,800)]),
       category: "Almacén", stock: 80, isActive: true, isSponsored: false, sponsoredPriority: 0,
     },
     {
@@ -1090,10 +1098,14 @@ export async function updateDemoData() {
       description: "Bebida cola refrescante, versión retornable. Ideal para compartir.",
       price: "1850", originalPrice: "2200",
       image: uImg("1624557957-2d60f5afb36c", 500, 500),
-      images: JSON.stringify([uImg("1624557957-2d60f5afb36c", 800, 800)]),
+      images: JSON.stringify([uImg("1624557957-2d60f5afb36c",800,800),uImg("1527960669566-c7f07c47d2da",800,800),uImg("1550583724-b2692b85b150",800,800)]),
       category: "Bebidas", stock: 100, isActive: true, isSponsored: false, sponsoredPriority: 0,
     },
   ]).onConflictDoNothing();
+  // Update multi-images for store-1 inserted products (idempotent)
+  await db.update(products).set({ images: JSON.stringify([uImg("1576092768241-dec231879fc3",800,800),uImg("1544787219-7f47ccb76574",800,800),uImg("1589365278-7da5de724b51",800,800)]) }).where(eq(products.id, "prod-1b"));
+  await db.update(products).set({ images: JSON.stringify([uImg("1586201375761-83865001e31c",800,800),uImg("1567306301408-9b74779a11af",800,800),uImg("1542838132-92c53300491e",800,800)]) }).where(eq(products.id, "prod-1c"));
+  await db.update(products).set({ images: JSON.stringify([uImg("1624557957-2d60f5afb36c",800,800),uImg("1527960669566-c7f07c47d2da",800,800),uImg("1550583724-b2692b85b150",800,800)]) }).where(eq(products.id, "prod-1d"));
 
   // --- Store 3: Electro Tech ---
   await db.update(products).set({
@@ -1116,7 +1128,12 @@ export async function updateDemoData() {
     description: "Cargador rápido USB-C con tecnología GaN. Compatible con notebooks, tablets y celulares. Carga tu laptop en menos de 1 hora.",
     price: "6800",
     image: uImg("1581091226825-a6a2a5aee158", 500, 500),
-    images: JSON.stringify([uImg("1581091226825-a6a2a5aee158", 800, 800)]),
+    images: JSON.stringify([
+      uImg("1581091226825-a6a2a5aee158", 800, 800),
+      uImg("1558618666-fcd25c85cd64", 800, 800),
+      uImg("1518770660439-4636190af475", 800, 800),
+      uImg("1596606764615-aa71b8b07f42", 800, 800),
+    ]),
     isSponsored: true,
     sponsoredPriority: 2,
   }).where(eq(products.id, "prod-7"));
@@ -1128,10 +1145,7 @@ export async function updateDemoData() {
       description: "Televisor Smart 4K Ultra HD con Android TV. Pantalla QLED de 55 pulgadas. HDR10+ y Dolby Vision.",
       price: "245000", originalPrice: "290000",
       image: uImg("1593359677879-a4bb92f829d1", 500, 500),
-      images: JSON.stringify([
-        uImg("1593359677879-a4bb92f829d1", 800, 800),
-        uImg("1546587687898-ba8fbcde5b93", 800, 800),
-      ]),
+      images: JSON.stringify([uImg("1593359677879-a4bb92f829d1",800,800),uImg("1546587687898-ba8fbcde5b93",800,800),uImg("1574269909862-7e1d70bb8078",800,800),uImg("1468495244123-6c6c332eeece",800,800)]),
       category: "Televisores", stock: 8, isActive: true, isSponsored: true, sponsoredPriority: 1,
     },
     {
@@ -1140,7 +1154,7 @@ export async function updateDemoData() {
       description: "Teclado mecánico con switches Blue, retroiluminación RGB personalizable y diseño compacto TKL.",
       price: "18500", originalPrice: "22000",
       image: uImg("1587829741301-dc798b83add3", 500, 500),
-      images: JSON.stringify([uImg("1587829741301-dc798b83add3", 800, 800)]),
+      images: JSON.stringify([uImg("1587829741301-dc798b83add3",800,800),uImg("1541140532-f5fabb4f8f5e",800,800),uImg("1518770660439-4636190af475",800,800)]),
       category: "Accesorios", stock: 20, isActive: true, isSponsored: false, sponsoredPriority: 0,
     },
     {
@@ -1149,10 +1163,14 @@ export async function updateDemoData() {
       description: "Parlante portátil con 20W de potencia, resistente al agua IPX7, 12hs de batería y sonido 360°.",
       price: "22000", originalPrice: "26500",
       image: uImg("1608043152269-423dbba4e7e1", 500, 500),
-      images: JSON.stringify([uImg("1608043152269-423dbba4e7e1", 800, 800)]),
+      images: JSON.stringify([uImg("1608043152269-423dbba4e7e1",800,800),uImg("1519817914-6895f5c79c6e",800,800),uImg("1484704849700-f032a568e944",800,800)]),
       category: "Audio", stock: 12, isActive: true, isSponsored: false, sponsoredPriority: 0,
     },
   ]).onConflictDoNothing();
+  // Update multi-images for store-3 inserted products
+  await db.update(products).set({ images: JSON.stringify([uImg("1593359677879-a4bb92f829d1",800,800),uImg("1546587687898-ba8fbcde5b93",800,800),uImg("1574269909862-7e1d70bb8078",800,800),uImg("1468495244123-6c6c332eeece",800,800)]) }).where(eq(products.id, "prod-3b"));
+  await db.update(products).set({ images: JSON.stringify([uImg("1587829741301-dc798b83add3",800,800),uImg("1541140532-f5fabb4f8f5e",800,800),uImg("1518770660439-4636190af475",800,800)]) }).where(eq(products.id, "prod-3c"));
+  await db.update(products).set({ images: JSON.stringify([uImg("1608043152269-423dbba4e7e1",800,800),uImg("1519817914-6895f5c79c6e",800,800),uImg("1484704849700-f032a568e944",800,800)]) }).where(eq(products.id, "prod-3d"));
 
   // --- Store 4: Pizzería Don Luigi ---
   await db.update(products).set({
@@ -1175,7 +1193,11 @@ export async function updateDemoData() {
     price: "12500",
     originalPrice: "14000",
     image: uImg("1565299624946-b28f40a0ae38", 500, 500),
-    images: JSON.stringify([uImg("1565299624946-b28f40a0ae38", 800, 800)]),
+    images: JSON.stringify([
+      uImg("1565299624946-b28f40a0ae38", 800, 800),
+      uImg("1520201163981-8cc95007dd2a", 800, 800),
+      uImg("1513104890138-7c749659a591", 800, 800),
+    ]),
     isSponsored: true,
     sponsoredPriority: 1,
   }).where(eq(products.id, "prod-9"));
@@ -1187,7 +1209,7 @@ export async function updateDemoData() {
       description: "Pizza con tomates cherry, ajo, albahaca fresca y aceite de oliva sobre base de muzzarella.",
       price: "11000",
       image: uImg("1571407970349-bc81e7e96d47", 500, 500),
-      images: JSON.stringify([uImg("1571407970349-bc81e7e96d47", 800, 800)]),
+      images: JSON.stringify([uImg("1571407970349-bc81e7e96d47",800,800),uImg("1604382354936-07c5d9983bd3",800,800),uImg("1565299624946-b28f40a0ae38",800,800)]),
       category: "Pizzas", stock: 99, isActive: true, isSponsored: false, sponsoredPriority: 0,
     },
     {
@@ -1195,8 +1217,8 @@ export async function updateDemoData() {
       name: "Docena de Empanadas Criolla",
       description: "Empanadas caseras de carne cortada a cuchillo, cebolla, pimiento y huevo. Cocidas al horno.",
       price: "9500", originalPrice: "11000",
-      image: uImg("1574484284028-3d37c4d9542c", 500, 500),
-      images: JSON.stringify([uImg("1574484284028-3d37c4d9542c", 800, 800)]),
+      image: uImg("1567620905-ef5e69ea9e9c", 500, 500),
+      images: JSON.stringify([uImg("1567620905-ef5e69ea9e9c",800,800),uImg("1565299624946-b28f40a0ae38",800,800),uImg("1513104890138-7c749659a591",800,800)]),
       category: "Empanadas", stock: 50, isActive: true, isSponsored: false, sponsoredPriority: 0,
     },
     {
@@ -1205,10 +1227,14 @@ export async function updateDemoData() {
       description: "2 pizzas grandes a elección + 1 gaseosa 1.5L. El combo perfecto para compartir.",
       price: "21000", originalPrice: "25000",
       image: uImg("1604382354936-07c5d9983bd3", 500, 500),
-      images: JSON.stringify([uImg("1604382354936-07c5d9983bd3", 800, 800)]),
+      images: JSON.stringify([uImg("1604382354936-07c5d9983bd3",800,800),uImg("1513104890138-7c749659a591",800,800),uImg("1571407970349-bc81e7e96d47",800,800)]),
       category: "Combos", stock: 99, isActive: true, isSponsored: false, sponsoredPriority: 0,
     },
   ]).onConflictDoNothing();
+  // Update multi-images for store-4 inserted products
+  await db.update(products).set({ images: JSON.stringify([uImg("1571407970349-bc81e7e96d47",800,800),uImg("1604382354936-07c5d9983bd3",800,800),uImg("1565299624946-b28f40a0ae38",800,800)]) }).where(eq(products.id, "prod-4b"));
+  await db.update(products).set({ image: uImg("1567620905-ef5e69ea9e9c",500,500), images: JSON.stringify([uImg("1567620905-ef5e69ea9e9c",800,800),uImg("1565299624946-b28f40a0ae38",800,800),uImg("1513104890138-7c749659a591",800,800)]) }).where(eq(products.id, "prod-4c"));
+  await db.update(products).set({ images: JSON.stringify([uImg("1604382354936-07c5d9983bd3",800,800),uImg("1513104890138-7c749659a591",800,800),uImg("1571407970349-bc81e7e96d47",800,800)]) }).where(eq(products.id, "prod-4d"));
 
   // --- Store 5: Moda Express ---
   await db.update(products).set({
@@ -1233,7 +1259,7 @@ export async function updateDemoData() {
       description: "Jean de corte slim con elastano para mayor comodidad. Lavado clásico. Talles 28 al 42.",
       price: "12500", originalPrice: "15000",
       image: uImg("1542272604-787c3835535d", 500, 500),
-      images: JSON.stringify([uImg("1542272604-787c3835535d", 800, 800)]),
+      images: JSON.stringify([uImg("1542272604-787c3835535d",800,800),uImg("1487222477894-8943e31ef7b2",800,800),uImg("1523381210434-271e8be1f52b",800,800)]),
       category: "Pantalones", stock: 40, isActive: true, isSponsored: true, sponsoredPriority: 1,
     },
     {
@@ -1242,7 +1268,7 @@ export async function updateDemoData() {
       description: "Zapatillas de running con suela amortiguadora. Ideales para correr y uso diario. Talles 36-45.",
       price: "28000", originalPrice: "35000",
       image: uImg("1542291026-7eec264c27ff", 500, 500),
-      images: JSON.stringify([uImg("1542291026-7eec264c27ff", 800, 800)]),
+      images: JSON.stringify([uImg("1542291026-7eec264c27ff",800,800),uImg("1595777457583-95e059d581b8",800,800),uImg("1542272604-787c3835535d",800,800)]),
       category: "Calzado", stock: 25, isActive: true, isSponsored: true, sponsoredPriority: 3,
     },
     {
@@ -1251,7 +1277,7 @@ export async function updateDemoData() {
       description: "Vestido estampado floral en gasa liviana. Perfecto para el verano. Talles S, M, L, XL.",
       price: "9800", originalPrice: "12000",
       image: uImg("1595777457583-95e059d581b8", 500, 500),
-      images: JSON.stringify([uImg("1595777457583-95e059d581b8", 800, 800)]),
+      images: JSON.stringify([uImg("1595777457583-95e059d581b8",800,800),uImg("1469334031218-e382a71b716b",800,800),uImg("1558769132-cb1aea458c5e",800,800)]),
       category: "Vestidos", stock: 30, isActive: true, isSponsored: false, sponsoredPriority: 0,
     },
     {
@@ -1260,10 +1286,15 @@ export async function updateDemoData() {
       description: "Campera cortaviento con capucha desmontable. Ideal para primavera-verano. Talle único.",
       price: "16500", originalPrice: "19900",
       image: uImg("1591047139829-d91aecb6caea", 500, 500),
-      images: JSON.stringify([uImg("1591047139829-d91aecb6caea", 800, 800)]),
+      images: JSON.stringify([uImg("1591047139829-d91aecb6caea",800,800),uImg("1523381210434-271e8be1f52b",800,800),uImg("1521572163474-6864f9cf17ab",800,800)]),
       category: "Camperas", stock: 20, isActive: true, isSponsored: false, sponsoredPriority: 0,
     },
   ]).onConflictDoNothing();
+  // Update multi-images for store-5 inserted products
+  await db.update(products).set({ images: JSON.stringify([uImg("1542272604-787c3835535d",800,800),uImg("1487222477894-8943e31ef7b2",800,800),uImg("1523381210434-271e8be1f52b",800,800)]) }).where(eq(products.id, "prod-5b"));
+  await db.update(products).set({ images: JSON.stringify([uImg("1542291026-7eec264c27ff",800,800),uImg("1595777457583-95e059d581b8",800,800),uImg("1542272604-787c3835535d",800,800)]) }).where(eq(products.id, "prod-5c"));
+  await db.update(products).set({ images: JSON.stringify([uImg("1595777457583-95e059d581b8",800,800),uImg("1469334031218-e382a71b716b",800,800),uImg("1558769132-cb1aea458c5e",800,800)]) }).where(eq(products.id, "prod-5d"));
+  await db.update(products).set({ images: JSON.stringify([uImg("1591047139829-d91aecb6caea",800,800),uImg("1523381210434-271e8be1f52b",800,800),uImg("1521572163474-6864f9cf17ab",800,800)]) }).where(eq(products.id, "prod-5e"));
 
   // --- Store 6: Pet Shop Amigos ---
   await db.update(products).set({
@@ -1286,7 +1317,11 @@ export async function updateDemoData() {
     description: "Arena aglomerante con control de olores y anti-bacteriana. Sin polvo. Duración 4 semanas para 1 gato.",
     price: "7800",
     image: uImg("1574158622682-e40e69881006", 500, 500),
-    images: JSON.stringify([uImg("1574158622682-e40e69881006", 800, 800)]),
+    images: JSON.stringify([
+      uImg("1574158622682-e40e69881006", 800, 800),
+      uImg("1561037404-61cd46aa615b", 800, 800),
+      uImg("1583511655857-d19b40a7a54e", 800, 800),
+    ]),
   }).where(eq(products.id, "prod-12"));
 
   await db.insert(products).values([
@@ -1296,7 +1331,7 @@ export async function updateDemoData() {
       description: "Set de correa y arnés acolchado para perros. Cierre de seguridad doble. Talle S al XL.",
       price: "5200", originalPrice: "6500",
       image: uImg("1591758369239-ac2b76e23eac", 500, 500),
-      images: JSON.stringify([uImg("1591758369239-ac2b76e23eac", 800, 800)]),
+      images: JSON.stringify([uImg("1591758369239-ac2b76e23eac",800,800),uImg("1548199973-03cce0bbc87b",800,800),uImg("1587300003388-59208cc962cb",800,800)]),
       category: "Accesorios", stock: 35, isActive: true, isSponsored: false, sponsoredPriority: 0,
     },
     {
@@ -1305,7 +1340,7 @@ export async function updateDemoData() {
       description: "Cama con espuma viscoelástica ortopédica. Funda lavable. Talla M (60x80cm). Ideal para perros y gatos.",
       price: "12800", originalPrice: "15500",
       image: uImg("1590031905406-f18a426d772d", 500, 500),
-      images: JSON.stringify([uImg("1590031905406-f18a426d772d", 800, 800)]),
+      images: JSON.stringify([uImg("1590031905406-f18a426d772d",800,800),uImg("1561037404-61cd46aa615b",800,800),uImg("1583511655857-d19b40a7a54e",800,800)]),
       category: "Descanso", stock: 15, isActive: true, isSponsored: false, sponsoredPriority: 0,
     },
     {
@@ -1314,10 +1349,14 @@ export async function updateDemoData() {
       description: "Juguete electrónico con movimiento aleatorio. Estimula el instinto cazador. Pilas incluidas.",
       price: "3500",
       image: uImg("1572635148818-ef6fd45eb394", 500, 500),
-      images: JSON.stringify([uImg("1572635148818-ef6fd45eb394", 800, 800)]),
+      images: JSON.stringify([uImg("1572635148818-ef6fd45eb394",800,800),uImg("1574158622682-e40e69881006",800,800),uImg("1561037404-61cd46aa615b",800,800)]),
       category: "Juguetes", stock: 40, isActive: true, isSponsored: false, sponsoredPriority: 0,
     },
   ]).onConflictDoNothing();
+  // Update multi-images for store-6 inserted products
+  await db.update(products).set({ images: JSON.stringify([uImg("1591758369239-ac2b76e23eac",800,800),uImg("1548199973-03cce0bbc87b",800,800),uImg("1587300003388-59208cc962cb",800,800)]) }).where(eq(products.id, "prod-6b"));
+  await db.update(products).set({ images: JSON.stringify([uImg("1590031905406-f18a426d772d",800,800),uImg("1561037404-61cd46aa615b",800,800),uImg("1583511655857-d19b40a7a54e",800,800)]) }).where(eq(products.id, "prod-6c"));
+  await db.update(products).set({ images: JSON.stringify([uImg("1572635148818-ef6fd45eb394",800,800),uImg("1574158622682-e40e69881006",800,800),uImg("1561037404-61cd46aa615b",800,800)]) }).where(eq(products.id, "prod-6d"));
 
   // ─── VIDEOS: update to local URLs + thumbnails ────────────────────────────
 

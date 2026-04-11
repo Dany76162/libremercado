@@ -2530,17 +2530,22 @@ Responde en formato JSON con la siguiente estructura:
   app.get("/api/videos/feed", async (req, res) => {
     const provinciaId = String(req.query.provinciaId ?? "");
     const ciudadId = String(req.query.ciudadId ?? "");
+    const storeIdFilter = req.query.storeId ? String(req.query.storeId) : undefined;
     const limit = Math.min(Number(req.query.limit ?? 10), 50);
     const offset = Number(req.query.offset ?? 0);
     const userId = (req.session as any)?.userId as string | undefined;
 
-    const videos = await storage.getVideoFeed({
+    let videos = await storage.getVideoFeed({
       provinciaId: provinciaId || undefined,
       ciudadId: ciudadId || undefined,
-      limit,
+      limit: storeIdFilter ? 50 : limit,
       offset,
       userId,
     });
+
+    if (storeIdFilter) {
+      videos = videos.filter((v) => v.storeId === storeIdFilter).slice(0, limit);
+    }
 
     // Enrich with store and product data
     const enriched = await Promise.all(

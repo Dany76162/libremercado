@@ -1,5 +1,5 @@
 import { useRoute } from "wouter";
-import { Star, MapPin, Clock, Phone, ArrowLeft, MessageSquare, Images } from "lucide-react";
+import { Star, MapPin, Clock, Phone, ArrowLeft, MessageSquare, Images, Play, ShoppingCart, ExternalLink } from "lucide-react";
 import { Link } from "wouter";
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
@@ -12,6 +12,16 @@ import { Separator } from "@/components/ui/separator";
 import { ProductCard } from "@/components/marketplace/ProductCard";
 import { useStore, useStoreProducts } from "@/hooks/use-marketplace";
 import type { Review } from "@shared/schema";
+
+interface VideoFeedItem {
+  id: string;
+  title: string;
+  videoUrl: string;
+  thumbnailUrl?: string | null;
+  viewsCount?: number | null;
+  isFeatured?: boolean | null;
+  product?: { id: string; name: string; price: string; image: string | null; originalPrice: string | null } | null;
+}
 
 export default function StoreDetails() {
   const [match, params] = useRoute("/store/:id");
@@ -29,6 +39,16 @@ export default function StoreDetails() {
     },
     enabled: !!storeId,
   });
+
+  const { data: storeVideos } = useQuery<VideoFeedItem[]>({
+    queryKey: ["/api/videos/feed", storeId],
+    queryFn: async () => {
+      const res = await fetch(`/api/videos/feed?storeId=${storeId}&limit=1`);
+      return res.json();
+    },
+    enabled: !!storeId,
+  });
+  const featuredReel = storeVideos?.[0] ?? null;
 
   if (storeLoading) {
     return (
@@ -171,6 +191,90 @@ export default function StoreDetails() {
             <span>Contactar</span>
           </div>
         </div>
+
+        {/* ── Reel section ── */}
+        {featuredReel && (
+          <div className="mb-6" data-testid="section-store-reel">
+            <h3 className="text-base font-semibold flex items-center gap-2 mb-3">
+              <Play className="h-4 w-4 text-primary" />
+              Reel de la tienda
+            </h3>
+            <div className="flex flex-col sm:flex-row gap-4 bg-card border rounded-xl overflow-hidden shadow-sm">
+              {/* Thumbnail / Video preview */}
+              <Link href="/videos" className="block relative shrink-0 w-full sm:w-48 aspect-[9/16] sm:aspect-auto sm:h-48 bg-black group">
+                {featuredReel.thumbnailUrl ? (
+                  <img
+                    src={featuredReel.thumbnailUrl}
+                    alt={featuredReel.title}
+                    className="w-full h-full object-cover group-hover:opacity-80 transition-opacity"
+                    data-testid="img-reel-thumbnail"
+                  />
+                ) : (
+                  <div className="w-full h-full bg-gradient-to-br from-primary/40 to-accent/40" />
+                )}
+                <div className="absolute inset-0 flex items-center justify-center">
+                  <div className="bg-white/90 hover:bg-white rounded-full p-3 shadow-lg transition-transform group-hover:scale-110">
+                    <Play className="h-7 w-7 text-primary fill-primary" />
+                  </div>
+                </div>
+                {featuredReel.isFeatured && (
+                  <Badge className="absolute top-2 left-2 bg-accent text-accent-foreground text-xs">
+                    Destacado
+                  </Badge>
+                )}
+              </Link>
+
+              {/* Info */}
+              <div className="p-4 flex flex-col justify-between flex-1">
+                <div>
+                  <p className="font-semibold text-sm line-clamp-2 mb-2">{featuredReel.title}</p>
+                  {featuredReel.product && (
+                    <Link href={`/product/${featuredReel.product.id}`}>
+                      <div className="flex items-center gap-3 bg-muted rounded-lg p-2 mb-3 hover:bg-muted/80 transition-colors cursor-pointer">
+                        {featuredReel.product.image && (
+                          <img
+                            src={featuredReel.product.image}
+                            alt={featuredReel.product.name}
+                            className="w-12 h-12 rounded object-cover shrink-0"
+                          />
+                        )}
+                        <div className="min-w-0">
+                          <p className="text-xs text-muted-foreground line-clamp-1">{featuredReel.product.name}</p>
+                          <div className="flex items-center gap-2">
+                            <p className="font-bold text-sm text-foreground">
+                              {new Intl.NumberFormat("es-AR", { style: "currency", currency: "ARS", minimumFractionDigits: 0 }).format(parseFloat(featuredReel.product.price))}
+                            </p>
+                            {featuredReel.product.originalPrice && parseFloat(featuredReel.product.originalPrice) > parseFloat(featuredReel.product.price) && (
+                              <p className="text-xs line-through text-muted-foreground">
+                                {new Intl.NumberFormat("es-AR", { style: "currency", currency: "ARS", minimumFractionDigits: 0 }).format(parseFloat(featuredReel.product.originalPrice))}
+                              </p>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    </Link>
+                  )}
+                </div>
+                <div className="flex gap-2">
+                  <Link href="/videos" className="flex-1">
+                    <Button size="sm" className="w-full gap-1.5" data-testid="btn-watch-reel">
+                      <Play className="h-3.5 w-3.5 fill-current" />
+                      Ver Reel
+                    </Button>
+                  </Link>
+                  {featuredReel.product && (
+                    <Link href={`/product/${featuredReel.product.id}`}>
+                      <Button size="sm" variant="outline" className="gap-1.5" data-testid="btn-reel-product">
+                        <ShoppingCart className="h-3.5 w-3.5" />
+                        Ver producto
+                      </Button>
+                    </Link>
+                  )}
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
 
         <Tabs defaultValue="Todos" className="mb-6">
           <TabsList className="h-auto flex-wrap justify-start">

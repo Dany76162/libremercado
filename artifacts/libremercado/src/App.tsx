@@ -27,6 +27,7 @@ import ForgotPassword from "@/pages/ForgotPassword";
 import ResetPassword from "@/pages/ResetPassword";
 import AccountFavorites from "@/pages/account/Favorites";
 import Videos from "@/pages/Videos";
+import ProductDetail from "@/pages/ProductDetail";
 import NotFound from "@/pages/not-found";
 
 function Router() {
@@ -37,6 +38,7 @@ function Router() {
       <Route path="/explore" component={Explore} />
       <Route path="/videos" component={Videos} />
       <Route path="/store/:id" component={StoreDetails} />
+      <Route path="/product/:id" component={ProductDetail} />
       <Route path="/cart" component={Cart} />
       <Route path="/account/orders" component={AccountOrders} />
       <Route path="/account/favorites" component={AccountFavorites} />

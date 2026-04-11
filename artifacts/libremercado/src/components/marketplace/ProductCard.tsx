@@ -2,6 +2,7 @@ import { ShoppingCart, Heart, Zap } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Link } from "wouter";
 import { useCart } from "@/hooks/use-cart";
 import { useToast } from "@/hooks/use-toast";
 import { useIsFavorite, useToggleFavorite } from "@/hooks/use-favorites";
@@ -48,6 +49,7 @@ export function ProductCard({ product, showStore = false }: ProductCardProps) {
   };
 
   return (
+    <Link href={`/product/${product.id}`} className="block h-full">
     <Card
       className="group overflow-hidden hover-elevate active-elevate-2 cursor-pointer transition-all h-full flex flex-col"
       data-testid={`card-product-${product.id}`}
@@ -158,5 +160,6 @@ export function ProductCard({ product, showStore = false }: ProductCardProps) {
         </Button>
       </CardContent>
     </Card>
+    </Link>
   );
 }
