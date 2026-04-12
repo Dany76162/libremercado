@@ -31,6 +31,13 @@ pnpm workspace monorepo using TypeScript. Each package manages its own dependenc
 - Session auth with `express-session`
 - File uploads with multer → `/uploads`
 - Stripe integration via connector API
+- Payment Core module at `src/payments/` — decoupled from Stripe:
+  - `PaymentProvider.ts` — abstract interface (swap providers without touching business logic)
+  - `providers/StripeProvider.ts` — Stripe concrete implementation
+  - `CommissionCalculator.ts` — tier-based commission (free 7%, basic 3%, premium 1%)
+  - `PaymentService.ts` — orchestrator: creates payments, attempts, ledger, commissions
+  - DB tables: `payments`, `payment_attempts`, `provider_events`, `ledger_entries`
+  - Admin endpoints: `GET /api/admin/payments`, `/api/admin/payment-events`
 
 ### mockup-sandbox (Canvas)
 - **Kind**: design, mounted at `/__mockup`
