@@ -107,21 +107,25 @@ export function Navbar() {
                     </span>
                   </Link>
 
-                  <div className="px-4 py-2 text-sm font-semibold text-muted-foreground mt-2">
-                    Unite a PachaPay
-                  </div>
-                  <Link href="/vender">
-                    <span className="flex items-center gap-2 px-4 py-2 rounded-md hover-elevate text-primary font-medium" data-testid="link-mobile-vender">
-                      <Store className="h-4 w-4" />
-                      Vender
-                    </span>
-                  </Link>
-                  <Link href="/repartidor">
-                    <span className="flex items-center gap-2 px-4 py-2 rounded-md hover-elevate text-accent font-medium" data-testid="link-mobile-repartidor">
-                      <Bike className="h-4 w-4" />
-                      Ser Repartidor
-                    </span>
-                  </Link>
+                  {!isAuthenticated && (
+                    <>
+                      <div className="px-4 py-2 text-sm font-semibold text-muted-foreground mt-2">
+                        Unite a PachaPay
+                      </div>
+                      <Link href="/vender">
+                        <span className="flex items-center gap-2 px-4 py-2 rounded-md hover-elevate text-primary font-medium" data-testid="link-mobile-vender">
+                          <Store className="h-4 w-4" />
+                          Vender
+                        </span>
+                      </Link>
+                      <Link href="/repartidor">
+                        <span className="flex items-center gap-2 px-4 py-2 rounded-md hover-elevate text-accent font-medium" data-testid="link-mobile-repartidor">
+                          <Bike className="h-4 w-4" />
+                          Ser Repartidor
+                        </span>
+                      </Link>
+                    </>
+                  )}
                   
                   <div className="px-4 py-2 text-sm font-semibold text-muted-foreground mt-2">
                     Categorías
@@ -293,7 +297,7 @@ export function Navbar() {
 
       {!isVideosRoute && <nav className="hidden md:block bg-primary/95 border-t border-primary-foreground/10">
         <div className="mx-auto max-w-7xl px-4">
-          <div className="flex items-center h-10 gap-1 overflow-x-auto">
+          <div className="flex items-center h-10 gap-1">
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button
@@ -412,29 +416,33 @@ export function Navbar() {
             </Link>
 
             <div className="ml-auto flex items-center gap-1">
-              <Link href="/vender">
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="text-primary-foreground/90 hover:text-primary-foreground hover:bg-primary-foreground/10 gap-1"
-                  data-testid="link-vender"
-                >
-                  <Store className="h-3 w-3" />
-                  Vender
-                </Button>
-              </Link>
+              {!isAuthenticated && (
+                <>
+                  <Link href="/vender">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="text-primary-foreground/90 hover:text-primary-foreground hover:bg-primary-foreground/10 gap-1"
+                      data-testid="link-vender"
+                    >
+                      <Store className="h-3 w-3" />
+                      Vender
+                    </Button>
+                  </Link>
 
-              <Link href="/repartidor">
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="text-primary-foreground/90 hover:text-primary-foreground hover:bg-primary-foreground/10 gap-1"
-                  data-testid="link-repartidor"
-                >
-                  <Bike className="h-3 w-3" />
-                  Repartidor
-                </Button>
-              </Link>
+                  <Link href="/repartidor">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="text-primary-foreground/90 hover:text-primary-foreground hover:bg-primary-foreground/10 gap-1"
+                      data-testid="link-repartidor"
+                    >
+                      <Bike className="h-3 w-3" />
+                      Repartidor
+                    </Button>
+                  </Link>
+                </>
+              )}
 
               <Link href="/help">
                 <Button
