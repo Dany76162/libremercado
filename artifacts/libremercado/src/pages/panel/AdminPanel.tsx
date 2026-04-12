@@ -1,7 +1,7 @@
 import { useState } from "react";
 import {
   Users, Store, Package, Megaphone, Settings, Shield,
-  Bike, Building2, Activity, AlertCircle, Headphones, Percent, Truck, Plane, BarChart3, ShieldAlert, Play, LayoutGrid, BadgeCheck
+  Bike, Building2, Activity, AlertCircle, Headphones, Percent, BarChart3, ShieldAlert, Play, LayoutGrid, BadgeCheck
 } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -119,12 +119,6 @@ export default function AdminPanel() {
           <TabsTrigger value="support" data-testid="tab-support">
             <Headphones className="h-4 w-4 mr-2" />Soporte
           </TabsTrigger>
-          <TabsTrigger value="transport" data-testid="tab-transport">
-            <Truck className="h-4 w-4 mr-2" />Transporte
-          </TabsTrigger>
-          <TabsTrigger value="flights" data-testid="tab-flights">
-            <Plane className="h-4 w-4 mr-2" />Vuelos
-          </TabsTrigger>
           <TabsTrigger value="videos" data-testid="tab-videos">
             <Play className="h-4 w-4 mr-2" />Reelmark
           </TabsTrigger>
@@ -199,52 +193,6 @@ export default function AdminPanel() {
 
         <TabsContent value="support" className="mt-0">
           <AdminSupportTab />
-        </TabsContent>
-
-        <TabsContent value="transport" className="mt-0">
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Truck className="h-5 w-5" />
-                Modulo de Transporte
-              </CardTitle>
-              <CardDescription>
-                Gestion de empresas y rutas de transporte terrestre. Disponible en una proxima version.
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="text-center py-16">
-                <Truck className="h-20 w-20 text-muted-foreground mx-auto mb-4 opacity-40" />
-                <h3 className="text-xl font-semibold mb-2">Proximo Lanzamiento</h3>
-                <p className="text-muted-foreground max-w-sm mx-auto">
-                  El modulo de transporte permitira gestionar empresas, rutas, viajes y reservas de pasajes en una plataforma unificada.
-                </p>
-              </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        <TabsContent value="flights" className="mt-0">
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Plane className="h-5 w-5" />
-                Modulo de Vuelos
-              </CardTitle>
-              <CardDescription>
-                Busqueda y reserva de vuelos. Disponible en una proxima version.
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="text-center py-16">
-                <Plane className="h-20 w-20 text-muted-foreground mx-auto mb-4 opacity-40" />
-                <h3 className="text-xl font-semibold mb-2">Proximo Lanzamiento</h3>
-                <p className="text-muted-foreground max-w-sm mx-auto">
-                  El modulo de vuelos integrara aerolineas, busqueda de asientos, reservas y emision de e-tickets directamente en la plataforma.
-                </p>
-              </div>
-            </CardContent>
-          </Card>
         </TabsContent>
 
         <TabsContent value="videos" className="mt-0">

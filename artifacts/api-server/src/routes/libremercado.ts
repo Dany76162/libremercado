@@ -250,12 +250,15 @@ export async function registerRoutes(
   });
 
   app.get("/api/users/:id", requireAuth, async (req, res) => {
-    const user = await storage.getUser(req.params.id);
-    if (!user) {
-      return res.status(404).json({ error: "User not found" });
+    const me = await getCurrentUser(req);
+    if (!me) return res.status(401).json({ error: "No autenticado" });
+    // Only allow users to fetch their own profile; admins can fetch any
+    if (me.role !== "admin" && me.id !== req.params.id) {
+      return res.status(403).json({ error: "Acceso no autorizado" });
     }
-    // Don't send password hash to client
-    const { password, ...safeUser } = user;
+    const user = await storage.getUser(req.params.id);
+    if (!user) return res.status(404).json({ error: "User not found" });
+    const { password, passwordResetToken, passwordResetExpiry, ...safeUser } = user;
     res.json(safeUser);
   });
 
@@ -3042,6 +3045,14 @@ Responde en formato JSON con la siguiente estructura:
 
   app.patch("/api/oficial/secretarias/:id", requireRole("official", "admin"), async (req, res) => {
     try {
+      const me = (req as any).user;
+      if (me.role !== "admin") {
+        const entity = await storage.getEntityForUser(me.id);
+        const secs = entity ? await storage.getSecretarias(entity.id) : [];
+        if (!secs.find(s => s.id === req.params.id)) {
+          return res.status(403).json({ error: "No podés modificar secretarías de otra entidad" });
+        }
+      }
       const item = await storage.updateSecretaria(req.params.id, req.body);
       if (!item) return res.status(404).json({ error: "Secretaría no encontrada" });
       res.json(item);
@@ -3051,12 +3062,28 @@ Responde en formato JSON con la siguiente estructura:
   });
 
   app.delete("/api/oficial/secretarias/:id", requireRole("official", "admin"), async (req, res) => {
+    const me = (req as any).user;
+    if (me.role !== "admin") {
+      const entity = await storage.getEntityForUser(me.id);
+      const secs = entity ? await storage.getSecretarias(entity.id) : [];
+      if (!secs.find(s => s.id === req.params.id)) {
+        return res.status(403).json({ error: "No podés eliminar secretarías de otra entidad" });
+      }
+    }
     await storage.deleteSecretaria(req.params.id);
     res.json({ ok: true });
   });
 
   app.post("/api/oficial/secretarias/:id/create-account", requireRole("official", "admin"), async (req, res) => {
     try {
+      const me = (req as any).user;
+      if (me.role !== "admin") {
+        const entity = await storage.getEntityForUser(me.id);
+        const secs = entity ? await storage.getSecretarias(entity.id) : [];
+        if (!secs.find(s => s.id === req.params.id)) {
+          return res.status(403).json({ error: "No podés crear cuentas para secretarías de otra entidad" });
+        }
+      }
       const { email, username, password } = req.body as { email: string; username: string; password: string };
       if (!email || !username || !password) return res.status(400).json({ error: "email, username y password requeridos" });
       const hashed = await hashPassword(password);
