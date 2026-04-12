@@ -3,6 +3,7 @@ import path from "path";
 import fs from "fs";
 import { Request } from "express";
 import crypto from "crypto";
+import { uploadFileToGCS } from "./lib/gcsUpload";
 
 const UPLOAD_ROOT = path.resolve("uploads");
 
@@ -152,4 +153,20 @@ export function deleteUploadedFile(filePath: string): void {
   try {
     if (fs.existsSync(filePath)) fs.unlinkSync(filePath);
   } catch {}
+}
+
+export async function processUpload(
+  file: Express.Multer.File,
+  folder: string,
+  allowImages: boolean,
+  allowVideos: boolean
+): Promise<string> {
+  if (!validateFileMagicBytes(file.path, allowImages, allowVideos)) {
+    deleteUploadedFile(file.path);
+    const tipo = allowImages && !allowVideos ? "imagen" : !allowImages && allowVideos ? "video" : "imagen o video";
+    throw new Error(`El archivo no es un ${tipo} válido`);
+  }
+  const url = await uploadFileToGCS(file.path, folder, file.mimetype, file.originalname);
+  deleteUploadedFile(file.path);
+  return url;
 }

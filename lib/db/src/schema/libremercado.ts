@@ -459,7 +459,7 @@ export const travelBookings = pgTable("travel_bookings", {
   departureTime: text("departure_time").notNull(),
   arrivalTime: text("arrival_time").notNull(),
   duration: text("duration").notNull(),
-  price: integer("price").notNull(),
+  price: decimal("price", { precision: 10, scale: 2 }).notNull(),
   seats: integer("seats").notNull().default(1),
   status: text("status").$type<"confirmed" | "cancelled">().notNull().default("confirmed"),
   createdAt: timestamp("created_at").notNull().defaultNow(),

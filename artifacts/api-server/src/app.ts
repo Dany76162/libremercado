@@ -2,12 +2,17 @@ import express, { type Express, type Request, type Response, type NextFunction }
 import cors from "cors";
 import pinoHttp from "pino-http";
 import session from "express-session";
+import pgSession from "connect-pg-simple";
+import pg from "pg";
 import rateLimit from "express-rate-limit";
 import { createServer } from "http";
 import router from "./routes";
 import { logger } from "./lib/logger";
 import { WebhookHandlers } from "./webhookHandlers";
 import { setupWebSocket } from "./ws";
+
+const PgStore = pgSession(session);
+const pgPool = new pg.Pool({ connectionString: process.env.DATABASE_URL });
 
 const app: Express = express();
 const httpServer = createServer(app);
@@ -104,8 +109,27 @@ app.post(
   }
 );
 
-// Serve uploads statically
+// Serve uploads statically (legacy on-disk files)
 app.use("/uploads", express.static("uploads"));
+
+// Serve GCS-stored files via proxy
+app.get(/^\/api\/files\/(.+)$/, async (req: any, res: any) => {
+  try {
+    const { getBucket } = await import("./lib/gcsUpload");
+    const objectPath = req.params[0] as string;
+    if (!objectPath) return res.status(404).end();
+    const bucket = getBucket();
+    const file = bucket.file(objectPath);
+    const [exists] = await file.exists();
+    if (!exists) return res.status(404).json({ error: "Archivo no encontrado" });
+    const [metadata] = await file.getMetadata();
+    res.setHeader("Content-Type", (metadata as any).contentType || "application/octet-stream");
+    res.setHeader("Cache-Control", "public, max-age=31536000, immutable");
+    file.createReadStream().pipe(res);
+  } catch (err: any) {
+    res.status(500).json({ error: "Error al servir el archivo" });
+  }
+});
 
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
@@ -113,6 +137,10 @@ app.use(express.urlencoded({ extended: false }));
 const sessionSecret = process.env.SESSION_SECRET || "libremercado-dev-secret";
 app.use(
   session({
+    store: new PgStore({
+      pool: pgPool,
+      tableName: "session",
+    }),
     secret: sessionSecret,
     resave: false,
     saveUninitialized: false,

@@ -15,9 +15,7 @@ import {
   uploadVideo,
   uploadThumbnail,
   uploadInstitucional,
-  getPublicUrl,
-  validateFileMagicBytes,
-  deleteUploadedFile,
+  processUpload,
 } from "../upload";
 import rateLimit from "express-rate-limit";
 
@@ -625,62 +623,57 @@ export async function registerRoutes(
   // ==================== UPLOAD ROUTES ====================
 
   app.post("/api/upload/product", requireAuth, (req, res) => {
-    uploadProduct(req, res, (err) => {
+    uploadProduct(req, res, async (err) => {
       if (err) return res.status(400).json({ message: err.message });
       if (!req.file) return res.status(400).json({ message: "No se recibió ningún archivo" });
-      if (!validateFileMagicBytes(req.file.path, true, false)) {
-        deleteUploadedFile(req.file.path);
-        return res.status(400).json({ message: "El archivo no es una imagen válida" });
-      }
-      res.json({ url: getPublicUrl("products", req.file.filename) });
+      try {
+        const url = await processUpload(req.file, "products", true, false);
+        res.json({ url });
+      } catch (e: any) { res.status(400).json({ message: e.message }); }
     });
   });
 
   app.post("/api/upload/store", requireAuth, (req, res) => {
-    uploadStore(req, res, (err) => {
+    uploadStore(req, res, async (err) => {
       if (err) return res.status(400).json({ message: err.message });
       if (!req.file) return res.status(400).json({ message: "No se recibió ningún archivo" });
-      if (!validateFileMagicBytes(req.file.path, true, false)) {
-        deleteUploadedFile(req.file.path);
-        return res.status(400).json({ message: "El archivo no es una imagen válida" });
-      }
-      res.json({ url: getPublicUrl("stores", req.file.filename) });
+      try {
+        const url = await processUpload(req.file, "stores", true, false);
+        res.json({ url });
+      } catch (e: any) { res.status(400).json({ message: e.message }); }
     });
   });
 
   app.post("/api/upload/avatar", requireAuth, (req, res) => {
-    uploadAvatar(req, res, (err) => {
+    uploadAvatar(req, res, async (err) => {
       if (err) return res.status(400).json({ message: err.message });
       if (!req.file) return res.status(400).json({ message: "No se recibió ningún archivo" });
-      if (!validateFileMagicBytes(req.file.path, true, false)) {
-        deleteUploadedFile(req.file.path);
-        return res.status(400).json({ message: "El archivo no es una imagen válida" });
-      }
-      res.json({ url: getPublicUrl("avatars", req.file.filename) });
+      try {
+        const url = await processUpload(req.file, "avatars", true, false);
+        res.json({ url });
+      } catch (e: any) { res.status(400).json({ message: e.message }); }
     });
   });
 
   app.post("/api/upload/kyc", requireAuth, (req, res) => {
-    uploadKyc(req, res, (err) => {
+    uploadKyc(req, res, async (err) => {
       if (err) return res.status(400).json({ message: err.message });
       if (!req.file) return res.status(400).json({ message: "No se recibió ningún archivo" });
-      if (!validateFileMagicBytes(req.file.path, true, false)) {
-        deleteUploadedFile(req.file.path);
-        return res.status(400).json({ message: "El archivo no es una imagen válida" });
-      }
-      res.json({ url: getPublicUrl("kyc", req.file.filename) });
+      try {
+        const url = await processUpload(req.file, "kyc", true, false);
+        res.json({ url });
+      } catch (e: any) { res.status(400).json({ message: e.message }); }
     });
   });
 
   app.post("/api/upload/promo", requireAuth, (req, res) => {
-    uploadPromo(req, res, (err) => {
+    uploadPromo(req, res, async (err) => {
       if (err) return res.status(400).json({ message: err.message });
       if (!req.file) return res.status(400).json({ message: "No se recibió ningún archivo" });
-      if (!validateFileMagicBytes(req.file.path, true, false)) {
-        deleteUploadedFile(req.file.path);
-        return res.status(400).json({ message: "El archivo no es una imagen válida" });
-      }
-      res.json({ url: getPublicUrl("promos", req.file.filename) });
+      try {
+        const url = await processUpload(req.file, "promos", true, false);
+        res.json({ url });
+      } catch (e: any) { res.status(400).json({ message: e.message }); }
     });
   });
 
@@ -2834,27 +2827,25 @@ Responde en formato JSON con la siguiente estructura:
 
   // Merchant: upload video file
   app.post("/api/merchant/videos/upload-video", requireAuth, requireRole("merchant"), (req, res) => {
-    uploadVideo(req, res, (err) => {
+    uploadVideo(req, res, async (err) => {
       if (err) return res.status(400).json({ error: err.message });
       if (!req.file) return res.status(400).json({ error: "No se recibió ningún archivo de video" });
-      if (!validateFileMagicBytes(req.file.path, false, true)) {
-        deleteUploadedFile(req.file.path);
-        return res.status(400).json({ error: "El archivo no es un video válido" });
-      }
-      res.json({ url: getPublicUrl("videos", req.file.filename) });
+      try {
+        const url = await processUpload(req.file, "videos", false, true);
+        res.json({ url });
+      } catch (e: any) { res.status(400).json({ error: e.message }); }
     });
   });
 
   // Merchant: upload thumbnail
   app.post("/api/merchant/videos/upload-thumbnail", requireAuth, requireRole("merchant"), (req, res) => {
-    uploadThumbnail(req, res, (err) => {
+    uploadThumbnail(req, res, async (err) => {
       if (err) return res.status(400).json({ error: err.message });
       if (!req.file) return res.status(400).json({ error: "No se recibió ninguna imagen" });
-      if (!validateFileMagicBytes(req.file.path, true, false)) {
-        deleteUploadedFile(req.file.path);
-        return res.status(400).json({ error: "El archivo no es una imagen válida" });
-      }
-      res.json({ url: getPublicUrl("thumbnails", req.file.filename) });
+      try {
+        const url = await processUpload(req.file, "thumbnails", true, false);
+        res.json({ url });
+      } catch (e: any) { res.status(400).json({ error: e.message }); }
     });
   });
 
@@ -3108,16 +3099,14 @@ Responde en formato JSON con la siguiente estructura:
   // ─── UPLOAD INSTITUCIONAL ──────────────────────────────────────────────────
 
   app.post("/api/oficial/upload", requireRole("official", "admin"), (req, res) => {
-    uploadInstitucional(req, res, (err) => {
+    uploadInstitucional(req, res, async (err) => {
       if (err) return res.status(400).json({ error: err.message ?? "Error al subir archivo" });
       if (!req.file) return res.status(400).json({ error: "No se recibió ningún archivo" });
       const isVideo = req.file.mimetype.startsWith("video/");
-      if (!validateFileMagicBytes(req.file.path, true, isVideo)) {
-        deleteUploadedFile(req.file.path);
-        return res.status(400).json({ error: "El archivo no es una imagen o video válido" });
-      }
-      const url = getPublicUrl("institucional", req.file.filename);
-      res.json({ url, type: isVideo ? "video" : "image", filename: req.file.filename });
+      try {
+        const url = await processUpload(req.file, "institucional", true, isVideo);
+        res.json({ url, type: isVideo ? "video" : "image" });
+      } catch (e: any) { res.status(400).json({ error: e.message }); }
     });
   });
 
