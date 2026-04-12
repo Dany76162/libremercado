@@ -1,0 +1,8 @@
+uploads = []
+generated = []
+
+[[outputs]]
+id = "9Q6UIQDr0StgcSdokSZwH"
+uri = "file://.local/AUDITORIA_LIBREMERCADO.md"
+type = "text"
+title = "Auditoría Global — LibreMercado / PachaPay"
