@@ -568,41 +568,65 @@ export default function Home() {
       )}
 
       <section className="px-4 py-8 max-w-7xl mx-auto">
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <Link href="/vender">
-            <Card className="bg-gradient-to-br from-primary to-orange-600 border-0 hover-elevate cursor-pointer" data-testid="card-become-seller">
-              <CardContent className="p-6 flex items-center gap-5">
-                <div className="w-16 h-16 rounded-full bg-white/20 flex items-center justify-center shrink-0">
-                  <Store className="h-8 w-8 text-white" />
+            <div
+              data-testid="card-become-seller"
+              className="relative overflow-hidden rounded-xl cursor-pointer bg-gradient-to-r from-[#ea580c] via-[#dc2626] to-[#b91c1c] transition-all duration-300 ease-out hover:scale-[1.02] hover:brightness-110 group"
+              style={{ boxShadow: "0 2px 20px 0 rgba(234,88,12,0.45)" }}
+            >
+              <div className="absolute -top-8 -right-8 w-36 h-36 rounded-full blur-2xl bg-orange-300/25" />
+              <div className="absolute -bottom-6 -left-4 w-24 h-24 rounded-full blur-2xl bg-red-200/15" />
+              <div className="absolute top-0 left-0 right-0 h-1/2 bg-gradient-to-b from-white/10 to-transparent pointer-events-none" />
+              <div className="relative z-10 px-5 py-5 flex items-center gap-4">
+                <div className="shrink-0 flex gap-2">
+                  <div className="w-12 h-12 rounded-xl bg-white/20 backdrop-blur-sm border border-white/25 flex items-center justify-center shadow-inner">
+                    <Store className="h-6 w-6 text-white drop-shadow" />
+                  </div>
                 </div>
-                <div className="text-white flex-1">
-                  <h3 className="text-xl font-bold mb-1">Vendé en PachaPay</h3>
-                  <p className="text-white/90 text-sm mb-3">Registrá tu comercio y empezá a vender a miles de clientes en tu zona</p>
-                  <Button variant="secondary" size="sm" data-testid="button-become-seller">
-                    Registrar mi comercio
-                    <ArrowRight className="ml-2 h-4 w-4" />
-                  </Button>
+                <div className="flex-1 min-w-0">
+                  <p className="text-[10px] font-bold tracking-widest text-white/60 uppercase leading-none mb-1">COMERCIOS</p>
+                  <h3 className="text-lg font-black text-white leading-tight">Vendé en PachaPay</h3>
+                  <p className="text-xs text-white/80 mt-0.5 leading-snug">Registrá tu comercio y empezá a vender a miles de clientes en tu zona</p>
                 </div>
-              </CardContent>
-            </Card>
+                <div className="shrink-0 flex flex-col items-center gap-2">
+                  <div className="w-8 h-8 rounded-full bg-white/15 border border-white/20 flex items-center justify-center transition-transform duration-200 group-hover:translate-x-1">
+                    <ArrowRight className="h-4 w-4 text-white" />
+                  </div>
+                  <span className="text-[10px] text-white/60 font-semibold whitespace-nowrap">Registrarme</span>
+                </div>
+              </div>
+            </div>
           </Link>
 
           <Link href="/repartidor">
-            <Card className="bg-gradient-to-br from-accent to-blue-600 border-0 hover-elevate cursor-pointer" data-testid="card-become-rider">
-              <CardContent className="p-6 flex items-center gap-5">
-                <div className="w-16 h-16 rounded-full bg-white/20 flex items-center justify-center shrink-0">
-                  <Bike className="h-8 w-8 text-white" />
+            <div
+              data-testid="card-become-rider"
+              className="relative overflow-hidden rounded-xl cursor-pointer bg-gradient-to-r from-[#2563eb] via-[#1d4ed8] to-[#1e3a8a] transition-all duration-300 ease-out hover:scale-[1.02] hover:brightness-110 group"
+              style={{ boxShadow: "0 2px 20px 0 rgba(37,99,235,0.45)" }}
+            >
+              <div className="absolute -top-8 -right-8 w-36 h-36 rounded-full blur-2xl bg-blue-300/25" />
+              <div className="absolute -bottom-6 -left-4 w-24 h-24 rounded-full blur-2xl bg-sky-200/15" />
+              <div className="absolute top-0 left-0 right-0 h-1/2 bg-gradient-to-b from-white/10 to-transparent pointer-events-none" />
+              <div className="relative z-10 px-5 py-5 flex items-center gap-4">
+                <div className="shrink-0 flex gap-2">
+                  <div className="w-12 h-12 rounded-xl bg-white/20 backdrop-blur-sm border border-white/25 flex items-center justify-center shadow-inner">
+                    <Bike className="h-6 w-6 text-white drop-shadow" />
+                  </div>
                 </div>
-                <div className="text-white flex-1">
-                  <h3 className="text-xl font-bold mb-1">Trabajá como repartidor</h3>
-                  <p className="text-white/90 text-sm mb-3">Unite al equipo de delivery y ganá dinero haciendo entregas</p>
-                  <Button variant="secondary" size="sm" data-testid="button-become-rider">
-                    Quiero ser repartidor
-                    <ArrowRight className="ml-2 h-4 w-4" />
-                  </Button>
+                <div className="flex-1 min-w-0">
+                  <p className="text-[10px] font-bold tracking-widest text-white/60 uppercase leading-none mb-1">DELIVERY</p>
+                  <h3 className="text-lg font-black text-white leading-tight">Trabajá como repartidor</h3>
+                  <p className="text-xs text-white/80 mt-0.5 leading-snug">Unite al equipo de delivery y ganá dinero haciendo entregas</p>
                 </div>
-              </CardContent>
-            </Card>
+                <div className="shrink-0 flex flex-col items-center gap-2">
+                  <div className="w-8 h-8 rounded-full bg-white/15 border border-white/20 flex items-center justify-center transition-transform duration-200 group-hover:translate-x-1">
+                    <ArrowRight className="h-4 w-4 text-white" />
+                  </div>
+                  <span className="text-[10px] text-white/60 font-semibold whitespace-nowrap">Registrarme</span>
+                </div>
+              </div>
+            </div>
           </Link>
         </div>
       </section>
