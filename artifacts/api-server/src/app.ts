@@ -87,27 +87,30 @@ export const forgotPasswordLimiter = rateLimit({
   message: { error: "Demasiadas solicitudes. Esperá 15 minutos." },
 });
 
-// Stripe webhook — must be before express.json()
-app.post(
-  "/api/stripe/webhook",
-  express.raw({ type: "application/json" }),
-  async (req: any, res) => {
-    const signature = req.headers["stripe-signature"];
-    if (!signature) {
-      return res.status(400).json({ error: "Missing stripe-signature" });
-    }
-    try {
-      const sig = Array.isArray(signature) ? signature[0] : signature;
-      if (!Buffer.isBuffer(req.body)) {
-        return res.status(500).json({ error: "Webhook processing error" });
-      }
-      await WebhookHandlers.processWebhook(req.body as Buffer, sig);
-      res.status(200).json({ received: true });
-    } catch (error: any) {
-      res.status(400).json({ error: "Webhook processing error" });
-    }
+// Payment webhook — provider-agnostic route. Must be before express.json()
+// Legacy alias kept for backward compat with existing Stripe dashboard config.
+const webhookHandler = express.raw({ type: "application/json" });
+const processWebhook = async (req: any, res: any) => {
+  const signature = req.headers["stripe-signature"] as string | string[] | undefined;
+  if (!signature) {
+    return res.status(400).json({ error: "Missing webhook signature" });
   }
-);
+  try {
+    const sig = Array.isArray(signature) ? signature[0] : signature;
+    if (!Buffer.isBuffer(req.body)) {
+      return res.status(500).json({ error: "Webhook processing error" });
+    }
+    await WebhookHandlers.processWebhook(req.body as Buffer, sig);
+    res.status(200).json({ received: true });
+  } catch (error: any) {
+    res.status(400).json({ error: "Webhook processing error" });
+  }
+};
+
+// Primary provider-agnostic path
+app.post("/api/payments/webhook", webhookHandler, processWebhook);
+// Legacy Stripe-specific alias (keep until Stripe dashboard is updated)
+app.post("/api/stripe/webhook", webhookHandler, processWebhook);
 
 // Serve uploads statically (legacy on-disk files)
 app.use("/uploads", express.static("uploads"));

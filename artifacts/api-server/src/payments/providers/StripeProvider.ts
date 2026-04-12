@@ -107,7 +107,18 @@ export class StripeProvider implements PaymentProvider {
         webhookSecret
       );
     } else {
-      // In test/dev mode without webhook secret — parse raw body directly
+      // No webhook secret configured — signature is NOT verified.
+      // NEVER deploy to production without STRIPE_WEBHOOK_SECRET set.
+      if (process.env.NODE_ENV === "production") {
+        throw new Error(
+          "SECURITY: STRIPE_WEBHOOK_SECRET must be set in production. Refusing to process unsigned webhook."
+        );
+      }
+      console.warn(
+        "[StripeProvider] WARNING: STRIPE_WEBHOOK_SECRET not set — " +
+          "webhook signature verification is DISABLED. " +
+          "This is only acceptable in local dev/test environments."
+      );
       event = JSON.parse(rawBodyStr) as Stripe.Event;
     }
 

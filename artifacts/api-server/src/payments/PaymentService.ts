@@ -14,11 +14,10 @@ import {
   ledgerEntries,
   providerEvents,
   platformCommissions,
-  InsertPayment,
   InternalPaymentStatus,
   PaymentProvider as PaymentProviderName,
 } from "@workspace/db";
-import { eq, and, desc } from "drizzle-orm";
+import { eq, ne, and, desc } from "drizzle-orm";
 import type { PaymentProvider, CheckoutResult } from "./PaymentProvider";
 import { commissionCalculator } from "./CommissionCalculator";
 import type { SubscriptionTier } from "./CommissionCalculator";
@@ -142,22 +141,24 @@ export class PaymentService {
   /**
    * Confirm payment after provider confirms success.
    * Records ledger entries and platform commission.
+   *
+   * ATOMIC: Uses a conditional UPDATE (WHERE status != 'captured') to prevent
+   * TOCTOU race conditions. If two concurrent calls arrive, only one will
+   * receive a row back — the other returns early without inserting ledger entries.
    */
   async confirmPayment(params: ConfirmPaymentParams): Promise<void> {
-    const [payment] = await db
+    // 0. Pre-check: payment must exist and providerPaymentId must be known
+    const [existing] = await db
       .select()
       .from(payments)
       .where(eq(payments.id, params.paymentId));
 
-    if (!payment) throw new Error(`Payment ${params.paymentId} not found`);
-    if (payment.status === "captured") return; // Idempotent
+    if (!existing) throw new Error(`Payment ${params.paymentId} not found`);
 
-    const now = new Date();
-
-    // 1. Verify status with provider
-    if (payment.providerPaymentId) {
+    // 1. Verify status with provider before touching DB
+    if (existing.providerPaymentId) {
       try {
-        const result = await this.provider.getPaymentStatus(payment.providerPaymentId);
+        const result = await this.provider.getPaymentStatus(existing.providerPaymentId);
         if (result.status !== "captured") {
           throw new Error(
             `Provider reports payment not captured (status: ${result.status})`
@@ -169,15 +170,32 @@ export class PaymentService {
       }
     }
 
-    // 2. Update internal payment status
-    await db
+    const now = new Date();
+
+    // 2. ATOMIC UPDATE: only succeeds if status is not yet 'captured'.
+    //    If two concurrent requests reach this line, PostgreSQL guarantees
+    //    only one UPDATE will match and return a row — the other gets [] and returns.
+    const updated = await db
       .update(payments)
       .set({
         status: "captured",
         capturedAt: now,
         updatedAt: now,
       })
-      .where(eq(payments.id, payment.id));
+      .where(
+        // Atomic guard: skip if another request already captured it.
+        // The AND condition is evaluated inside PostgreSQL — only one concurrent
+        // UPDATE can win the row lock and return a row.
+        and(
+          eq(payments.id, params.paymentId),
+          ne(payments.status, "captured")
+        )
+      )
+      .returning();
+
+    if (updated.length === 0) return; // Already captured by a concurrent request — idempotent
+
+    const payment = updated[0];
 
     const gross = parseFloat(payment.amountGross as string);
     const fee = parseFloat(payment.amountFee as string);

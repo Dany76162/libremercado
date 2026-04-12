@@ -723,7 +723,7 @@ export const payments = pgTable("payments", {
  */
 export const paymentAttempts = pgTable("payment_attempts", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-  paymentId: varchar("payment_id").notNull(),
+  paymentId: varchar("payment_id").notNull().references(() => payments.id, { onDelete: "cascade" }),
   provider: text("provider").$type<PaymentProvider>().notNull(),
   providerAttemptId: text("provider_attempt_id"),
   status: text("status").notNull(),
@@ -742,7 +742,7 @@ export const providerEvents = pgTable("provider_events", {
   provider: text("provider").$type<PaymentProvider>().notNull(),
   eventType: text("event_type").notNull(),
   providerEventId: text("provider_event_id").notNull().unique(),
-  paymentId: varchar("payment_id"),
+  paymentId: varchar("payment_id").references(() => payments.id, { onDelete: "set null" }),
   orderId: varchar("order_id"),
   rawPayload: text("raw_payload"),
   processed: boolean("processed").notNull().default(false),
@@ -757,7 +757,7 @@ export const providerEvents = pgTable("provider_events", {
  */
 export const ledgerEntries = pgTable("ledger_entries", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-  paymentId: varchar("payment_id"),
+  paymentId: varchar("payment_id").references(() => payments.id, { onDelete: "set null" }),
   orderId: varchar("order_id"),
   entryType: text("entry_type").$type<LedgerEntryType>().notNull(),
   actorType: text("actor_type").$type<LedgerActorType>().notNull(),
