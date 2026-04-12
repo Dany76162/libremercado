@@ -21,7 +21,18 @@ pnpm workspace monorepo using TypeScript. Each package manages its own dependenc
 - **Kind**: React + Vite frontend, mounted at `/`
 - **Dir**: `artifacts/libremercado/`
 - Source: cloned from GitHub `Dany76162/libremercado`, branch `dev-libre`
-- Features: marketplace, shopping cart, user auth, merchant panel, rider onboarding, Stripe payments, video feed (Reelmark), travel offers, location filtering, admin panel, KYC verification, real-time order tracking via WebSocket
+- Features: marketplace, shopping cart, user auth, merchant panel, rider onboarding, Stripe payments, video feed (Reelmark), **Travel Commerce vertical** (bus/flight booking with seat map, payment ledger, ticket codes), location filtering, admin panel, KYC verification, real-time order tracking via WebSocket
+
+#### Travel Commerce Module (`/travel`)
+- **Frontend**: `artifacts/libremercado/src/pages/Travel.tsx` — search hero, bus/flight tabs, seat map, 4-step booking flow, mis reservas
+- **Backend**: `artifacts/api-server/src/travel/`
+  - `TravelBookingService.ts` — search, seat map, booking, confirmBookingPayment
+  - `providers/MockProvider.ts` — deterministic Argentine bus/airline mock (6 bus, 5 airline companies)
+  - `TravelProvider.ts` — interface & types
+- **DB tables**: `travel_providers`, `travel_routes`, `travel_trips`, `travel_seat_inventory`, `travel_bookings` (extended)
+- **Payment**: `PaymentService.recordInternalPayment()` → `confirmPayment({skipProviderVerification:true})` = no Stripe in dev
+- **Commission**: 5% flat on all travel bookings
+- **API routes**: `GET /api/travel/search`, `GET /api/travel/trips/:id`, `GET /api/travel/trips/:id/seats`, `POST /api/travel/bookings`, `GET /api/travel/my-bookings`
 
 ### API Server
 - **Kind**: Express API backend, mounted at `/api`
