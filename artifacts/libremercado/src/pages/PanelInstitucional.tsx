@@ -41,7 +41,16 @@ type Secretaria = {
   description?: string | null; logo?: string | null; userId?: string | null; isActive: boolean;
 };
 
-type OfficialMe = { user: { id: string; email: string; username: string; role: string }; entity: PublicEntity };
+type NovedadRich = Omit<import("@/components/feed/NovedadCard").Novedad, "secretariaId"> & {
+  secretariaId?: string | null;
+  secretariaName?: string | null;
+};
+
+type OfficialMe = {
+  user: { id: string; email: string; username: string; role: string };
+  entity: PublicEntity;
+  secretaria: Secretaria | null;
+};
 
 // ─── CONSTANTS ────────────────────────────────────────────────────────────────
 
@@ -176,19 +185,53 @@ function FileDropzone({
   );
 }
 
+// ─── SECRETARIA BADGE ─────────────────────────────────────────────────────────
+
+const SEC_AREA_COLORS: Record<string, string> = {
+  salud: "bg-red-100 text-red-700 border-red-200",
+  educación: "bg-blue-100 text-blue-700 border-blue-200",
+  obras: "bg-orange-100 text-orange-700 border-orange-200",
+  cultura: "bg-purple-100 text-purple-700 border-purple-200",
+  turismo: "bg-green-100 text-green-700 border-green-200",
+  hacienda: "bg-yellow-100 text-yellow-700 border-yellow-200",
+};
+
+function SecBadge({ name }: { name: string }) {
+  return (
+    <span className="inline-flex items-center gap-1 text-[10px] font-semibold px-2 py-0.5 rounded-full border bg-indigo-50 text-indigo-700 border-indigo-200">
+      <Users className="h-2.5 w-2.5" />{name}
+    </span>
+  );
+}
+
 // ─── NOVEDADES TAB ────────────────────────────────────────────────────────────
 
-function NovedadesTab({ entity }: { entity?: PublicEntity }) {
+function NovedadesTab({ entity, isEntityAdmin }: { entity?: PublicEntity; isEntityAdmin: boolean }) {
   const { toast } = useToast();
   const [showCreate, setShowCreate] = useState(false);
   const [editId, setEditId] = useState<string | null>(null);
   const [form, setForm] = useState({ ...EMPTY_FORM });
+  const [filterSec, setFilterSec] = useState<string>("all");
 
-  const { data: novedades, isLoading } = useQuery<Novedad[]>({
+  const { data: novedades, isLoading } = useQuery<NovedadRich[]>({
     queryKey: ["/api/oficial/novedades"],
     queryFn: () => fetch("/api/oficial/novedades").then((r) => r.json()),
     enabled: !!entity,
   });
+
+  // Derive secretaria name list from novedades (for admin filter)
+  const secNames = isEntityAdmin
+    ? [...new Set((novedades ?? []).filter(n => n.secretariaName).map(n => n.secretariaName as string))]
+    : [];
+
+  const filtered = (novedades ?? []).filter(n => {
+    if (filterSec === "all") return true;
+    if (filterSec === "entity") return !n.secretariaId;
+    return n.secretariaName === filterSec;
+  });
+
+  // Stats
+  const fromSecretarias = (novedades ?? []).filter(n => !!n.secretariaId).length;
 
   const createMutation = useMutation({
     mutationFn: (data: typeof form) => apiRequest("POST", "/api/oficial/novedades", data).then((r) => r.json()),
@@ -212,10 +255,13 @@ function NovedadesTab({ entity }: { entity?: PublicEntity }) {
 
   const deleteMutation = useMutation({
     mutationFn: (id: string) => apiRequest("DELETE", `/api/oficial/novedades/${id}`),
-    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ["/api/oficial/novedades"] }); queryClient.invalidateQueries({ queryKey: ["/api/novedades"] }); },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/oficial/novedades"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/novedades"] });
+    },
   });
 
-  const handleEdit = (nov: Novedad) => {
+  const handleEdit = (nov: NovedadRich) => {
     setForm({
       title: nov.title, summary: nov.summary ?? "", description: nov.description ?? "",
       image: nov.image ?? "", videoUrl: (nov as any).videoUrl ?? "",
@@ -231,28 +277,58 @@ function NovedadesTab({ entity }: { entity?: PublicEntity }) {
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
-        <h2 className="font-bold text-lg">Novedades</h2>
+        <div>
+          <h2 className="font-bold text-lg">Novedades</h2>
+          {isEntityAdmin && fromSecretarias > 0 && (
+            <p className="text-xs text-muted-foreground">{fromSecretarias} publicada{fromSecretarias !== 1 ? "s" : ""} por secretarías</p>
+          )}
+        </div>
         <Button onClick={() => { setEditId(null); setForm({ ...EMPTY_FORM }); setShowCreate(true); }} disabled={!entity} size="sm">
           <Plus className="h-4 w-4 mr-1" /> Nueva
         </Button>
       </div>
 
+      {/* FILTER BAR — only for entity admin when there are secretaria novedades */}
+      {isEntityAdmin && secNames.length > 0 && (
+        <div className="flex items-center gap-2 flex-wrap">
+          <span className="text-xs text-muted-foreground font-medium">Filtrar:</span>
+          {[
+            { id: "all", label: "Todo el organismo" },
+            { id: "entity", label: "Solo organismo" },
+            ...secNames.map(n => ({ id: n, label: n })),
+          ].map(f => (
+            <button
+              key={f.id}
+              onClick={() => setFilterSec(f.id)}
+              className={`text-xs px-3 py-1 rounded-full border font-medium transition-colors ${
+                filterSec === f.id
+                  ? "bg-indigo-600 text-white border-indigo-600"
+                  : "bg-background text-muted-foreground border-border hover:border-indigo-300 hover:text-indigo-700"
+              }`}
+            >{f.label}</button>
+          ))}
+        </div>
+      )}
+
       {isLoading ? (
         <div className="space-y-3">{[1,2,3].map(i => <Skeleton key={i} className="h-20 rounded-xl" />)}</div>
-      ) : !novedades?.length ? (
+      ) : !filtered.length ? (
         <Card className="border-dashed border-2">
           <CardContent className="py-12 text-center space-y-3">
             <FileText className="h-10 w-10 text-muted-foreground/30 mx-auto" />
-            <p className="text-muted-foreground font-medium">Todavía no publicaste ninguna novedad</p>
-            <Button variant="outline" onClick={() => setShowCreate(true)} disabled={!entity}><Plus className="h-4 w-4 mr-1" /> Publicar primera</Button>
+            <p className="text-muted-foreground font-medium">
+              {filterSec !== "all" ? "Sin novedades en este filtro" : "Todavía no hay novedades publicadas"}
+            </p>
+            {filterSec === "all" && <Button variant="outline" onClick={() => setShowCreate(true)} disabled={!entity}><Plus className="h-4 w-4 mr-1" /> Publicar primera</Button>}
           </CardContent>
         </Card>
       ) : (
         <div className="space-y-3">
-          {novedades.map((nov) => {
+          {filtered.map((nov) => {
             const st = STATUS_CONFIG[nov.status] ?? STATUS_CONFIG.active;
+            const canEdit = !isEntityAdmin ? true : true; // entity admin can edit all
             return (
-              <Card key={nov.id} className="overflow-hidden hover:shadow-md transition-shadow">
+              <Card key={nov.id} className={`overflow-hidden hover:shadow-md transition-shadow ${nov.secretariaId ? "border-l-4 border-l-indigo-300" : ""}`}>
                 <CardContent className="p-0">
                   <div className="flex">
                     {nov.image && <div className="w-20 h-20 shrink-0"><img src={nov.image} alt={nov.title} className="w-full h-full object-cover" /></div>}
@@ -261,6 +337,7 @@ function NovedadesTab({ entity }: { entity?: PublicEntity }) {
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center gap-1.5 flex-wrap mb-1">
                             <span className={`inline-flex items-center gap-1 text-[10px] font-semibold px-2 py-0.5 rounded-full border ${st.color}`}>{st.icon} {st.label}</span>
+                            {nov.secretariaName && <SecBadge name={nov.secretariaName} />}
                             {nov.isFeatured && <span className="text-[10px] text-yellow-700 bg-yellow-50 border border-yellow-200 rounded-full px-2 py-0.5">⭐ Destacada</span>}
                             <span className="text-[10px] text-muted-foreground border border-border rounded-full px-2 py-0.5">{CATEGORY_LABELS[nov.category] ?? nov.category}</span>
                           </div>
@@ -928,30 +1005,46 @@ export default function PanelInstitucional() {
   }
 
   const entity = me?.entity;
+  const mySecretaria = me?.secretaria ?? null;
+  const isEntityAdmin = !mySecretaria; // true if user is directly the entity admin (not a secretaria member)
   const vBadge = entity ? (VERIFICATION_BADGE[entity.verificationStatus] ?? VERIFICATION_BADGE.pending) : null;
 
-  const TABS: { id: Tab; label: string; icon: React.ReactNode }[] = [
+  const ALL_TABS: { id: Tab; label: string; icon: React.ReactNode; adminOnly?: boolean }[] = [
     { id: "novedades", label: "Novedades", icon: <FileText className="h-4 w-4" /> },
     { id: "reels", label: "Reels", icon: <Film className="h-4 w-4" /> },
-    { id: "config", label: "Perfil", icon: <Settings className="h-4 w-4" /> },
-    { id: "secretarias", label: "Secretarías", icon: <Users className="h-4 w-4" /> },
+    { id: "config", label: "Perfil", icon: <Settings className="h-4 w-4" />, adminOnly: true },
+    { id: "secretarias", label: "Secretarías", icon: <Users className="h-4 w-4" />, adminOnly: true },
   ];
+  const TABS = ALL_TABS.filter(t => !t.adminOnly || isEntityAdmin);
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50/40 via-background to-background">
       {/* HEADER */}
       <header className="sticky top-0 z-40 bg-background/90 backdrop-blur border-b border-border/50">
         <div className="max-w-3xl mx-auto px-4 py-3 flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <Shield className="h-5 w-5 text-blue-600" />
-            <span className="font-bold text-base sm:text-lg">Panel Institucional</span>
-            {entity && <span className="text-sm text-muted-foreground hidden sm:inline">· {entity.name}</span>}
+          <div className="flex items-center gap-2 min-w-0">
+            <Shield className="h-5 w-5 text-blue-600 shrink-0" />
+            <div className="min-w-0">
+              <span className="font-bold text-base sm:text-lg">Panel Institucional</span>
+              {entity && (
+                <span className="text-sm text-muted-foreground hidden sm:inline">
+                  {" · "}{entity.name}{mySecretaria ? ` › ${mySecretaria.name}` : ""}
+                </span>
+              )}
+            </div>
           </div>
           <div className="flex items-center gap-1.5">
             <Button variant="ghost" size="sm" onClick={() => navigate("/")} className="text-xs sm:text-sm">Inicio</Button>
             <Button variant="ghost" size="icon" onClick={() => logout()} title="Cerrar sesión"><LogOut className="h-4 w-4" /></Button>
           </div>
         </div>
+        {/* Secretaria context bar */}
+        {mySecretaria && (
+          <div className="bg-indigo-600 text-white text-xs text-center py-1 px-4 font-medium">
+            Publicando como: <strong>{mySecretaria.name}</strong>
+            {mySecretaria.area ? ` · ${mySecretaria.area}` : ""}
+          </div>
+        )}
       </header>
 
       <main className="max-w-3xl mx-auto px-4 py-5 space-y-5">
@@ -1022,7 +1115,7 @@ export default function PanelInstitucional() {
         </div>
 
         {/* TAB CONTENT */}
-        {activeTab === "novedades" && <NovedadesTab entity={entity} />}
+        {activeTab === "novedades" && <NovedadesTab entity={entity} isEntityAdmin={isEntityAdmin} />}
         {activeTab === "reels" && <ReelsTab entity={entity} />}
         {activeTab === "config" && <ConfigTab entity={entity} onUpdated={() => refetchMe()} />}
         {activeTab === "secretarias" && <SecretariasTab entity={entity} />}

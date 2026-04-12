@@ -827,26 +827,55 @@ export class DatabaseStorage implements IStorage {
   // ─── OFFICIAL PANEL ─────────────────────────────────────────────────────────
 
   async getEntityForUser(userId: string): Promise<PublicEntity | undefined> {
+    // Check if user is the entity admin
     const [entity] = await db.select().from(publicEntities)
       .where(and(eq(publicEntities.userId, userId), eq(publicEntities.isActive, true)));
-    return entity;
+    if (entity) return entity;
+    // Check if user is a secretaria member — return parent entity
+    const [sec] = await db.select().from(secretarias).where(eq(secretarias.userId, userId));
+    if (sec) {
+      const [parent] = await db.select().from(publicEntities)
+        .where(and(eq(publicEntities.id, sec.entityId), eq(publicEntities.isActive, true)));
+      return parent;
+    }
+    return undefined;
   }
 
-  async getNovedadesForEntity(publicEntityId: string): Promise<Novedad[]> {
-    return db.select().from(novedades)
+  async getSecretariaForUser(userId: string): Promise<Secretaria | undefined> {
+    const [sec] = await db.select().from(secretarias).where(eq(secretarias.userId, userId));
+    return sec;
+  }
+
+  async getNovedadesForEntity(publicEntityId: string): Promise<(Novedad & { secretariaName?: string | null })[]> {
+    const items = await db.select().from(novedades)
       .where(eq(novedades.publicEntityId, publicEntityId))
       .orderBy(desc(novedades.createdAt));
+    // Enrich with secretaria names
+    const secIds = [...new Set(items.map(n => n.secretariaId).filter(Boolean) as string[])];
+    const secMap = new Map<string, string>();
+    if (secIds.length > 0) {
+      for (const id of secIds) {
+        const [s] = await db.select({ id: secretarias.id, name: secretarias.name }).from(secretarias).where(eq(secretarias.id, id));
+        if (s) secMap.set(s.id, s.name);
+      }
+    }
+    return items.map(n => ({ ...n, secretariaName: n.secretariaId ? secMap.get(n.secretariaId) ?? null : null }));
   }
 
   async createOfficialNovedad(userId: string, data: Partial<InsertNovedad>): Promise<Novedad> {
     const entity = await this.getEntityForUser(userId);
     if (!entity) throw new Error("No entity linked to this user");
+    // Check if publisher is a secretaria member
+    const sec = await this.getSecretariaForUser(userId);
+    const emitterName = sec ? `${entity.name} · ${sec.name}` : (data.emitterName || entity.name);
+    const emitterLogo = sec?.logo || data.emitterLogo || entity.logo || null;
     const [r] = await db.insert(novedades).values({
       ...data as InsertNovedad,
       isOfficial: true,
       publicEntityId: entity.id,
-      emitterName: data.emitterName || entity.name,
-      emitterLogo: data.emitterLogo || entity.logo || null,
+      secretariaId: sec?.id ?? null,
+      emitterName,
+      emitterLogo,
       createdBy: userId,
     }).returning();
     return r;
@@ -855,8 +884,12 @@ export class DatabaseStorage implements IStorage {
   async updateOfficialNovedad(userId: string, novedadId: string, data: Partial<InsertNovedad>): Promise<Novedad | undefined> {
     const entity = await this.getEntityForUser(userId);
     if (!entity) throw new Error("No entity linked");
-    const [existing] = await db.select().from(novedades)
-      .where(and(eq(novedades.id, novedadId), eq(novedades.publicEntityId, entity.id)));
+    const sec = await this.getSecretariaForUser(userId);
+    // Secretaria can only edit its own novedades; entity admin can edit all
+    const conditions = sec
+      ? and(eq(novedades.id, novedadId), eq(novedades.publicEntityId, entity.id), eq(novedades.secretariaId, sec.id))
+      : and(eq(novedades.id, novedadId), eq(novedades.publicEntityId, entity.id));
+    const [existing] = await db.select().from(novedades).where(conditions!);
     if (!existing) return undefined;
     const [r] = await db.update(novedades).set(data).where(eq(novedades.id, novedadId)).returning();
     return r;
@@ -865,8 +898,11 @@ export class DatabaseStorage implements IStorage {
   async deleteOfficialNovedad(userId: string, novedadId: string): Promise<boolean> {
     const entity = await this.getEntityForUser(userId);
     if (!entity) return false;
-    const [existing] = await db.select().from(novedades)
-      .where(and(eq(novedades.id, novedadId), eq(novedades.publicEntityId, entity.id)));
+    const sec = await this.getSecretariaForUser(userId);
+    const conditions = sec
+      ? and(eq(novedades.id, novedadId), eq(novedades.publicEntityId, entity.id), eq(novedades.secretariaId, sec.id))
+      : and(eq(novedades.id, novedadId), eq(novedades.publicEntityId, entity.id));
+    const [existing] = await db.select().from(novedades).where(conditions!);
     if (!existing) return false;
     await db.delete(novedades).where(eq(novedades.id, novedadId));
     return true;

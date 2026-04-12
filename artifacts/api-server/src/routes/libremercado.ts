@@ -2856,7 +2856,8 @@ Responde en formato JSON con la siguiente estructura:
     const user = (req as any).user;
     const entity = await storage.getEntityForUser(user.id);
     if (!entity) return res.status(404).json({ error: "No tenés ninguna entidad vinculada a tu cuenta" });
-    res.json({ user, entity });
+    const secretaria = await storage.getSecretariaForUser(user.id);
+    res.json({ user, entity, secretaria: secretaria ?? null });
   });
 
   app.get("/api/oficial/novedades", requireRole("official", "admin"), async (req, res) => {

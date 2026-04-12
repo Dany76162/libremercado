@@ -655,6 +655,7 @@ export const novedades = pgTable("novedades", {
   endsAt: timestamp("ends_at"),
   createdAt: timestamp("created_at").defaultNow(),
   createdBy: varchar("created_by"),
+  secretariaId: varchar("secretaria_id"),
 });
 
 export const insertPublicEntitySchema = createInsertSchema(publicEntities).omit({ id: true, createdAt: true, verifiedAt: true, verifiedBy: true });
