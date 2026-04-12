@@ -12,3 +12,9 @@ id = "3aKAwJ46fjth8x_LDIdYk"
 uri = "file://.local/AUDITORIA_FASE2_LIBREMERCADO.md"
 type = "text"
 title = "Auditoría Técnica Fase 2 — LibreMercado / PachaPay"
+
+[[outputs]]
+id = "_geaI82dOg7INjpLFYAje"
+uri = "file://.local/AUDITORIA_FASE3_LIBREMERCADO.md"
+type = "text"
+title = "Auditoría Técnica Fase 3 — LibreMercado / PachaPay"
