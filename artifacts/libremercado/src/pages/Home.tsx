@@ -580,8 +580,8 @@ export default function Home() {
               <div className="absolute top-0 left-0 right-0 h-1/2 bg-gradient-to-b from-white/10 to-transparent pointer-events-none" />
               <div className="relative z-10 px-5 py-5 flex items-center gap-4">
                 <div className="shrink-0 flex gap-2">
-                  <div className="w-12 h-12 rounded-xl bg-white/20 backdrop-blur-sm border border-white/25 flex items-center justify-center shadow-inner">
-                    <Store className="h-6 w-6 text-white drop-shadow" />
+                  <div className="w-12 h-12 rounded-xl bg-white/20 backdrop-blur-sm border border-white/25 flex items-center justify-center shadow-inner overflow-hidden">
+                    <Store className="h-6 w-6 text-white drop-shadow animate-store-open" />
                   </div>
                 </div>
                 <div className="flex-1 min-w-0">
@@ -610,8 +610,8 @@ export default function Home() {
               <div className="absolute top-0 left-0 right-0 h-1/2 bg-gradient-to-b from-white/10 to-transparent pointer-events-none" />
               <div className="relative z-10 px-5 py-5 flex items-center gap-4">
                 <div className="shrink-0 flex gap-2">
-                  <div className="w-12 h-12 rounded-xl bg-white/20 backdrop-blur-sm border border-white/25 flex items-center justify-center shadow-inner">
-                    <Bike className="h-6 w-6 text-white drop-shadow" />
+                  <div className="w-12 h-12 rounded-xl bg-white/20 backdrop-blur-sm border border-white/25 flex items-center justify-center shadow-inner overflow-hidden">
+                    <Bike className="h-6 w-6 text-white drop-shadow animate-bike-zip" />
                   </div>
                 </div>
                 <div className="flex-1 min-w-0">

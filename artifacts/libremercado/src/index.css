@@ -331,6 +331,15 @@
 .animate-truck-drive { animation: truck-drive 2.2s ease-in-out infinite; }
 .animate-bike-zip    { animation: bike-zip 1.4s ease-in-out infinite; }
 
+@keyframes store-open {
+  0%, 100% { transform: scale(1) rotate(0deg); }
+  20%       { transform: scale(1.15) rotate(-6deg); }
+  40%       { transform: scale(1.2) rotate(5deg); }
+  60%       { transform: scale(1.1) rotate(-3deg); }
+  80%       { transform: scale(1.05) rotate(2deg); }
+}
+.animate-store-open { animation: store-open 2.4s ease-in-out infinite; }
+
 @keyframes smile-bounce {
   0%,100% { transform: scale(1) rotate(0deg); }
   30%      { transform: scale(1.18) rotate(-8deg); }
