@@ -76,6 +76,24 @@ export const uploadVideo = multer({
 
 export const uploadThumbnail = buildUploader("thumbnails");
 
+const INSTITUCIONAL_MIME = new Set([
+  "image/jpeg", "image/png", "image/webp", "image/gif",
+  "video/mp4", "video/webm", "video/quicktime",
+]);
+const MAX_INSTITUCIONAL_SIZE = 200 * 1024 * 1024; // 200 MB
+
+export const uploadInstitucional = multer({
+  storage: buildStorage("institucional"),
+  limits: { fileSize: MAX_INSTITUCIONAL_SIZE },
+  fileFilter: (_req: Request, file, cb) => {
+    if (INSTITUCIONAL_MIME.has(file.mimetype)) {
+      cb(null, true);
+    } else {
+      cb(new Error("Tipo de archivo no permitido. Solo imágenes (JPG, PNG, WEBP) o videos (MP4, WEBM, MOV)."));
+    }
+  },
+}).single("file");
+
 export function getPublicUrl(subfolder: string, filename: string): string {
   return `/uploads/${subfolder}/${filename}`;
 }

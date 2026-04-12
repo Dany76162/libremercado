@@ -590,11 +590,18 @@ export const publicEntities = pgTable("public_entities", {
   entityType: text("entity_type").$type<PublicEntityType>().notNull().default("municipality"),
   logo: text("logo"),
   banner: text("banner"),
+  description: text("description"),
   provinciaId: text("provincia_id"),
   municipioName: text("municipio_name"),
+  address: text("address"),
   institutionalEmail: text("institutional_email"),
   phone: text("phone"),
   website: text("website"),
+  facebook: text("facebook"),
+  instagram: text("instagram"),
+  twitter: text("twitter"),
+  tiktok: text("tiktok"),
+  youtube: text("youtube"),
   responsibleName: text("responsible_name"),
   responsibleTitle: text("responsible_title"),
   verificationStatus: text("verification_status").$type<PublicEntityVerificationStatus>().notNull().default("pending"),
@@ -607,6 +614,21 @@ export const publicEntities = pgTable("public_entities", {
   verifiedAt: timestamp("verified_at"),
   verifiedBy: varchar("verified_by"),
 });
+
+export const secretarias = pgTable("secretarias", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  entityId: varchar("entity_id").notNull(),
+  name: text("name").notNull(),
+  area: text("area"),
+  description: text("description"),
+  logo: text("logo"),
+  userId: varchar("user_id"),
+  isActive: boolean("is_active").notNull().default(true),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+export type Secretaria = typeof secretarias.$inferSelect;
+export type InsertSecretaria = typeof secretarias.$inferInsert;
 
 export const novedades = pgTable("novedades", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),

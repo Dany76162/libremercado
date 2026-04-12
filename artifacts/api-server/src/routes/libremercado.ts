@@ -14,6 +14,7 @@ import {
   uploadPromo,
   uploadVideo,
   uploadThumbnail,
+  uploadInstitucional,
   getPublicUrl,
 } from "../upload";
 import { broadcastOrderStatus } from "../ws";
@@ -2892,6 +2893,92 @@ Responde en formato JSON con la siguiente estructura:
     const ok = await storage.deleteOfficialNovedad(user.id, req.params.id);
     if (!ok) return res.status(404).json({ error: "No encontrada o sin permiso" });
     res.json({ ok: true });
+  });
+
+  // ─── UPLOAD INSTITUCIONAL ──────────────────────────────────────────────────
+
+  app.post("/api/oficial/upload", requireRole("official", "admin"), (req, res) => {
+    uploadInstitucional(req, res, (err) => {
+      if (err) return res.status(400).json({ error: err.message ?? "Error al subir archivo" });
+      if (!req.file) return res.status(400).json({ error: "No se recibió ningún archivo" });
+      const isVideo = req.file.mimetype.startsWith("video/");
+      const url = getPublicUrl("institucional", req.file.filename);
+      res.json({ url, type: isVideo ? "video" : "image", filename: req.file.filename });
+    });
+  });
+
+  // ─── EDITAR ENTIDAD ────────────────────────────────────────────────────────
+
+  app.patch("/api/oficial/entity", requireRole("official", "admin"), async (req, res) => {
+    try {
+      const user = (req as any).user;
+      const entity = await storage.getEntityForUser(user.id);
+      if (!entity) return res.status(404).json({ error: "Sin entidad vinculada" });
+      const allowed = [
+        "name", "description", "logo", "banner", "institutionalEmail", "phone",
+        "website", "address", "responsibleName", "responsibleTitle",
+        "facebook", "instagram", "twitter", "tiktok", "youtube",
+      ];
+      const updates: Record<string, any> = {};
+      for (const key of allowed) {
+        if (req.body[key] !== undefined) updates[key] = req.body[key];
+      }
+      const updated = await storage.updatePublicEntity(entity.id, updates);
+      res.json(updated);
+    } catch (err: any) {
+      res.status(400).json({ error: err.message ?? "Error al actualizar entidad" });
+    }
+  });
+
+  // ─── SECRETARÍAS ──────────────────────────────────────────────────────────
+
+  app.get("/api/oficial/secretarias", requireRole("official", "admin"), async (req, res) => {
+    const user = (req as any).user;
+    const entity = await storage.getEntityForUser(user.id);
+    if (!entity) return res.status(404).json({ error: "Sin entidad vinculada" });
+    const items = await storage.getSecretarias(entity.id);
+    res.json(items);
+  });
+
+  app.post("/api/oficial/secretarias", requireRole("official", "admin"), async (req, res) => {
+    try {
+      const user = (req as any).user;
+      const entity = await storage.getEntityForUser(user.id);
+      if (!entity) return res.status(404).json({ error: "Sin entidad vinculada" });
+      const { name, area, description, logo } = req.body;
+      if (!name) return res.status(400).json({ error: "name requerido" });
+      const item = await storage.createSecretaria(entity.id, { name, area, description, logo });
+      res.status(201).json(item);
+    } catch (err: any) {
+      res.status(400).json({ error: err.message ?? "Error al crear secretaría" });
+    }
+  });
+
+  app.patch("/api/oficial/secretarias/:id", requireRole("official", "admin"), async (req, res) => {
+    try {
+      const item = await storage.updateSecretaria(req.params.id, req.body);
+      if (!item) return res.status(404).json({ error: "Secretaría no encontrada" });
+      res.json(item);
+    } catch (err: any) {
+      res.status(400).json({ error: err.message ?? "Error al actualizar secretaría" });
+    }
+  });
+
+  app.delete("/api/oficial/secretarias/:id", requireRole("official", "admin"), async (req, res) => {
+    await storage.deleteSecretaria(req.params.id);
+    res.json({ ok: true });
+  });
+
+  app.post("/api/oficial/secretarias/:id/create-account", requireRole("official", "admin"), async (req, res) => {
+    try {
+      const { email, username, password } = req.body as { email: string; username: string; password: string };
+      if (!email || !username || !password) return res.status(400).json({ error: "email, username y password requeridos" });
+      const hashed = await hashPassword(password);
+      const newUser = await storage.createSecretariaAccount(req.params.id, email, username, hashed);
+      res.status(201).json({ ok: true, userId: newUser.id });
+    } catch (err: any) {
+      res.status(400).json({ error: err.message ?? "Error al crear cuenta" });
+    }
   });
 
   // Admin crea cuenta oficial para una entidad pública

@@ -5,7 +5,7 @@ import {
   users, stores, products, orders, orderItems, promos,
   travelOffers, kycDocuments, subscriptionPlans, merchantApplications,
   riderProfiles, riderEarnings, platformCommissions, adBillings, reviews, notifications, travelBookings, disputes, favorites,
-  shoppableVideos, storeFollows, siteSettings, novedades, publicEntities,
+  shoppableVideos, storeFollows, siteSettings, novedades, publicEntities, secretarias,
 } from "@workspace/db";
 import type {
   User, InsertUser,
@@ -35,6 +35,7 @@ import type {
   ShoppableVideo, InsertShoppableVideo, VideoStatus,
   Novedad, InsertNovedad,
   PublicEntity, InsertPublicEntity,
+  Secretaria,
 } from "@workspace/db";
 import type { IStorage } from "./storage";
 
@@ -883,6 +884,47 @@ export class DatabaseStorage implements IStorage {
       termsAcceptedAt: new Date(),
     }).returning();
     await db.update(publicEntities).set({ userId: user.id }).where(eq(publicEntities.id, entityId));
+    return user;
+  }
+
+  // ─── SECRETARÍAS ────────────────────────────────────────────────────────────
+
+  async getSecretarias(entityId: string): Promise<Secretaria[]> {
+    return db.select().from(secretarias)
+      .where(and(eq(secretarias.entityId, entityId), eq(secretarias.isActive, true)))
+      .orderBy(secretarias.name);
+  }
+
+  async createSecretaria(entityId: string, data: { name: string; area?: string; description?: string; logo?: string }): Promise<Secretaria> {
+    const [r] = await db.insert(secretarias).values({ entityId, ...data }).returning();
+    return r;
+  }
+
+  async updateSecretaria(id: string, data: Partial<Secretaria>): Promise<Secretaria | undefined> {
+    const safe = { name: data.name, area: data.area, description: data.description, logo: data.logo };
+    const updates: Record<string, any> = {};
+    for (const [k, v] of Object.entries(safe)) if (v !== undefined) updates[k] = v;
+    if (!Object.keys(updates).length) return undefined;
+    const [r] = await db.update(secretarias).set(updates).where(eq(secretarias.id, id)).returning();
+    return r;
+  }
+
+  async deleteSecretaria(id: string): Promise<void> {
+    await db.update(secretarias).set({ isActive: false }).where(eq(secretarias.id, id));
+  }
+
+  async createSecretariaAccount(secretariaId: string, email: string, username: string, hashedPassword: string): Promise<User> {
+    const [sec] = await db.select().from(secretarias).where(eq(secretarias.id, secretariaId));
+    if (!sec) throw new Error("Secretaría no encontrada");
+    const [user] = await db.insert(users).values({
+      email,
+      username,
+      password: hashedPassword,
+      role: "official",
+      termsAccepted: true,
+      termsAcceptedAt: new Date(),
+    }).returning();
+    await db.update(secretarias).set({ userId: user.id }).where(eq(secretarias.id, secretariaId));
     return user;
   }
 
