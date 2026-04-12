@@ -346,6 +346,9 @@ function NovedadesSection() {
 function PublicEntitiesSection() {
   const { toast } = useToast();
   const [showCreate, setShowCreate] = useState(false);
+  const [showCreateAccount, setShowCreateAccount] = useState(false);
+  const [accountEntityId, setAccountEntityId] = useState<string | null>(null);
+  const [accountForm, setAccountForm] = useState({ email: "", username: "", password: "" });
   const [form, setForm] = useState({
     name: "", entityType: "municipality", provinciaId: "", municipioName: "",
     institutionalEmail: "", responsibleName: "", responsibleTitle: "",
@@ -365,6 +368,18 @@ function PublicEntitiesSection() {
       setShowCreate(false);
     },
     onError: () => toast({ title: "Error al crear entidad", variant: "destructive" }),
+  });
+
+  const createAccountMutation = useMutation({
+    mutationFn: ({ entityId, data }: { entityId: string; data: typeof accountForm }) =>
+      apiRequest("POST", `/api/admin/public-entities/${entityId}/create-account`, data).then((r) => r.json()),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/public-entities"] });
+      toast({ title: "Cuenta oficial creada. El municipio ya puede iniciar sesión." });
+      setShowCreateAccount(false);
+      setAccountForm({ email: "", username: "", password: "" });
+    },
+    onError: (err: any) => toast({ title: err?.message ?? "Error al crear cuenta", variant: "destructive" }),
   });
 
   const verifyMutation = useMutation({
@@ -424,7 +439,7 @@ function PublicEntitiesSection() {
                         {entity.responsibleName && ` · ${entity.responsibleName}`}
                       </p>
                     </div>
-                    <div className="flex gap-1 shrink-0">
+                    <div className="flex gap-1 shrink-0 flex-wrap justify-end">
                       {entity.verificationStatus !== "verified" && (
                         <Button
                           variant="outline" size="sm" className="h-7 text-xs text-green-700 border-green-200 hover:bg-green-50"
@@ -441,6 +456,12 @@ function PublicEntitiesSection() {
                           Suspender
                         </Button>
                       )}
+                      <Button
+                        variant="outline" size="sm" className="h-7 text-xs text-blue-700 border-blue-200 hover:bg-blue-50"
+                        onClick={() => { setAccountEntityId(entity.id); setShowCreateAccount(true); }}
+                      >
+                        + Cuenta Oficial
+                      </Button>
                     </div>
                   </div>
                 </CardContent>
@@ -507,6 +528,47 @@ function PublicEntitiesSection() {
             <Button variant="outline" onClick={() => setShowCreate(false)}>Cancelar</Button>
             <Button disabled={!form.name || createMutation.isPending} onClick={() => createMutation.mutate(form)}>
               {createMutation.isPending ? "Creando..." : "Crear Entidad"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* CREAR CUENTA OFICIAL DIALOG */}
+      <Dialog open={showCreateAccount} onOpenChange={(o) => { if (!o) { setShowCreateAccount(false); setAccountForm({ email: "", username: "", password: "" }); } }}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <BadgeCheck className="h-5 w-5 text-blue-500" />
+              Crear Cuenta Oficial
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3 py-2">
+            <p className="text-sm text-muted-foreground">
+              Creá las credenciales de acceso para que el organismo pueda iniciar sesión en el Panel Institucional.
+            </p>
+            <div>
+              <Label className="text-xs">Email *</Label>
+              <Input className="h-8 mt-1 text-xs" type="email" value={accountForm.email} onChange={(e) => setAccountForm((f) => ({ ...f, email: e.target.value }))} placeholder="comunicacion@municipio.gob.ar" />
+            </div>
+            <div>
+              <Label className="text-xs">Usuario *</Label>
+              <Input className="h-8 mt-1 text-xs" value={accountForm.username} onChange={(e) => setAccountForm((f) => ({ ...f, username: e.target.value }))} placeholder="municipio-salta" />
+            </div>
+            <div>
+              <Label className="text-xs">Contraseña temporal *</Label>
+              <Input className="h-8 mt-1 text-xs" type="password" value={accountForm.password} onChange={(e) => setAccountForm((f) => ({ ...f, password: e.target.value }))} placeholder="Mínimo 8 caracteres" />
+            </div>
+            <p className="text-xs text-muted-foreground bg-blue-50 border border-blue-100 rounded-lg p-2">
+              Compartí estas credenciales con el responsable del organismo. Se recomienda que cambien la contraseña al primer ingreso.
+            </p>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowCreateAccount(false)}>Cancelar</Button>
+            <Button
+              disabled={!accountForm.email || !accountForm.username || !accountForm.password || createAccountMutation.isPending}
+              onClick={() => accountEntityId && createAccountMutation.mutate({ entityId: accountEntityId, data: accountForm })}
+            >
+              {createAccountMutation.isPending ? "Creando..." : "Crear acceso"}
             </Button>
           </DialogFooter>
         </DialogContent>

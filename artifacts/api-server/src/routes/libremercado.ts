@@ -2849,6 +2849,64 @@ Responde en formato JSON con la siguiente estructura:
     res.json({ ok: true });
   });
 
+  // ─── OFICIAL PANEL ──────────────────────────────────────────────────────────
+
+  app.get("/api/oficial/me", requireRole("official", "admin"), async (req, res) => {
+    const user = (req as any).user;
+    const entity = await storage.getEntityForUser(user.id);
+    if (!entity) return res.status(404).json({ error: "No tenés ninguna entidad vinculada a tu cuenta" });
+    res.json({ user, entity });
+  });
+
+  app.get("/api/oficial/novedades", requireRole("official", "admin"), async (req, res) => {
+    const user = (req as any).user;
+    const entity = await storage.getEntityForUser(user.id);
+    if (!entity) return res.status(404).json({ error: "Sin entidad vinculada" });
+    const items = await storage.getNovedadesForEntity(entity.id);
+    res.json(items);
+  });
+
+  app.post("/api/oficial/novedades", requireRole("official", "admin"), async (req, res) => {
+    try {
+      const user = (req as any).user;
+      const item = await storage.createOfficialNovedad(user.id, req.body);
+      res.status(201).json(item);
+    } catch (err: any) {
+      res.status(400).json({ error: err.message ?? "Error al crear novedad" });
+    }
+  });
+
+  app.patch("/api/oficial/novedades/:id", requireRole("official", "admin"), async (req, res) => {
+    try {
+      const user = (req as any).user;
+      const item = await storage.updateOfficialNovedad(user.id, req.params.id, req.body);
+      if (!item) return res.status(404).json({ error: "Novedad no encontrada o sin permiso" });
+      res.json(item);
+    } catch (err: any) {
+      res.status(400).json({ error: err.message ?? "Error al actualizar" });
+    }
+  });
+
+  app.delete("/api/oficial/novedades/:id", requireRole("official", "admin"), async (req, res) => {
+    const user = (req as any).user;
+    const ok = await storage.deleteOfficialNovedad(user.id, req.params.id);
+    if (!ok) return res.status(404).json({ error: "No encontrada o sin permiso" });
+    res.json({ ok: true });
+  });
+
+  // Admin crea cuenta oficial para una entidad pública
+  app.post("/api/admin/public-entities/:id/create-account", requireRole("admin"), async (req, res) => {
+    try {
+      const { email, username, password } = req.body as { email: string; username: string; password: string };
+      if (!email || !username || !password) return res.status(400).json({ error: "email, username y password requeridos" });
+      const hashed = await hashPassword(password);
+      const user = await storage.createOfficialAccount(req.params.id, email, username, hashed);
+      res.status(201).json({ ok: true, userId: user.id });
+    } catch (err: any) {
+      res.status(400).json({ error: err.message ?? "Error al crear cuenta" });
+    }
+  });
+
   // ─── PUBLIC ENTITIES ────────────────────────────────────────────────────────
 
   app.get("/api/public-entities", async (req, res) => {

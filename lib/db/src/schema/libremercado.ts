@@ -3,7 +3,7 @@ import { pgTable, text, varchar, integer, boolean, timestamp, decimal } from "dr
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
-export type UserRole = "customer" | "merchant" | "rider" | "admin";
+export type UserRole = "customer" | "merchant" | "rider" | "admin" | "official";
 export type VehicleType = "moto" | "auto" | "utilitario" | null;
 export type KycStatus = "none" | "pending" | "approved" | "rejected";
 export type SubscriptionTier = "free" | "basic" | "premium";

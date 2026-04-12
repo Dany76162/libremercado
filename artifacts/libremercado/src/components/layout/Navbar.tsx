@@ -1,5 +1,5 @@
 import { Link, useLocation } from "wouter";
-import { ShoppingCart, User, Menu, ChevronDown, Tag, Ticket, ShoppingBag, Store, Headphones, Heart, Smartphone, Shirt, Home as HomeIcon, Pill, UtensilsCrossed, Sparkles, PawPrint, LogOut, Bike, Play, type LucideIcon } from "lucide-react";
+import { ShoppingCart, User, Menu, ChevronDown, Tag, Ticket, ShoppingBag, Store, Headphones, Heart, Smartphone, Shirt, Home as HomeIcon, Pill, UtensilsCrossed, Sparkles, PawPrint, LogOut, Bike, Play, Shield, type LucideIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
@@ -38,7 +38,8 @@ export function Navbar() {
     state.items.reduce((acc, item) => acc + item.quantity, 0),
   );
 
-  const canSeePanel = isAuthenticated && user?.role && user.role !== "customer";
+  const isOfficial = isAuthenticated && user?.role === "official";
+  const canSeePanel = isAuthenticated && user?.role && user.role !== "customer" && user.role !== "official";
   const isVideosRoute = location === "/videos";
 
   if (isVideosRoute) return null;
@@ -134,6 +135,18 @@ export function Navbar() {
                     </Link>
                   ))}
 
+                  {isOfficial && (
+                    <>
+                      <div className="px-4 py-2 text-sm font-semibold text-muted-foreground mt-2">
+                        Mi organismo
+                      </div>
+                      <Link href="/institucional">
+                        <span className="block px-4 py-2 rounded-md hover-elevate font-medium text-blue-600" data-testid="link-mobile-institucional">
+                          Panel Institucional
+                        </span>
+                      </Link>
+                    </>
+                  )}
                   {canSeePanel && (
                     <>
                       <div className="px-4 py-2 text-sm font-semibold text-muted-foreground mt-2">
@@ -435,6 +448,18 @@ export function Navbar() {
                 </Button>
               </Link>
 
+              {isOfficial && (
+                <Link href="/institucional">
+                  <Button
+                    size="sm"
+                    className="bg-blue-600 text-white hover:bg-blue-700 font-semibold gap-1 border border-blue-500/50"
+                    data-testid="link-institucional"
+                  >
+                    <Shield className="h-3 w-3" />
+                    Panel Institucional
+                  </Button>
+                </Link>
+              )}
               {canSeePanel && (
                 <Link href="/admin">
                   <Button

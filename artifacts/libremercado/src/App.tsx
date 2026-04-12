@@ -29,6 +29,7 @@ import AccountFavorites from "@/pages/account/Favorites";
 import Videos from "@/pages/Videos";
 import ProductDetail from "@/pages/ProductDetail";
 import Help from "@/pages/Help";
+import PanelInstitucional from "@/pages/PanelInstitucional";
 import NotFound from "@/pages/not-found";
 
 function Router() {
@@ -57,6 +58,7 @@ function Router() {
       <Route path="/reset-password" component={ResetPassword} />
       <Route path="/terms" component={Terms} />
       <Route path="/privacy" component={Privacy} />
+      <Route path="/institucional" component={PanelInstitucional} />
       <Route path="/vender" component={MerchantOnboarding} />
       <Route path="/repartidor" component={RiderOnboarding} />
       <Route path="/help" component={Help} />
@@ -67,6 +69,8 @@ function Router() {
 
 function AppLayout() {
   const [isVideos] = useRoute("/videos");
+  const [isInstitucional] = useRoute("/institucional");
+  if (isInstitucional) return <Router />;
   return (
     <div className={`min-h-screen flex flex-col${isVideos ? " h-screen overflow-hidden" : ""}`}>
       <Navbar />

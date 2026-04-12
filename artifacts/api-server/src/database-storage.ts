@@ -823,6 +823,69 @@ export class DatabaseStorage implements IStorage {
     return db.select().from(novedades).orderBy(desc(novedades.priority), desc(novedades.createdAt));
   }
 
+  // ─── OFFICIAL PANEL ─────────────────────────────────────────────────────────
+
+  async getEntityForUser(userId: string): Promise<PublicEntity | undefined> {
+    const [entity] = await db.select().from(publicEntities)
+      .where(and(eq(publicEntities.userId, userId), eq(publicEntities.isActive, true)));
+    return entity;
+  }
+
+  async getNovedadesForEntity(publicEntityId: string): Promise<Novedad[]> {
+    return db.select().from(novedades)
+      .where(eq(novedades.publicEntityId, publicEntityId))
+      .orderBy(desc(novedades.createdAt));
+  }
+
+  async createOfficialNovedad(userId: string, data: Partial<InsertNovedad>): Promise<Novedad> {
+    const entity = await this.getEntityForUser(userId);
+    if (!entity) throw new Error("No entity linked to this user");
+    const [r] = await db.insert(novedades).values({
+      ...data as InsertNovedad,
+      isOfficial: true,
+      publicEntityId: entity.id,
+      emitterName: data.emitterName || entity.name,
+      emitterLogo: data.emitterLogo || entity.logo || null,
+      createdBy: userId,
+    }).returning();
+    return r;
+  }
+
+  async updateOfficialNovedad(userId: string, novedadId: string, data: Partial<InsertNovedad>): Promise<Novedad | undefined> {
+    const entity = await this.getEntityForUser(userId);
+    if (!entity) throw new Error("No entity linked");
+    const [existing] = await db.select().from(novedades)
+      .where(and(eq(novedades.id, novedadId), eq(novedades.publicEntityId, entity.id)));
+    if (!existing) return undefined;
+    const [r] = await db.update(novedades).set(data).where(eq(novedades.id, novedadId)).returning();
+    return r;
+  }
+
+  async deleteOfficialNovedad(userId: string, novedadId: string): Promise<boolean> {
+    const entity = await this.getEntityForUser(userId);
+    if (!entity) return false;
+    const [existing] = await db.select().from(novedades)
+      .where(and(eq(novedades.id, novedadId), eq(novedades.publicEntityId, entity.id)));
+    if (!existing) return false;
+    await db.delete(novedades).where(eq(novedades.id, novedadId));
+    return true;
+  }
+
+  async createOfficialAccount(entityId: string, email: string, username: string, hashedPassword: string): Promise<User> {
+    const entity = await this.getPublicEntityById(entityId);
+    if (!entity) throw new Error("Entity not found");
+    const [user] = await db.insert(users).values({
+      email,
+      username,
+      password: hashedPassword,
+      role: "official",
+      termsAccepted: true,
+      termsAcceptedAt: new Date(),
+    }).returning();
+    await db.update(publicEntities).set({ userId: user.id }).where(eq(publicEntities.id, entityId));
+    return user;
+  }
+
   // ─── PUBLIC ENTITIES ────────────────────────────────────────────────────────
 
   async getPublicEntities(filters?: { provinciaId?: string; verificationStatus?: string }): Promise<PublicEntity[]> {
