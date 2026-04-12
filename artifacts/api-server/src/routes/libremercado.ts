@@ -19,9 +19,11 @@ import {
 } from "../upload";
 import rateLimit from "express-rate-limit";
 
+const isTestEnv = process.env.NODE_ENV === "test";
+
 const loginLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
-  max: 10,
+  max: isTestEnv ? 10_000 : 10,
   standardHeaders: true,
   legacyHeaders: false,
   message: { error: "Demasiados intentos. Esperá 15 minutos antes de intentar de nuevo." },
@@ -29,7 +31,7 @@ const loginLimiter = rateLimit({
 
 const registerLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
-  max: 5,
+  max: isTestEnv ? 10_000 : 5,
   standardHeaders: true,
   legacyHeaders: false,
   message: { error: "Demasiados registros. Esperá 15 minutos." },
@@ -37,7 +39,7 @@ const registerLimiter = rateLimit({
 
 const forgotPasswordLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
-  max: 3,
+  max: isTestEnv ? 10_000 : 3,
   standardHeaders: true,
   legacyHeaders: false,
   message: { error: "Demasiadas solicitudes de recuperación. Esperá 15 minutos." },

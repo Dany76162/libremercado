@@ -135,11 +135,15 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 
 const sessionSecret = process.env.SESSION_SECRET || "libremercado-dev-secret";
+const isTest = process.env.NODE_ENV === "test";
 app.use(
   session({
-    store: new PgStore({
-      pool: pgPool,
-      tableName: "session",
+    // In test environment use the default in-memory store to avoid PG connection overhead
+    ...(isTest ? {} : {
+      store: new PgStore({
+        pool: pgPool,
+        tableName: "session",
+      }),
     }),
     secret: sessionSecret,
     resave: false,
