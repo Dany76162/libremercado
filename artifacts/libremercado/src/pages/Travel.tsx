@@ -3,7 +3,7 @@ import {
   Bus, Plane, Search, ArrowLeftRight, Calendar, MapPin, Clock,
   Star, ChevronRight, Tag, Wifi, Coffee, Zap, Users, ArrowLeft,
   Filter, SlidersHorizontal, CheckCircle2, Loader2, Ticket,
-  CreditCard, ArrowRight, ChevronDown, ChevronUp, X,
+  CreditCard, ArrowRight, ChevronDown, ChevronUp, X, AlertCircle,
 } from "lucide-react";
 import { Link } from "wouter";
 import { apiRequest } from "@/lib/queryClient";
@@ -564,7 +564,12 @@ function BookingFlow({
 function MyBookings() {
   const { data: bookings, isLoading } = useQuery<any[]>({
     queryKey: ["/api/travel/my-bookings"],
-    queryFn: () => fetch("/api/travel/my-bookings").then((r) => r.json()),
+    queryFn: async () => {
+      const r = await fetch("/api/travel/my-bookings");
+      const data = await r.json();
+      if (!r.ok) throw new Error(data.error ?? "Error al cargar reservas");
+      return data;
+    },
   });
 
   if (isLoading) {
@@ -646,16 +651,20 @@ export default function Travel() {
 
   const searchQuery = useQuery<{ trips: TripResult[] }>({
     queryKey: ["/api/travel/search", origin, dest, date, passengers, tripType, seatClass],
-    queryFn: () => {
+    queryFn: async () => {
       const p = new URLSearchParams({
         origin, destination: dest, date,
         passengers: String(passengers),
         ...(tripType !== "all" ? { type: tripType } : {}),
         seatClass,
       });
-      return fetch(`/api/travel/search?${p}`).then((r) => r.json());
+      const r = await fetch(`/api/travel/search?${p}`);
+      const data = await r.json();
+      if (!r.ok) throw new Error(data.error ?? "Error al buscar viajes");
+      return data;
     },
     enabled: searched,
+    retry: 1,
   });
 
   const trips = searchQuery.data?.trips ?? [];
@@ -842,6 +851,17 @@ export default function Travel() {
                 {[1, 2, 3, 4].map((i) => (
                   <div key={i} className="h-48 rounded-xl bg-muted animate-pulse" />
                 ))}
+              </div>
+            ) : searchQuery.isError ? (
+              <div className="text-center py-14">
+                <AlertCircle className="h-10 w-10 mx-auto text-destructive mb-3" />
+                <p className="text-destructive font-medium text-sm">Error al buscar viajes</p>
+                <p className="text-muted-foreground text-xs mt-1">
+                  {(searchQuery.error as any)?.message ?? "Revisá tu conexión e intentá de nuevo."}
+                </p>
+                <Button variant="outline" size="sm" className="mt-4" onClick={() => searchQuery.refetch()}>
+                  Reintentar
+                </Button>
               </div>
             ) : filteredTrips.length === 0 ? (
               <div className="text-center py-16">

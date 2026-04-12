@@ -2833,8 +2833,18 @@ Responde en formato JSON con la siguiente estructura:
 
       res.json({ ...result, success: true });
     } catch (err: any) {
-      const status = err.message?.includes("no está disponible") ? 409 : 400;
-      res.status(status).json({ error: err.message });
+      const msg = err.message ?? "Error interno";
+      let status = 500;
+      if (msg.includes("no está disponible")) status = 409;        // seat conflict
+      else if (msg.includes("no encontrado")) status = 404;        // trip not found
+      else if (
+        msg.includes("Precio") ||
+        msg.includes("asiento") ||
+        msg.includes("pasajero") ||
+        msg.includes("Debés") ||
+        msg.includes("inválid")
+      ) status = 400;                                              // validation error
+      res.status(status).json({ error: msg });
     }
   });
 

@@ -1,14 +1,24 @@
 /**
  * TravelBookingService — Core orchestrator for travel commerce.
  *
- * DB is the source of truth for all inventory and booking state.
- * MockProvider generates trip/seat data; this service persists it to DB on demand.
+ * Architecture:
+ *  - ITravelProvider: generates trip/seat data (mock or real external API)
+ *  - PostgreSQL DB: single source of truth for all inventory and booking state
+ *  - This service: bridges provider data ↔ DB, enforces consistency
  *
  * Guarantees:
- *  - No seat double-booking (atomic UPDATE WHERE status='available')
- *  - No partial state (db.transaction wraps seat + booking inserts)
- *  - Price validated server-side (client amount is verified against trip price)
- *  - Stale reservations auto-expired (TTL = 15 min)
+ *  ✓ No double-booking — atomic UPDATE WHERE status='available' (PostgreSQL guarantees)
+ *  ✓ No partial state — db.transaction wraps seat reservation + booking insert
+ *  ✓ Price validated server-side — client amount is verified ±1%
+ *  ✓ Stale reservations auto-expired — TTL 15 min, both in-flow + periodic job
+ *  ✓ FK integrity — providers → routes → trips → seat_inventory always consistent
+ *  ✓ Real availability — seat counts come from DB, not mock random numbers
+ *
+ * In-memory Sets (seededProviders, seededRoutes, etc.) are PERFORMANCE HINTS only.
+ * They skip redundant DB roundtrips within a single server process lifetime.
+ * Correctness is always enforced by the DB (ON CONFLICT DO NOTHING / UPDATE WHERE).
+ * In a multi-instance deploy, each instance builds its own Set; redundant upserts
+ * are safe because all DB operations are idempotent.
  */
 
 import { db } from "@workspace/db";
@@ -19,7 +29,8 @@ import {
   travelSeatInventory,
   travelBookings,
 } from "@workspace/db";
-import { eq, and, inArray, lt } from "drizzle-orm";
+import { eq, and, inArray, lt, sql } from "drizzle-orm";
+import { logger } from "../lib/logger.js";
 import type {
   ITravelProvider,
   TravelSearchParams,
@@ -51,7 +62,8 @@ export function systemUserIdForProvider(providerId: string): string {
 export class TravelBookingService {
   private provider: ITravelProvider;
 
-  // In-process caches to avoid redundant DB calls within a server lifetime
+  // Performance hints: skip redundant DB upserts within one process lifetime.
+  // NOT authoritative — DB is always the source of truth.
   private seededProviders = new Set<string>();
   private seededRoutes = new Set<string>();
   private seededTrips = new Set<string>();
@@ -62,6 +74,7 @@ export class TravelBookingService {
   }
 
   // ─── SEEDING: Provider → Route → Trip → Seat Inventory ────────────────────
+  // Idempotent. Safe to call concurrently across instances (ON CONFLICT DO NOTHING).
 
   private async upsertProvider(p: any): Promise<void> {
     if (this.seededProviders.has(p.id)) return;
@@ -83,11 +96,7 @@ export class TravelBookingService {
       })
       .onConflictDoUpdate({
         target: travelProviders.id,
-        set: {
-          name: p.name,
-          rating: p.rating.toFixed(1),
-          reviewCount: p.reviewCount,
-        },
+        set: { name: p.name, rating: p.rating.toFixed(1), reviewCount: p.reviewCount },
       });
     this.seededProviders.add(p.id);
   }
@@ -139,7 +148,10 @@ export class TravelBookingService {
     this.seededTrips.add(trip.tripId);
   }
 
-  /** Seed seat inventory for a trip into DB (idempotent). DB becomes source of truth. */
+  /**
+   * Seeds seat inventory for a trip into DB (idempotent).
+   * After this call, travel_seat_inventory is the authoritative seat state for this trip.
+   */
   private async ensureSeatInventory(tripId: string): Promise<void> {
     if (this.seededSeatMaps.has(tripId)) return;
     const existing = await db
@@ -160,7 +172,6 @@ export class TravelBookingService {
       col: s.col,
       status: (s.status === "occupied" ? "occupied" : "available") as "available" | "occupied",
     }));
-    // Chunk inserts to stay within PostgreSQL's parameter limit
     const CHUNK = 100;
     for (let i = 0; i < rows.length; i += CHUNK) {
       await db
@@ -168,16 +179,84 @@ export class TravelBookingService {
         .values(rows.slice(i, i + CHUNK) as any)
         .onConflictDoNothing();
     }
+    const availCount = rows.filter((r) => r.status === "available").length;
+    logger.info(
+      { tripId, total: rows.length, available: availCount },
+      "[travel:seed] Seat inventory seeded for trip"
+    );
     this.seededSeatMaps.add(tripId);
   }
 
-  // ─── PUBLIC: Search ────────────────────────────────────────────────────────
+  /**
+   * Query real available seat counts from DB for a set of trip IDs.
+   * Returns a Map<tripId, { standard: number, premium: number }>.
+   */
+  private async getRealAvailability(
+    tripIds: string[]
+  ): Promise<Map<string, { standard: number; premium: number }>> {
+    if (tripIds.length === 0) return new Map();
+
+    const rows = await db
+      .select({
+        tripId: travelSeatInventory.tripId,
+        seatClass: travelSeatInventory.seatClass,
+        count: sql<number>`count(*)::int`,
+      })
+      .from(travelSeatInventory)
+      .where(
+        and(
+          inArray(travelSeatInventory.tripId, tripIds),
+          eq(travelSeatInventory.status, "available")
+        )
+      )
+      .groupBy(travelSeatInventory.tripId, travelSeatInventory.seatClass);
+
+    const result = new Map<string, { standard: number; premium: number }>();
+    for (const row of rows) {
+      if (!result.has(row.tripId)) result.set(row.tripId, { standard: 0, premium: 0 });
+      const entry = result.get(row.tripId)!;
+      if (row.seatClass === "premium") entry.premium = row.count;
+      else entry.standard = row.count;
+    }
+    return result;
+  }
+
+  // ─── PUBLIC: Search (with real DB availability) ────────────────────────────
 
   async searchTrips(params: TravelSearchParams): Promise<TripResult[]> {
     const trips = await this.provider.searchTrips(params);
-    // Persist trips to DB in background (don't block the HTTP response)
-    Promise.all(trips.map((t) => this.upsertTrip(t))).catch(() => {});
-    return trips.sort((a, b) => {
+    if (trips.length === 0) return [];
+
+    logger.info(
+      { origin: params.origin, destination: params.destination, date: params.date, count: trips.length },
+      "[travel:search] Provider returned trips — seeding to DB"
+    );
+
+    // Seed all trips and their seat inventory to DB (await for FK integrity + real availability)
+    await Promise.all(trips.map((t) => this.upsertTrip(t)));
+    await Promise.all(trips.map((t) => this.ensureSeatInventory(t.tripId)));
+
+    // Query REAL availability from DB (replaces mock random numbers)
+    const tripIds = trips.map((t) => t.tripId);
+    const realAvail = await this.getRealAvailability(tripIds);
+
+    // Merge real availability into trip results
+    const enriched = trips.map((t) => {
+      const avail = realAvail.get(t.tripId);
+      return {
+        ...t,
+        availableSeatsStandard: avail?.standard ?? t.availableSeatsStandard,
+        availableSeatsPremium: avail?.premium ?? t.availableSeatsPremium,
+      };
+    });
+
+    logger.info(
+      { count: enriched.length },
+      "[travel:search] Returning trips with real DB availability"
+    );
+
+    // Sort by price (ascending) within the requested class
+    return enriched.sort((a, b) => {
       const aP =
         params.seatClass === "premium" ? (a.pricePremium ?? a.priceStandard) : a.priceStandard;
       const bP =
@@ -190,15 +269,16 @@ export class TravelBookingService {
 
   async getTripById(tripId: string): Promise<TripResult | null> {
     const trip = await this.provider.getTripById(tripId);
-    if (trip) await this.upsertTrip(trip); // ensure persisted (awaited: needed before booking)
+    if (trip) await this.upsertTrip(trip);
     return trip;
   }
 
-  // ─── PUBLIC: Seat map (DB is source of truth) ─────────────────────────────
+  // ─── PUBLIC: Seat map (DB is authoritative source) ────────────────────────
 
   async getSeatMap(tripId: string): Promise<SeatMapResult> {
     const trip = await this.getTripById(tripId);
     if (!trip) throw new Error(`Trip ${tripId} not found`);
+
     await this.ensureSeatInventory(tripId);
 
     const dbSeats = await db
@@ -206,7 +286,7 @@ export class TravelBookingService {
       .from(travelSeatInventory)
       .where(eq(travelSeatInventory.tripId, tripId));
 
-    // Use provider map for layout metadata, but override statuses from DB
+    // Layout comes from provider; statuses come from DB
     const providerMap = await this.provider.getSeatMap(tripId);
     const dbMap = new Map(
       dbSeats.map((s) => [s.seatCode, s.status as "available" | "occupied" | "reserved"])
@@ -215,10 +295,23 @@ export class TravelBookingService {
       ...seat,
       status: dbMap.get(seat.seatCode) ?? seat.status,
     }));
+
+    logger.info(
+      {
+        tripId,
+        total: dbSeats.length,
+        available: dbSeats.filter((s) => s.status === "available").length,
+        occupied: dbSeats.filter((s) => s.status === "occupied").length,
+        reserved: dbSeats.filter((s) => s.status === "reserved").length,
+      },
+      "[travel:seats] Seat map served from DB"
+    );
+
     return providerMap;
   }
 
   // ─── EXPIRE STALE RESERVATIONS ─────────────────────────────────────────────
+  // Called by: (a) each createBooking transaction and (b) the 60s periodic job
 
   async expireOldReservations(): Promise<number> {
     const cutoff = new Date(Date.now() - SEAT_RESERVATION_TTL_MINUTES * 60_000);
@@ -235,16 +328,19 @@ export class TravelBookingService {
     return freed.length;
   }
 
-  // ─── ATOMIC BOOKING (Transaction) ─────────────────────────────────────────
+  // ─── ATOMIC BOOKING ────────────────────────────────────────────────────────
 
   async createBooking(
     req: BookingRequest
   ): Promise<BookingResult & { systemMerchantId: string; serverCalculatedTotal: number }> {
-    // 1. Get trip (also upserts provider/route/trip to DB)
+    // Get trip — also upserts provider/route/trip to DB
     const trip = await this.getTripById(req.tripId);
-    if (!trip) throw new Error(`Viaje ${req.tripId} no encontrado`);
+    if (!trip) {
+      logger.warn({ tripId: req.tripId }, "[travel:booking] Trip not found");
+      throw new Error(`Viaje ${req.tripId} no encontrado`);
+    }
 
-    // 2. Backend validations
+    // ── Input validations ───────────────────────────────────────────────────
     if (!req.seatCodes || req.seatCodes.length === 0) {
       throw new Error("Debés seleccionar al menos un asiento");
     }
@@ -253,8 +349,11 @@ export class TravelBookingService {
         `Seleccionaste ${req.seatCodes.length} asiento(s) pero declaraste ${req.passengers} pasajero(s)`
       );
     }
+    if (req.passengers < 1 || req.passengers > 6) {
+      throw new Error("Cantidad de pasajeros inválida (1–6)");
+    }
 
-    // 3. Server-side price calculation and validation
+    // ── Server-side price calculation ───────────────────────────────────────
     const unitPrice =
       req.seatClass === "premium" && trip.pricePremium
         ? trip.pricePremium
@@ -262,23 +361,36 @@ export class TravelBookingService {
     const serverTotal = parseFloat((unitPrice * req.passengers).toFixed(2));
     const tolerance = Math.max(serverTotal * 0.01, 1); // 1% or 1 ARS
     if (Math.abs(req.totalAmount - serverTotal) > tolerance) {
+      logger.warn(
+        { expected: serverTotal, received: req.totalAmount, tripId: req.tripId },
+        "[travel:booking] Price manipulation attempt detected"
+      );
       throw new Error(
         `Precio inconsistente. Esperado: $${serverTotal.toFixed(0)}, recibido: $${req.totalAmount.toFixed(0)}`
       );
     }
 
-    const totalAmount = serverTotal; // always use server-calculated price
+    const totalAmount = serverTotal;
     const commissionAmount = parseFloat((totalAmount * TRAVEL_COMMISSION_RATE).toFixed(2));
     const providerNet = parseFloat((totalAmount - commissionAmount).toFixed(2));
     const ticketCode = generateTicketCode(trip.provider.code);
     const systemMerchantId = systemUserIdForProvider(trip.provider.id);
 
-    // 4. Ensure seats are seeded in DB BEFORE the transaction
+    // Ensure seat inventory exists in DB BEFORE entering transaction
     await this.ensureSeatInventory(req.tripId);
 
-    // 5. ATOMIC TRANSACTION: expire stale → reserve seats → create booking
+    logger.info(
+      { tripId: req.tripId, seats: req.seatCodes, passengers: req.passengers, total: totalAmount },
+      "[travel:booking] Starting atomic booking transaction"
+    );
+
+    // ── ATOMIC TRANSACTION ──────────────────────────────────────────────────
+    // 1. Expire stale reservations
+    // 2. Reserve seats (UPDATE WHERE status='available') — PostgreSQL atomicity
+    // 3. Insert booking record
+    // 4. Link seats to booking
     const booking = await db.transaction(async (tx) => {
-      // 5a. Expire stale reservations (prevents ghost blocks)
+      // Step 1: expire stale reservations (runs before each booking, frees ghost blocks)
       const cutoff = new Date(Date.now() - SEAT_RESERVATION_TTL_MINUTES * 60_000);
       await tx
         .update(travelSeatInventory)
@@ -290,11 +402,10 @@ export class TravelBookingService {
           )
         );
 
-      // 5b. ATOMIC SEAT RESERVATION — UPDATE WHERE status='available'
-      // PostgreSQL guarantees: only one concurrent UPDATE can win each row.
-      // If a seat is taken between our check and update, returning[] will be short.
+      // Step 2: atomic seat reservation
+      // PostgreSQL guarantees: only one concurrent UPDATE can succeed for each row.
+      // If a concurrent transaction reserved the seat first, our WHERE condition fails.
       const now = new Date();
-      const reservedRows: any[] = [];
       for (const code of req.seatCodes) {
         const rows = await tx
           .update(travelSeatInventory)
@@ -303,20 +414,22 @@ export class TravelBookingService {
             and(
               eq(travelSeatInventory.tripId, req.tripId),
               eq(travelSeatInventory.seatCode, code),
-              eq(travelSeatInventory.status, "available") // ATOMIC guard
+              eq(travelSeatInventory.status, "available")
             )
           )
-          .returning();
+          .returning({ id: travelSeatInventory.id });
         if (rows.length === 0) {
-          // Seat was not available — transaction will rollback automatically
+          logger.info(
+            { tripId: req.tripId, seat: code },
+            "[travel:booking] Seat already taken — rolling back"
+          );
           throw new Error(
             `El asiento ${code} ya no está disponible. Por favor seleccioná otro.`
           );
         }
-        reservedRows.push(...rows);
       }
 
-      // 5c. Create booking record
+      // Step 3: create booking record (status=pending until payment confirmed)
       const [bk] = await tx
         .insert(travelBookings)
         .values({
@@ -346,7 +459,7 @@ export class TravelBookingService {
         })
         .returning();
 
-      // 5d. Link reserved seats to this booking
+      // Step 4: link reserved seats to booking
       await tx
         .update(travelSeatInventory)
         .set({ bookingId: bk.id })
@@ -359,6 +472,11 @@ export class TravelBookingService {
 
       return bk;
     });
+
+    logger.info(
+      { bookingId: booking.id, ticketCode, tripId: req.tripId, seats: req.seatCodes, total: totalAmount },
+      "[travel:booking] Booking created — awaiting payment confirmation"
+    );
 
     return {
       bookingId: booking.id,
@@ -407,6 +525,11 @@ export class TravelBookingService {
           );
       }
     });
+
+    logger.info(
+      { bookingId, paymentId, ticketCode: booking.ticketCode },
+      "[travel:booking] Booking confirmed — seats marked occupied"
+    );
   }
 
   // ─── USER BOOKINGS ──────────────────────────────────────────────────────────
@@ -417,16 +540,6 @@ export class TravelBookingService {
       .from(travelBookings)
       .where(eq(travelBookings.userId, userId))
       .orderBy(travelBookings.createdAt);
-  }
-
-  calculateTripPrice(
-    priceStandard: number,
-    pricePremium: number | null,
-    seatClass: string,
-    passengers: number
-  ): number {
-    const unit = seatClass === "premium" && pricePremium ? pricePremium : priceStandard;
-    return unit * passengers;
   }
 }
 
