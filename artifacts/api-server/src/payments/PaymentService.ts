@@ -46,6 +46,12 @@ export interface InitCheckoutResult {
 export interface ConfirmPaymentParams {
   paymentId: string;
   actorId: string;
+  /**
+   * When true, skip the round-trip to the provider to verify status.
+   * Use this ONLY when called from a verified webhook handler — the webhook
+   * itself is the authoritative proof that the payment succeeded.
+   */
+  skipProviderVerification?: boolean;
 }
 
 export interface RefundPaymentParams {
@@ -155,8 +161,9 @@ export class PaymentService {
 
     if (!existing) throw new Error(`Payment ${params.paymentId} not found`);
 
-    // 1. Verify status with provider before touching DB
-    if (existing.providerPaymentId) {
+    // 1. Verify status with provider (skip when called from a verified webhook —
+    //    the webhook signature verification already proves the event is authentic)
+    if (!params.skipProviderVerification && existing.providerPaymentId) {
       try {
         const result = await this.provider.getPaymentStatus(existing.providerPaymentId);
         if (result.status !== "captured") {
@@ -293,18 +300,63 @@ export class PaymentService {
       })
       .where(eq(payments.id, payment.id));
 
-    // Write ledger entry for refund
-    await db.insert(ledgerEntries).values({
-      paymentId: payment.id,
-      orderId: payment.orderId,
-      entryType: "refund",
-      actorType: "buyer",
-      actorId: payment.buyerId,
-      amount: refundAmountGross.toFixed(2),
-      currency: payment.currency,
-      direction: "credit",
-      description: `Reembolso — orden ${payment.orderId} — ${refundResult.providerRefundId}`,
-    });
+    // === LEDGER ENTRIES FOR REFUND (double-entry) ===
+    //
+    // For every refund (full or partial) we need to reverse the original credits
+    // proportionally so the ledger stays balanced. If we only credit the buyer
+    // without debiting platform and merchant, the ledger shows phantom balances.
+    //
+    // For a refund of R out of gross G:
+    //   fee_reversal = round(R × (fee / G), 2)        — proportional commission returned
+    //   net_reversal = R - fee_reversal                — proportional merchant payout returned
+    //   (fee_reversal + net_reversal == R always)
+
+    const originalGross = parseFloat(payment.amountGross as string);
+    const originalFee   = parseFloat(payment.amountFee  as string);
+
+    const feeReversal = parseFloat(
+      (refundAmountGross * (originalFee / originalGross)).toFixed(2)
+    );
+    const netReversal = parseFloat((refundAmountGross - feeReversal).toFixed(2));
+
+    await db.insert(ledgerEntries).values([
+      // 1. Credit the buyer (they get their money back)
+      {
+        paymentId: payment.id,
+        orderId: payment.orderId,
+        entryType: "refund",
+        actorType: "buyer",
+        actorId: payment.buyerId,
+        amount: refundAmountGross.toFixed(2),
+        currency: payment.currency,
+        direction: "credit",
+        description: `Reembolso comprador — orden ${payment.orderId} — ${refundResult.providerRefundId}`,
+      },
+      // 2. Reverse the platform commission (platform gives back its cut)
+      {
+        paymentId: payment.id,
+        orderId: payment.orderId,
+        entryType: "commission_reversal",
+        actorType: "platform",
+        actorId: "platform",
+        amount: feeReversal.toFixed(2),
+        currency: payment.currency,
+        direction: "debit",
+        description: `Reversa comisión plataforma — orden ${payment.orderId}`,
+      },
+      // 3. Reverse the merchant payout (merchant returns net amount)
+      {
+        paymentId: payment.id,
+        orderId: payment.orderId,
+        entryType: "merchant_payout_reversal",
+        actorType: "merchant",
+        actorId: payment.merchantId,
+        amount: netReversal.toFixed(2),
+        currency: payment.currency,
+        direction: "debit",
+        description: `Reversa pago merchant — orden ${payment.orderId}`,
+      },
+    ]);
 
     // Record attempt
     await db.insert(paymentAttempts).values({
@@ -360,20 +412,39 @@ export class PaymentService {
       });
     }
 
-    // Update internal payment status based on event
+    // Update internal payment status based on event.
+    // For "captured" events: route through confirmPayment() so ledger entries and
+    // platform commissions are always created — regardless of whether the client
+    // also calls /api/checkout/confirm-payment. This closes the webhook ↔ ledger gap.
     let updatedPaymentId: string | undefined;
     if (paymentId && event.status) {
       const internalStatus = this.mapProviderStatusToInternal(event.status);
       if (internalStatus) {
-        const now = new Date();
-        const update: Partial<typeof payments.$inferInsert> = {
-          status: internalStatus,
-          updatedAt: now,
-        };
-        if (internalStatus === "captured") update.capturedAt = now;
-        if (internalStatus === "refunded") update.refundedAt = now;
-
-        await db.update(payments).set(update).where(eq(payments.id, paymentId));
+        if (internalStatus === "captured") {
+          // confirmPayment is idempotent (atomic UPDATE WHERE status != 'captured').
+          // If the client already called confirm-payment, this will be a no-op.
+          // skipProviderVerification=true because the webhook signature already proved authenticity.
+          try {
+            await this.confirmPayment({
+              paymentId,
+              actorId: "webhook",
+              skipProviderVerification: true,
+            });
+          } catch (err: any) {
+            // Log but don't fail the webhook — event is already persisted
+            console.error(`[PaymentService] confirmPayment via webhook failed for ${paymentId}:`, err.message);
+          }
+        } else {
+          // For non-capture status changes (failed, cancelled, refunded from provider):
+          // raw UPDATE is sufficient — no ledger entries needed here
+          const now = new Date();
+          const update: Partial<typeof payments.$inferInsert> = {
+            status: internalStatus,
+            updatedAt: now,
+          };
+          if (internalStatus === "refunded") update.refundedAt = now;
+          await db.update(payments).set(update).where(eq(payments.id, paymentId));
+        }
         updatedPaymentId = paymentId;
       }
     }

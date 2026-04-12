@@ -688,6 +688,8 @@ export type LedgerEntryType =
   | "merchant_payout"
   | "rider_payout"
   | "refund"
+  | "commission_reversal"
+  | "merchant_payout_reversal"
   | "adjustment";
 export type LedgerDirection = "debit" | "credit";
 export type LedgerActorType = "buyer" | "merchant" | "rider" | "platform";
