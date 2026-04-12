@@ -412,6 +412,91 @@ export async function registerRoutes(
     });
   });
 
+  // System health check
+  app.get("/api/admin/health", requireRole("admin"), async (req, res) => {
+    const checks: { name: string; status: "ok" | "error" | "warning"; latency?: number; detail?: string; message?: string }[] = [];
+    const startedAt = Date.now();
+
+    const check = async (name: string, fn: () => Promise<string | undefined>) => {
+      const t = Date.now();
+      try {
+        const detail = await fn();
+        checks.push({ name, status: "ok", latency: Date.now() - t, detail });
+      } catch (err: any) {
+        checks.push({ name, status: "error", latency: Date.now() - t, message: err?.message ?? "Error desconocido" });
+      }
+    };
+
+    await check("Base de datos (PostgreSQL)", async () => {
+      const users = await storage.getUsers();
+      return `${users.length} usuarios registrados`;
+    });
+
+    await check("Módulo Usuarios", async () => {
+      const u = await storage.getUsers();
+      const roles = ["admin","merchant","rider","official","customer"];
+      const breakdown = roles.map(r => `${r}: ${u.filter(x=>x.role===r).length}`).join(", ");
+      return breakdown;
+    });
+
+    await check("Módulo Comercios", async () => {
+      const items = await storage.getStores();
+      return `${items.length} tiendas activas`;
+    });
+
+    await check("Módulo Productos", async () => {
+      const items = await storage.getProducts();
+      return `${items.length} productos`;
+    });
+
+    await check("Módulo Pedidos", async () => {
+      const items = await storage.getOrders();
+      const pending = items.filter(o => o.status === "pending").length;
+      return `${items.length} totales, ${pending} pendientes`;
+    });
+
+    await check("Módulo Riders", async () => {
+      const items = await storage.getRiderProfiles();
+      const active = items.filter(r => r.isAvailable).length;
+      return `${items.length} registrados, ${active} disponibles`;
+    });
+
+    await check("Módulo Novedades", async () => {
+      const entities = await storage.getPublicEntities({});
+      return `${entities.length} entidades institucionales`;
+    });
+
+    await check("KYC / Verificación", async () => {
+      const docs = await storage.getPendingKycDocuments();
+      return `${docs.length} documentos pendientes`;
+    });
+
+    await check("Módulo Videos (ReelMark)", async () => {
+      const videos = await storage.getVideoFeed({});
+      return `${videos.length} videos publicados`;
+    });
+
+    const { existsSync } = await import("fs");
+    const { join } = await import("path");
+    const uploadsOk = existsSync(join(process.cwd(), "uploads"));
+    checks.push({
+      name: "Servicio de archivos (Upload)",
+      status: uploadsOk ? "ok" : "warning",
+      detail: uploadsOk ? "Directorio accesible" : undefined,
+      message: uploadsOk ? undefined : "Directorio /uploads no encontrado",
+    });
+
+    const hasError = checks.some(c => c.status === "error");
+    const hasWarning = checks.some(c => c.status === "warning");
+    res.json({
+      status: hasError ? "degraded" : hasWarning ? "warning" : "healthy",
+      uptime: Math.floor(process.uptime()),
+      checkedAt: new Date().toISOString(),
+      totalMs: Date.now() - startedAt,
+      checks,
+    });
+  });
+
   // Admin KYC management routes
   app.get("/api/admin/kyc/pending", requireRole("admin"), async (req, res) => {
     const documents = await storage.getPendingKycDocuments();

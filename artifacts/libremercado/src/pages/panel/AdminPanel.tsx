@@ -26,6 +26,7 @@ import AdminDisputesTab from "./tabs/AdminDisputesTab";
 import { AdminVideosTab } from "./tabs/AdminVideosTab";
 import { AdminHomeSettingsTab } from "./tabs/AdminHomeSettingsTab";
 import { AdminNovedadesTab } from "./tabs/AdminNovedadesTab";
+import { AdminHealthTab } from "./tabs/AdminHealthTab";
 
 interface PlatformStats {
   users: { total: number; byRole: { customer: number; merchant: number; rider: number; admin: number } };
@@ -132,6 +133,9 @@ export default function AdminPanel() {
           </TabsTrigger>
           <TabsTrigger value="home-settings" data-testid="tab-home-settings">
             <LayoutGrid className="h-4 w-4 mr-2" />Inicio
+          </TabsTrigger>
+          <TabsTrigger value="health" data-testid="tab-health">
+            <Activity className="h-4 w-4 mr-2" />Salud del Sistema
           </TabsTrigger>
           <TabsTrigger value="settings" data-testid="tab-settings">
             <Settings className="h-4 w-4 mr-2" />Configuracion
@@ -253,6 +257,10 @@ export default function AdminPanel() {
 
         <TabsContent value="home-settings" className="mt-0">
           <AdminHomeSettingsTab />
+        </TabsContent>
+
+        <TabsContent value="health" className="mt-0">
+          <AdminHealthTab />
         </TabsContent>
 
         <TabsContent value="settings" className="mt-0">
