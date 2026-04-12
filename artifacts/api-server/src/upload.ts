@@ -97,3 +97,59 @@ export const uploadInstitucional = multer({
 export function getPublicUrl(subfolder: string, filename: string): string {
   return `/uploads/${subfolder}/${filename}`;
 }
+
+const IMAGE_MAGIC_SIGNATURES = [
+  { bytes: [0xff, 0xd8, 0xff], offset: 0 },
+  { bytes: [0x89, 0x50, 0x4e, 0x47], offset: 0 },
+  { bytes: [0x47, 0x49, 0x46], offset: 0 },
+  { bytes: [0x52, 0x49, 0x46, 0x46], offset: 0 },
+] as const;
+
+const VIDEO_MAGIC_SIGNATURES = [
+  { bytes: [0x66, 0x74, 0x79, 0x70], offset: 4 },
+  { bytes: [0x1a, 0x45, 0xdf, 0xa3], offset: 0 },
+  { bytes: [0x66, 0x72, 0x65, 0x65], offset: 4 },
+  { bytes: [0x6d, 0x64, 0x61, 0x74], offset: 4 },
+  { bytes: [0x52, 0x49, 0x46, 0x46], offset: 0 },
+] as const;
+
+function matchesSig(buf: Buffer, bytes: readonly number[], offset: number): boolean {
+  if (buf.length < offset + bytes.length) return false;
+  for (let i = 0; i < bytes.length; i++) {
+    if (buf[offset + i] !== bytes[i]) return false;
+  }
+  return true;
+}
+
+export function validateFileMagicBytes(
+  filePath: string,
+  allowImages: boolean,
+  allowVideos: boolean
+): boolean {
+  try {
+    const fd = fs.openSync(filePath, "r");
+    const buf = Buffer.alloc(16);
+    fs.readSync(fd, buf, 0, 16, 0);
+    fs.closeSync(fd);
+
+    if (allowImages) {
+      for (const sig of IMAGE_MAGIC_SIGNATURES) {
+        if (matchesSig(buf, sig.bytes, sig.offset)) return true;
+      }
+    }
+    if (allowVideos) {
+      for (const sig of VIDEO_MAGIC_SIGNATURES) {
+        if (matchesSig(buf, sig.bytes, sig.offset)) return true;
+      }
+    }
+    return false;
+  } catch {
+    return false;
+  }
+}
+
+export function deleteUploadedFile(filePath: string): void {
+  try {
+    if (fs.existsSync(filePath)) fs.unlinkSync(filePath);
+  } catch {}
+}

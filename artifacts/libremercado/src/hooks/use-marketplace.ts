@@ -221,7 +221,7 @@ export function useCreateStore() {
 export function useUpdateStore() {
   return useMutation({
     mutationFn: ({ id, data }: { id: string; data: Partial<InsertStore> }) =>
-      apiRequest("PATCH", `/api/stores/${id}`, data),
+      apiRequest("PATCH", `/api/merchant/stores/${id}`, data),
     onSuccess: (_, { id }) => {
       queryClient.invalidateQueries({ queryKey: ["/api/stores"] });
       queryClient.invalidateQueries({ queryKey: ["/api/stores", id] });
@@ -241,7 +241,7 @@ export function useCreateProduct() {
 export function useUpdateProduct() {
   return useMutation({
     mutationFn: ({ id, data }: { id: string; data: Partial<InsertProduct> }) =>
-      apiRequest("PATCH", `/api/products/${id}`, data),
+      apiRequest("PATCH", `/api/merchant/products/${id}`, data),
     onSuccess: (_, { id }) => {
       queryClient.invalidateQueries({ queryKey: ["/api/products"] });
       queryClient.invalidateQueries({ queryKey: ["/api/products", id] });

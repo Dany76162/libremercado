@@ -16,7 +16,34 @@ import {
   uploadThumbnail,
   uploadInstitucional,
   getPublicUrl,
+  validateFileMagicBytes,
+  deleteUploadedFile,
 } from "../upload";
+import rateLimit from "express-rate-limit";
+
+const loginLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 10,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: "Demasiados intentos. Esperá 15 minutos antes de intentar de nuevo." },
+});
+
+const registerLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 5,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: "Demasiados registros. Esperá 15 minutos." },
+});
+
+const forgotPasswordLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 3,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: "Demasiadas solicitudes de recuperación. Esperá 15 minutos." },
+});
 import { broadcastOrderStatus } from "../ws";
 import {
   sendOrderConfirmationEmail,
@@ -117,7 +144,7 @@ export async function registerRoutes(
   });
 
   // Register new user
-  app.post("/api/auth/register", async (req, res) => {
+  app.post("/api/auth/register", registerLimiter, async (req, res) => {
     try {
       const data = registerSchema.parse(req.body);
       
@@ -164,7 +191,7 @@ export async function registerRoutes(
   });
 
   // Login
-  app.post("/api/auth/login", async (req, res) => {
+  app.post("/api/auth/login", loginLimiter, async (req, res) => {
     try {
       const data = loginSchema.parse(req.body);
 
@@ -203,7 +230,7 @@ export async function registerRoutes(
   });
 
   // Forgot password — generate token + send email
-  app.post("/api/auth/forgot-password", async (req, res) => {
+  app.post("/api/auth/forgot-password", forgotPasswordLimiter, async (req, res) => {
     try {
       const { email } = req.body;
       if (!email) return res.status(400).json({ error: "Email requerido" });
@@ -601,8 +628,11 @@ export async function registerRoutes(
     uploadProduct(req, res, (err) => {
       if (err) return res.status(400).json({ message: err.message });
       if (!req.file) return res.status(400).json({ message: "No se recibió ningún archivo" });
-      const url = getPublicUrl("products", req.file.filename);
-      res.json({ url });
+      if (!validateFileMagicBytes(req.file.path, true, false)) {
+        deleteUploadedFile(req.file.path);
+        return res.status(400).json({ message: "El archivo no es una imagen válida" });
+      }
+      res.json({ url: getPublicUrl("products", req.file.filename) });
     });
   });
 
@@ -610,8 +640,11 @@ export async function registerRoutes(
     uploadStore(req, res, (err) => {
       if (err) return res.status(400).json({ message: err.message });
       if (!req.file) return res.status(400).json({ message: "No se recibió ningún archivo" });
-      const url = getPublicUrl("stores", req.file.filename);
-      res.json({ url });
+      if (!validateFileMagicBytes(req.file.path, true, false)) {
+        deleteUploadedFile(req.file.path);
+        return res.status(400).json({ message: "El archivo no es una imagen válida" });
+      }
+      res.json({ url: getPublicUrl("stores", req.file.filename) });
     });
   });
 
@@ -619,8 +652,11 @@ export async function registerRoutes(
     uploadAvatar(req, res, (err) => {
       if (err) return res.status(400).json({ message: err.message });
       if (!req.file) return res.status(400).json({ message: "No se recibió ningún archivo" });
-      const url = getPublicUrl("avatars", req.file.filename);
-      res.json({ url });
+      if (!validateFileMagicBytes(req.file.path, true, false)) {
+        deleteUploadedFile(req.file.path);
+        return res.status(400).json({ message: "El archivo no es una imagen válida" });
+      }
+      res.json({ url: getPublicUrl("avatars", req.file.filename) });
     });
   });
 
@@ -628,8 +664,11 @@ export async function registerRoutes(
     uploadKyc(req, res, (err) => {
       if (err) return res.status(400).json({ message: err.message });
       if (!req.file) return res.status(400).json({ message: "No se recibió ningún archivo" });
-      const url = getPublicUrl("kyc", req.file.filename);
-      res.json({ url });
+      if (!validateFileMagicBytes(req.file.path, true, false)) {
+        deleteUploadedFile(req.file.path);
+        return res.status(400).json({ message: "El archivo no es una imagen válida" });
+      }
+      res.json({ url: getPublicUrl("kyc", req.file.filename) });
     });
   });
 
@@ -637,8 +676,11 @@ export async function registerRoutes(
     uploadPromo(req, res, (err) => {
       if (err) return res.status(400).json({ message: err.message });
       if (!req.file) return res.status(400).json({ message: "No se recibió ningún archivo" });
-      const url = getPublicUrl("promos", req.file.filename);
-      res.json({ url });
+      if (!validateFileMagicBytes(req.file.path, true, false)) {
+        deleteUploadedFile(req.file.path);
+        return res.status(400).json({ message: "El archivo no es una imagen válida" });
+      }
+      res.json({ url: getPublicUrl("promos", req.file.filename) });
     });
   });
 
@@ -702,10 +744,17 @@ export async function registerRoutes(
   });
 
   app.patch("/api/stores/:id", requireRole("merchant", "admin"), async (req, res) => {
-    const store = await storage.updateStore(req.params.id, req.body);
-    if (!store) {
-      return res.status(404).json({ error: "Store not found" });
+    const user = await getCurrentUser(req);
+    if (!user) return res.status(401).json({ error: "No autenticado" });
+
+    const existing = await storage.getStore(req.params.id);
+    if (!existing) return res.status(404).json({ error: "Tienda no encontrada" });
+
+    if (user.role !== "admin" && existing.ownerId !== user.id) {
+      return res.status(403).json({ error: "No tenés permiso para editar esta tienda" });
     }
+
+    const store = await storage.updateStore(req.params.id, req.body);
     res.json(store);
   });
 
@@ -836,31 +885,81 @@ export async function registerRoutes(
   });
 
   app.patch("/api/products/:id", requireRole("merchant", "admin"), async (req, res) => {
-    const product = await storage.updateProduct(req.params.id, req.body);
-    if (!product) {
-      return res.status(404).json({ error: "Product not found" });
+    const user = await getCurrentUser(req);
+    if (!user) return res.status(401).json({ error: "No autenticado" });
+
+    const product = await storage.getProduct(req.params.id);
+    if (!product) return res.status(404).json({ error: "Producto no encontrado" });
+
+    if (user.role !== "admin") {
+      const store = await storage.getStore(product.storeId);
+      if (!store || store.ownerId !== user.id) {
+        return res.status(403).json({ error: "No tenés permiso para editar este producto" });
+      }
     }
-    res.json(product);
+
+    const updated = await storage.updateProduct(req.params.id, req.body);
+    res.json(updated);
   });
 
   app.delete("/api/products/:id", requireRole("merchant", "admin"), async (req, res) => {
-    const deleted = await storage.deleteProduct(req.params.id);
-    if (!deleted) {
-      return res.status(404).json({ error: "Product not found" });
+    const user = await getCurrentUser(req);
+    if (!user) return res.status(401).json({ error: "No autenticado" });
+
+    const product = await storage.getProduct(req.params.id);
+    if (!product) return res.status(404).json({ error: "Producto no encontrado" });
+
+    if (user.role !== "admin") {
+      const store = await storage.getStore(product.storeId);
+      if (!store || store.ownerId !== user.id) {
+        return res.status(403).json({ error: "No tenés permiso para eliminar este producto" });
+      }
     }
+
+    await storage.deleteProduct(req.params.id);
     res.status(204).send();
   });
 
   app.get("/api/orders", requireAuth, async (req, res) => {
-    const orders = await storage.getOrders();
-    res.json(orders);
+    const user = await getCurrentUser(req);
+    if (!user) return res.status(401).json({ error: "No autenticado" });
+
+    if (user.role === "admin") {
+      return res.json(await storage.getOrders());
+    }
+    if (user.role === "merchant") {
+      const merchantStores = await storage.getStoresByOwner(user.id);
+      const ordersPerStore = await Promise.all(
+        merchantStores.map((s) => storage.getOrdersByStore(s.id))
+      );
+      return res.json(ordersPerStore.flat());
+    }
+    if (user.role === "rider") {
+      return res.json(await storage.getOrdersByRider(user.id));
+    }
+    return res.json(await storage.getOrdersByCustomer(user.id));
   });
 
   app.get("/api/orders/:id", requireAuth, async (req, res) => {
+    const user = await getCurrentUser(req);
+    if (!user) return res.status(401).json({ error: "No autenticado" });
+
     const order = await storage.getOrder(req.params.id);
-    if (!order) {
-      return res.status(404).json({ error: "Order not found" });
+    if (!order) return res.status(404).json({ error: "Pedido no encontrado" });
+
+    const isCustomer = order.customerId === user.id;
+    const isRider = order.riderId === user.id;
+    const isAdmin = user.role === "admin";
+    let isMerchant = false;
+    if (user.role === "merchant") {
+      const store = await storage.getStore(order.storeId);
+      isMerchant = !!store && store.ownerId === user.id;
     }
+
+    if (!isCustomer && !isRider && !isAdmin && !isMerchant) {
+      return res.status(403).json({ error: "No tenés acceso a este pedido" });
+    }
+
     const items = await storage.getOrderItems(req.params.id);
     res.json({ ...order, items });
   });
@@ -906,10 +1005,26 @@ export async function registerRoutes(
   });
 
   app.patch("/api/orders/:id", requireAuth, async (req, res) => {
-    const order = await storage.updateOrder(req.params.id, req.body);
-    if (!order) {
-      return res.status(404).json({ error: "Order not found" });
+    const user = await getCurrentUser(req);
+    if (!user) return res.status(401).json({ error: "No autenticado" });
+
+    const existing = await storage.getOrder(req.params.id);
+    if (!existing) return res.status(404).json({ error: "Pedido no encontrado" });
+
+    const isCustomer = existing.customerId === user.id;
+    const isRider = existing.riderId === user.id;
+    const isAdmin = user.role === "admin";
+    let isMerchant = false;
+    if (user.role === "merchant") {
+      const store = await storage.getStore(existing.storeId);
+      isMerchant = !!store && store.ownerId === user.id;
     }
+
+    if (!isCustomer && !isRider && !isAdmin && !isMerchant) {
+      return res.status(403).json({ error: "No tenés permiso para modificar este pedido" });
+    }
+
+    const order = await storage.updateOrder(req.params.id, req.body);
     res.json(order);
   });
 
@@ -1333,7 +1448,7 @@ export async function registerRoutes(
     };
     if (statusMessages[status]) {
       await storage.createNotification({
-        userId: order.userId,
+        userId: order.customerId,
         type: "order_status",
         title: "Actualización de pedido",
         body: statusMessages[status],
@@ -1434,8 +1549,8 @@ export async function registerRoutes(
   app.post("/api/orders/:id/dispute", requireAuth, async (req, res) => {
     const user = await getCurrentUser(req);
     if (!user) return res.status(401).json({ error: "Unauthorized" });
-    const order = await storage.getOrderById(req.params.id);
-    if (!order || order.userId !== user.id) return res.status(404).json({ error: "Order not found" });
+    const order = await storage.getOrder(req.params.id);
+    if (!order || order.customerId !== user.id) return res.status(404).json({ error: "Pedido no encontrado" });
     if (order.status !== "delivered") return res.status(400).json({ error: "Solo puedes disputar pedidos entregados" });
     const existing = await storage.getDisputeByOrder(req.params.id);
     if (existing) return res.status(400).json({ error: "Ya existe una disputa para este pedido" });
@@ -1599,7 +1714,7 @@ export async function registerRoutes(
 
     const order = await storage.getOrder(req.params.id);
     if (!order) return res.status(404).json({ error: "Pedido no encontrado" });
-    if (order.userId !== user.id) return res.status(403).json({ error: "No tenés acceso" });
+    if (order.customerId !== user.id) return res.status(403).json({ error: "No tenés acceso" });
     if (order.status !== "delivered") return res.status(400).json({ error: "Solo podés reseñar pedidos entregados" });
 
     const existing = await storage.getReviewByOrderAndUser(req.params.id, user.id);
@@ -1656,7 +1771,7 @@ export async function registerRoutes(
     if (!user) return res.status(401).json({ error: "No autenticado" });
 
     const order = await storage.getOrder(req.params.id);
-    if (!order || order.userId !== user.id) return res.status(403).json({ error: "No tenés acceso" });
+    if (!order || order.customerId !== user.id) return res.status(403).json({ error: "No tenés acceso" });
 
     const existing = await storage.getReviewByOrderAndUser(req.params.id, user.id);
     res.json({ canReview: order.status === "delivered" && !existing, review: existing ?? null });
@@ -2722,8 +2837,11 @@ Responde en formato JSON con la siguiente estructura:
     uploadVideo(req, res, (err) => {
       if (err) return res.status(400).json({ error: err.message });
       if (!req.file) return res.status(400).json({ error: "No se recibió ningún archivo de video" });
-      const url = getPublicUrl("videos", req.file.filename);
-      res.json({ url });
+      if (!validateFileMagicBytes(req.file.path, false, true)) {
+        deleteUploadedFile(req.file.path);
+        return res.status(400).json({ error: "El archivo no es un video válido" });
+      }
+      res.json({ url: getPublicUrl("videos", req.file.filename) });
     });
   });
 
@@ -2732,8 +2850,11 @@ Responde en formato JSON con la siguiente estructura:
     uploadThumbnail(req, res, (err) => {
       if (err) return res.status(400).json({ error: err.message });
       if (!req.file) return res.status(400).json({ error: "No se recibió ninguna imagen" });
-      const url = getPublicUrl("thumbnails", req.file.filename);
-      res.json({ url });
+      if (!validateFileMagicBytes(req.file.path, true, false)) {
+        deleteUploadedFile(req.file.path);
+        return res.status(400).json({ error: "El archivo no es una imagen válida" });
+      }
+      res.json({ url: getPublicUrl("thumbnails", req.file.filename) });
     });
   });
 
@@ -2991,6 +3112,10 @@ Responde en formato JSON con la siguiente estructura:
       if (err) return res.status(400).json({ error: err.message ?? "Error al subir archivo" });
       if (!req.file) return res.status(400).json({ error: "No se recibió ningún archivo" });
       const isVideo = req.file.mimetype.startsWith("video/");
+      if (!validateFileMagicBytes(req.file.path, true, isVideo)) {
+        deleteUploadedFile(req.file.path);
+        return res.status(400).json({ error: "El archivo no es una imagen o video válido" });
+      }
       const url = getPublicUrl("institucional", req.file.filename);
       res.json({ url, type: isVideo ? "video" : "image", filename: req.file.filename });
     });

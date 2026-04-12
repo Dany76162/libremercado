@@ -2,6 +2,7 @@ import express, { type Express, type Request, type Response, type NextFunction }
 import cors from "cors";
 import pinoHttp from "pino-http";
 import session from "express-session";
+import rateLimit from "express-rate-limit";
 import { createServer } from "http";
 import router from "./routes";
 import { logger } from "./lib/logger";
@@ -10,6 +11,7 @@ import { setupWebSocket } from "./ws";
 
 const app: Express = express();
 const httpServer = createServer(app);
+app.set("trust proxy", 1);
 
 app.use(
   pinoHttp({
@@ -30,7 +32,55 @@ app.use(
     },
   }),
 );
-app.use(cors());
+
+const allowedOrigins = [
+  /^https?:\/\/localhost(:\d+)?$/,
+  /\.replit\.dev$/,
+  /\.picard\.replit\.dev$/,
+  /\.repl\.co$/,
+];
+
+if (process.env.ALLOWED_ORIGIN) {
+  allowedOrigins.push(new RegExp(`^${process.env.ALLOWED_ORIGIN.replace(/\./g, "\\.")}$`));
+}
+
+app.use(
+  cors({
+    origin: (origin, callback) => {
+      if (!origin) return callback(null, true);
+      const ok = allowedOrigins.some((pattern) =>
+        pattern instanceof RegExp ? pattern.test(origin) : origin === pattern
+      );
+      if (ok) return callback(null, true);
+      callback(new Error(`CORS: origin '${origin}' not allowed`));
+    },
+    credentials: true,
+  })
+);
+
+export const loginLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 10,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: "Demasiados intentos. Esperá 15 minutos." },
+});
+
+export const registerLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 5,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: "Demasiados registros. Esperá 15 minutos." },
+});
+
+export const forgotPasswordLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 3,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: "Demasiadas solicitudes. Esperá 15 minutos." },
+});
 
 // Stripe webhook — must be before express.json()
 app.post(
