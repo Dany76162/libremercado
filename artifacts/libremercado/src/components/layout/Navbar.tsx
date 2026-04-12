@@ -372,9 +372,10 @@ export function Navbar() {
               <Button
                 variant="ghost"
                 size="sm"
-                className="text-primary-foreground/90 hover:text-primary-foreground hover:bg-primary-foreground/10"
+                className="text-primary-foreground/90 hover:text-primary-foreground hover:bg-primary-foreground/10 gap-1"
                 data-testid="link-moda"
               >
+                <Shirt className="h-3 w-3" />
                 Moda
               </Button>
             </Link>
