@@ -445,6 +445,99 @@ export interface FutureFlight {
   status: FlightStatus;
 }
 
+// ─── TRAVEL COMMERCE — PROVIDERS ─────────────────────────────────────────────
+
+export type TravelProviderType = "bus" | "airline";
+export type TravelProviderStatus = "active" | "inactive" | "pending";
+export type TravelTripStatus = "scheduled" | "in_progress" | "completed" | "cancelled";
+export type TravelSeatStatus = "available" | "occupied" | "reserved";
+export type TravelBookingPaymentStatus = "pending" | "captured" | "failed" | "refunded";
+
+export const travelProviders = pgTable("travel_providers", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  name: text("name").notNull(),
+  code: text("code").notNull(),
+  type: text("type").$type<TravelProviderType>().notNull(),
+  logo: text("logo"),
+  initials: text("initials").notNull(),
+  colorClass: text("color_class").notNull().default("bg-blue-600"),
+  rating: decimal("rating", { precision: 2, scale: 1 }).default("4.0"),
+  reviewCount: integer("review_count").notNull().default(0),
+  servicesJson: text("services_json").notNull().default("[]"),
+  commissionRate: decimal("commission_rate", { precision: 5, scale: 4 }).notNull().default("0.0500"),
+  isActive: boolean("is_active").notNull().default(true),
+  status: text("status").$type<TravelProviderStatus>().notNull().default("active"),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+export type TravelProvider = typeof travelProviders.$inferSelect;
+export const insertTravelProviderSchema = createInsertSchema(travelProviders).omit({ id: true, createdAt: true });
+export type InsertTravelProvider = z.infer<typeof insertTravelProviderSchema>;
+
+// ─── TRAVEL ROUTES ────────────────────────────────────────────────────────────
+
+export const travelRoutes = pgTable("travel_routes", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  providerId: varchar("provider_id").notNull().references(() => travelProviders.id, { onDelete: "cascade" }),
+  origin: text("origin").notNull(),
+  destination: text("destination").notNull(),
+  distanceKm: integer("distance_km"),
+  estimatedMinutes: integer("estimated_minutes"),
+  isActive: boolean("is_active").notNull().default(true),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+export type TravelRoute = typeof travelRoutes.$inferSelect;
+export const insertTravelRouteSchema = createInsertSchema(travelRoutes).omit({ id: true, createdAt: true });
+export type InsertTravelRoute = z.infer<typeof insertTravelRouteSchema>;
+
+// ─── TRAVEL TRIPS ─────────────────────────────────────────────────────────────
+
+export const travelTrips = pgTable("travel_trips", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  routeId: varchar("route_id").notNull().references(() => travelRoutes.id, { onDelete: "cascade" }),
+  providerId: varchar("provider_id").notNull().references(() => travelProviders.id),
+  type: text("type").$type<TravelProviderType>().notNull(),
+  origin: text("origin").notNull(),
+  destination: text("destination").notNull(),
+  departureAt: timestamp("departure_at").notNull(),
+  arrivalAt: timestamp("arrival_at").notNull(),
+  durationMinutes: integer("duration_minutes").notNull(),
+  priceStandard: decimal("price_standard", { precision: 10, scale: 2 }).notNull(),
+  pricePremium: decimal("price_premium", { precision: 10, scale: 2 }),
+  availableSeatsStandard: integer("available_seats_standard").notNull().default(0),
+  availableSeatsPremium: integer("available_seats_premium").notNull().default(0),
+  totalSeatsStandard: integer("total_seats_standard").notNull().default(40),
+  totalSeatsPremium: integer("total_seats_premium").notNull().default(10),
+  servicesJson: text("services_json").notNull().default("[]"),
+  vehicleLayout: text("vehicle_layout").$type<"bus_4col" | "bus_2col" | "plane_6col">().notNull().default("bus_4col"),
+  status: text("status").$type<TravelTripStatus>().notNull().default("scheduled"),
+  discountPercent: integer("discount_percent").notNull().default(0),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+export type TravelTrip = typeof travelTrips.$inferSelect;
+export const insertTravelTripSchema = createInsertSchema(travelTrips).omit({ id: true, createdAt: true });
+export type InsertTravelTrip = z.infer<typeof insertTravelTripSchema>;
+
+// ─── TRAVEL SEAT INVENTORY ────────────────────────────────────────────────────
+
+export const travelSeatInventory = pgTable("travel_seat_inventory", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  tripId: varchar("trip_id").notNull().references(() => travelTrips.id, { onDelete: "cascade" }),
+  seatCode: text("seat_code").notNull(),
+  seatClass: text("seat_class").$type<"standard" | "premium">().notNull().default("standard"),
+  row: integer("row").notNull(),
+  col: text("col").notNull(),
+  status: text("status").$type<TravelSeatStatus>().notNull().default("available"),
+  bookingId: varchar("booking_id"),
+  reservedAt: timestamp("reserved_at"),
+});
+
+export type TravelSeatInventoryRow = typeof travelSeatInventory.$inferSelect;
+export const insertTravelSeatInventorySchema = createInsertSchema(travelSeatInventory).omit({ id: true });
+export type InsertTravelSeatInventory = z.infer<typeof insertTravelSeatInventorySchema>;
+
 // ─── TRAVEL BOOKINGS (Bus + Flights) ─────────────────────────────────────────
 
 export const travelBookings = pgTable("travel_bookings", {
@@ -461,8 +554,20 @@ export const travelBookings = pgTable("travel_bookings", {
   duration: text("duration").notNull(),
   price: decimal("price", { precision: 10, scale: 2 }).notNull(),
   seats: integer("seats").notNull().default(1),
-  status: text("status").$type<"confirmed" | "cancelled">().notNull().default("confirmed"),
+  status: text("status").$type<"confirmed" | "cancelled" | "pending">().notNull().default("confirmed"),
   createdAt: timestamp("created_at").notNull().defaultNow(),
+  // Travel Commerce extensions (nullable for backward compat)
+  tripId: varchar("trip_id"),
+  providerId: varchar("provider_id"),
+  seatNumbers: text("seat_numbers"),
+  seatClass: text("seat_class").$type<"standard" | "premium">(),
+  paymentId: varchar("payment_id"),
+  commissionAmount: decimal("commission_amount", { precision: 10, scale: 2 }),
+  commissionRate: decimal("commission_rate", { precision: 5, scale: 4 }),
+  ticketCode: text("ticket_code"),
+  paymentStatus: text("payment_status").$type<TravelBookingPaymentStatus>(),
+  passengerNames: text("passenger_names"),
+  totalAmount: decimal("total_amount", { precision: 10, scale: 2 }),
 });
 
 export const insertTravelBookingSchema = createInsertSchema(travelBookings).omit({ id: true, createdAt: true });

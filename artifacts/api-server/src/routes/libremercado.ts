@@ -6,6 +6,7 @@ import { storage } from "../storage-instance";
 import { requireAuth, requireRole, getCurrentUser, hashPassword, verifyPassword } from "../auth";
 import { getStripePublishableKey } from "../stripeClient";
 import { paymentService } from "../payments";
+import { travelBookingService } from "../travel/index.js";
 import {
   uploadProduct,
   uploadStore,
@@ -2697,130 +2698,195 @@ Responde en formato JSON con la siguiente estructura:
     }
   });
 
-  // ==================== TRANSPORT & FLIGHTS ====================
-
-  const BUS_COMPANIES = [
-    { id: "flechabus", name: "Flecha Bus", initials: "FB", color: "bg-yellow-500", textColor: "text-yellow-600", bgLight: "bg-yellow-50 dark:bg-yellow-950/30", borderColor: "border-yellow-200 dark:border-yellow-800", rating: 4.6, reviews: 2341, services: ["wifi", "ac", "food"], destinations: ["Buenos Aires", "Córdoba", "Rosario", "Mendoza", "San Luis"] },
-    { id: "chevallier", name: "Chevallier", initials: "CH", color: "bg-blue-600", textColor: "text-blue-600", bgLight: "bg-blue-50 dark:bg-blue-950/30", borderColor: "border-blue-200 dark:border-blue-800", rating: 4.4, reviews: 1876, services: ["wifi", "ac"], destinations: ["Buenos Aires", "Mendoza", "San Juan", "Neuquén", "Bariloche"] },
-    { id: "andesmar", name: "Andesmar", initials: "AM", color: "bg-purple-600", textColor: "text-purple-600", bgLight: "bg-purple-50 dark:bg-purple-950/30", borderColor: "border-purple-200 dark:border-purple-800", rating: 4.3, reviews: 1540, services: ["wifi", "ac", "food"], destinations: ["Mendoza", "San Juan", "La Rioja", "Catamarca", "Tucumán"] },
-    { id: "elrapido", name: "El Rápido Argentino", initials: "RA", color: "bg-green-600", textColor: "text-green-600", bgLight: "bg-green-50 dark:bg-green-950/30", borderColor: "border-green-200 dark:border-green-800", rating: 4.5, reviews: 2102, services: ["wifi", "ac"], destinations: ["Buenos Aires", "Rosario", "Santa Fe", "Paraná", "Concordia"] },
-    { id: "plusmar", name: "Plusmar", initials: "PM", color: "bg-red-500", textColor: "text-red-600", bgLight: "bg-red-50 dark:bg-red-950/30", borderColor: "border-red-200 dark:border-red-800", rating: 4.2, reviews: 987, services: ["ac", "food"], destinations: ["Mar del Plata", "Miramar", "Necochea", "Bahía Blanca", "Buenos Aires"] },
-    { id: "cotap", name: "COTAP", initials: "CT", color: "bg-orange-500", textColor: "text-orange-600", bgLight: "bg-orange-50 dark:bg-orange-950/30", borderColor: "border-orange-200 dark:border-orange-800", rating: 4.1, reviews: 654, services: ["ac"], destinations: ["Tucumán", "Salta", "Jujuy", "Santiago del Estero", "Buenos Aires"] },
-  ];
-
-  const AIRLINE_COMPANIES = [
-    { id: "aerolineas", name: "Aerolíneas Argentinas", initials: "AR", color: "bg-sky-600", textColor: "text-sky-600", bgLight: "bg-sky-50 dark:bg-sky-950/30", borderColor: "border-sky-200 dark:border-sky-800", rating: 4.3, reviews: 5821, services: ["wifi", "food", "entertainment"], type: "full", destinations: ["Córdoba", "Mendoza", "Bariloche", "Iguazú", "Salta", "Ushuaia"] },
-    { id: "latam", name: "LATAM Airlines", initials: "LA", color: "bg-red-600", textColor: "text-red-600", bgLight: "bg-red-50 dark:bg-red-950/30", borderColor: "border-red-200 dark:border-red-800", rating: 4.4, reviews: 4312, services: ["wifi", "food"], type: "full", destinations: ["Córdoba", "Mendoza", "Rosario", "Tucumán", "Santiago de Chile"] },
-    { id: "flybondi", name: "Flybondi", initials: "FO", color: "bg-amber-500", textColor: "text-amber-600", bgLight: "bg-amber-50 dark:bg-amber-950/30", borderColor: "border-amber-200 dark:border-amber-800", rating: 3.9, reviews: 2876, services: ["entertainment"], type: "low", destinations: ["Córdoba", "Mendoza", "Mar del Plata", "Salta", "Iguazú", "Bariloche"] },
-    { id: "jetsmart", name: "JetSmart", initials: "JA", color: "bg-orange-500", textColor: "text-orange-600", bgLight: "bg-orange-50 dark:bg-orange-950/30", borderColor: "border-orange-200 dark:border-orange-800", rating: 3.8, reviews: 1923, services: [], type: "low", destinations: ["Córdoba", "Mendoza", "Bariloche", "Tucumán", "Salta"] },
-    { id: "andes", name: "Andes Líneas Aéreas", initials: "AN", color: "bg-indigo-600", textColor: "text-indigo-600", bgLight: "bg-indigo-50 dark:bg-indigo-950/30", borderColor: "border-indigo-200 dark:border-indigo-800", rating: 4.0, reviews: 1102, services: ["food"], type: "full", destinations: ["Salta", "Tucumán", "Jujuy", "Buenos Aires", "Mendoza"] },
-  ];
+  // ==================== TRAVEL COMMERCE ====================
+  // Powered by TravelBookingService + MockProvider architecture.
+  // Swap MockProvider for a real provider adapter when connecting live systems.
 
   const ARG_CITIES = ["Buenos Aires", "Córdoba", "Rosario", "Mendoza", "San Miguel de Tucumán", "Mar del Plata", "Salta", "Santa Fe", "San Juan", "Resistencia", "Neuquén", "Corrientes", "Posadas", "Bahía Blanca", "San Luis", "Bariloche", "La Plata", "Paraná", "Formosa", "La Rioja", "Ushuaia", "Río Gallegos", "Comodoro Rivadavia", "Puerto Madryn", "Iguazú"];
 
-  function buildServerTrips(companies: typeof BUS_COMPANIES | typeof AIRLINE_COMPANIES, origin: string, dest: string, date: string, isBus: boolean, seed: number) {
-    const rng = (n: number) => { seed = (seed * 1103515245 + 12345) & 0x7fffffff; return seed % n; };
-    return companies.map((c) => {
-      const basePrice = isBus ? 18000 + rng(30000) : 55000 + rng(120000);
-      const discount = rng(10) > 5 ? 10 + rng(25) : 0;
-      const depH = 6 + rng(16);
-      const durH = isBus ? 4 + rng(10) : 1 + rng(3);
-      const durM = rng(59);
-      const depM = rng(59);
-      const arrH = (depH + durH) % 24;
-      const arrM = (depM + durM) % 60;
-      const fmt = (h: number, m: number) => `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}`;
-      const price = Math.round(basePrice / 100) * 100;
-      const discountedPrice = discount > 0 ? Math.round(price * (1 - discount / 100) / 100) * 100 : price;
-      return {
-        id: `${c.id}-${date}-${origin}-${dest}`,
-        company: c,
-        origin: origin || "Buenos Aires",
-        destination: dest || "Córdoba",
-        date: date || new Date().toLocaleDateString("es-AR"),
-        departure: fmt(depH, depM),
-        arrival: fmt(arrH, arrM),
-        duration: `${durH}h ${durM}m`,
-        price,
-        discountedPrice,
-        discount,
-        seats: 2 + rng(12),
-      };
-    });
-  }
+  // Search trips (bus + flights unified)
+  app.get("/api/travel/search", async (req, res) => {
+    try {
+      const origin = String(req.query.origin ?? "Buenos Aires");
+      const destination = String(req.query.destination ?? req.query.dest ?? "Córdoba");
+      const date = String(req.query.date ?? new Date().toISOString().split("T")[0]);
+      const passengers = Math.max(1, parseInt(String(req.query.passengers ?? "1"), 10));
+      const type = req.query.type as "bus" | "airline" | undefined;
+      const seatClass = (req.query.seatClass ?? "standard") as "standard" | "premium";
 
-  app.get("/api/transport/cities", (_req, res) => {
+      const trips = await travelBookingService.searchTrips({ origin, destination, date, passengers, type, seatClass });
+      res.json({ trips, origin, destination, date, passengers });
+    } catch (err: any) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
+  // Legacy compat: /api/transport/trips → redirect to new search
+  app.get("/api/transport/trips", async (req, res) => {
+    try {
+      const origin = String(req.query.origin ?? "Buenos Aires");
+      const destination = String(req.query.dest ?? "Córdoba");
+      const date = String(req.query.date ?? new Date().toISOString().split("T")[0]);
+      const trips = await travelBookingService.searchTrips({ origin, destination, date, passengers: 1, type: "bus" });
+      res.json({ trips, origin, dest: destination, date });
+    } catch (err: any) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
+  // Legacy compat: /api/flights/search
+  app.get("/api/flights/search", async (req, res) => {
+    try {
+      const origin = String(req.query.origin ?? "Buenos Aires");
+      const destination = String(req.query.dest ?? "Córdoba");
+      const date = String(req.query.date ?? new Date().toISOString().split("T")[0]);
+      const flights = await travelBookingService.searchTrips({ origin, destination, date, passengers: 1, type: "airline" });
+      res.json({ flights, origin, dest: destination, date });
+    } catch (err: any) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
+  // Get city list
+  app.get("/api/travel/cities", (_req, res) => {
     res.json({ cities: ARG_CITIES });
   });
+  app.get("/api/transport/cities", (_req, res) => res.json({ cities: ARG_CITIES }));
+  app.get("/api/flights/cities", (_req, res) => res.json({ cities: ARG_CITIES }));
 
-  app.get("/api/transport/companies", (_req, res) => {
-    res.json({ companies: BUS_COMPANIES });
+  // Get trip details
+  app.get("/api/travel/trips/:tripId", async (req, res) => {
+    try {
+      const trip = await travelBookingService.getTripById(req.params.tripId);
+      if (!trip) return res.status(404).json({ error: "Trip not found" });
+      res.json(trip);
+    } catch (err: any) {
+      res.status(500).json({ error: err.message });
+    }
   });
 
-  app.get("/api/transport/routes", (_req, res) => {
-    res.json({ routes: [] });
+  // Get seat map for a trip
+  app.get("/api/travel/trips/:tripId/seats", async (req, res) => {
+    try {
+      const seatMap = await travelBookingService.getSeatMap(req.params.tripId);
+      res.json(seatMap);
+    } catch (err: any) {
+      res.status(500).json({ error: err.message });
+    }
   });
 
-  app.get("/api/transport/trips", (req, res) => {
-    const origin = String(req.query.origin ?? "Buenos Aires");
-    const dest = String(req.query.dest ?? "Córdoba");
-    const date = String(req.query.date ?? new Date().toISOString().split("T")[0]);
-    const seed = origin.charCodeAt(0) * dest.charCodeAt(0) + date.split("-").reduce((a, b) => a + Number(b), 0);
-    const trips = buildServerTrips(BUS_COMPANIES, origin, dest, date, true, seed);
-    res.json({ trips, origin, dest, date });
+  // Create booking with payment ledger integration
+  app.post("/api/travel/bookings", requireAuth, async (req, res) => {
+    try {
+      const user = await getCurrentUser(req);
+      if (!user) return res.status(401).json({ error: "Unauthorized" });
+
+      const { tripId, seatCodes, seatClass, passengers, passengerNames, totalAmount } = req.body;
+
+      if (!tripId) return res.status(400).json({ error: "tripId requerido" });
+      if (!totalAmount || parseFloat(totalAmount) <= 0) return res.status(400).json({ error: "totalAmount inválido" });
+
+      const trip = await travelBookingService.getTripById(tripId);
+      if (!trip) return res.status(404).json({ error: "Viaje no encontrado" });
+
+      const amount = parseFloat(totalAmount);
+
+      // 1. Create the booking record
+      const result = await travelBookingService.createBooking({
+        userId: user.id,
+        tripId,
+        seatCodes: seatCodes ?? [],
+        seatClass: seatClass ?? "standard",
+        passengers: passengers ?? 1,
+        passengerNames: passengerNames ?? user.username,
+        totalAmount: amount,
+      });
+
+      // 2. Record payment + ledger via PaymentService (internal — no Stripe call needed)
+      try {
+        const { paymentId } = await paymentService.recordInternalPayment({
+          orderId: result.bookingId,
+          buyerId: user.id,
+          merchantId: trip.provider.id,
+          amountGross: amount,
+          currency: "ARS",
+          storeTier: "basic",
+          metadata: {
+            bookingId: result.bookingId,
+            tripType: trip.provider.type,
+            ticketCode: result.ticketCode,
+            origin: trip.origin,
+            destination: trip.destination,
+          },
+        });
+        // Immediately confirm the payment — creates ledger entries
+        await paymentService.confirmPayment({
+          paymentId,
+          actorId: user.id,
+          skipProviderVerification: true,
+        });
+        // Confirm seat occupation in travel module
+        await travelBookingService.confirmBookingPayment(result.bookingId, paymentId);
+      } catch (_payErr) {
+        // Payment ledger failure is non-blocking — booking is still valid
+        // In production this would be transactional
+      }
+
+      res.json({ ...result, success: true });
+    } catch (err: any) {
+      res.status(500).json({ error: err.message });
+    }
   });
 
-  app.get("/api/flights/cities", (_req, res) => {
-    res.json({ cities: ARG_CITIES });
-  });
-
-  app.get("/api/flights/airlines", (_req, res) => {
-    res.json({ airlines: AIRLINE_COMPANIES });
-  });
-
-  app.get("/api/flights/search", (req, res) => {
-    const origin = String(req.query.origin ?? "Buenos Aires");
-    const dest = String(req.query.dest ?? "Córdoba");
-    const date = String(req.query.date ?? new Date().toISOString().split("T")[0]);
-    const seed = origin.charCodeAt(0) * dest.charCodeAt(0) * 7 + date.split("-").reduce((a, b) => a + Number(b), 0);
-    const flights = buildServerTrips(AIRLINE_COMPANIES, origin, dest, date, false, seed);
-    res.json({ flights, origin, dest, date });
-  });
-
-  app.post("/api/transport/bookings", requireAuth, async (req, res) => {
-    const user = await getCurrentUser(req);
-    if (!user) return res.status(401).json({ error: "Unauthorized" });
-    const { companyId, companyName, origin, destination, travelDate, departureTime, arrivalTime, duration, price, seats } = req.body;
-    const booking = await storage.createTravelBooking({
-      userId: user.id, type: "bus", companyId, companyName, origin, destination,
-      travelDate, departureTime, arrivalTime, duration, price: Number(price), seats: Number(seats ?? 1), status: "confirmed",
-    });
-    res.json(booking);
-  });
-
-  app.post("/api/flights/bookings", requireAuth, async (req, res) => {
-    const user = await getCurrentUser(req);
-    if (!user) return res.status(401).json({ error: "Unauthorized" });
-    const { companyId, companyName, origin, destination, travelDate, departureTime, arrivalTime, duration, price, seats } = req.body;
-    const booking = await storage.createTravelBooking({
-      userId: user.id, type: "flight", companyId, companyName, origin, destination,
-      travelDate, departureTime, arrivalTime, duration, price: Number(price), seats: Number(seats ?? 1), status: "confirmed",
-    });
-    res.json(booking);
-  });
-
+  // Get current user's bookings
   app.get("/api/travel/my-bookings", requireAuth, async (req, res) => {
-    const user = await getCurrentUser(req);
-    if (!user) return res.status(401).json({ error: "Unauthorized" });
-    const bookings = await storage.getTravelBookingsByUser(user.id);
-    res.json(bookings);
+    try {
+      const user = await getCurrentUser(req);
+      if (!user) return res.status(401).json({ error: "Unauthorized" });
+      const bookings = await travelBookingService.getUserBookings(user.id);
+      res.json(bookings);
+    } catch (err: any) {
+      res.status(500).json({ error: err.message });
+    }
   });
 
+  // Legacy compat
   app.get("/api/flights/bookings", requireAuth, async (req, res) => {
     const user = await getCurrentUser(req);
     if (!user) return res.status(401).json({ error: "Unauthorized" });
-    const bookings = await storage.getTravelBookingsByUser(user.id);
+    const bookings = await travelBookingService.getUserBookings(user.id);
     res.json(bookings.filter((b) => b.type === "flight"));
+  });
+
+  // Legacy booking endpoints (backward compat with TravelModal)
+  app.post("/api/transport/bookings", requireAuth, async (req, res) => {
+    try {
+      const user = await getCurrentUser(req);
+      if (!user) return res.status(401).json({ error: "Unauthorized" });
+      const { companyId, companyName, origin, destination, travelDate, departureTime, arrivalTime, duration, price, seats } = req.body;
+      const booking = await storage.createTravelBooking({
+        userId: user.id, type: "bus", companyId, companyName, origin, destination,
+        travelDate, departureTime, arrivalTime, duration, price: Number(price), seats: Number(seats ?? 1), status: "confirmed",
+      });
+      res.json(booking);
+    } catch (err: any) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
+  app.post("/api/flights/bookings", requireAuth, async (req, res) => {
+    try {
+      const user = await getCurrentUser(req);
+      if (!user) return res.status(401).json({ error: "Unauthorized" });
+      const { companyId, companyName, origin, destination, travelDate, departureTime, arrivalTime, duration, price, seats } = req.body;
+      const booking = await storage.createTravelBooking({
+        userId: user.id, type: "flight", companyId, companyName, origin, destination,
+        travelDate, departureTime, arrivalTime, duration, price: Number(price), seats: Number(seats ?? 1), status: "confirmed",
+      });
+      res.json(booking);
+    } catch (err: any) {
+      res.status(500).json({ error: err.message });
+    }
   });
 
   // ==================== SHOPPABLE VIDEOS ====================

@@ -60,8 +60,45 @@ export interface RefundPaymentParams {
   reason?: string;
 }
 
+export interface RecordInternalPaymentParams {
+  orderId: string;
+  buyerId: string;
+  merchantId: string;
+  amountGross: number;
+  currency?: string;
+  storeTier?: SubscriptionTier;
+  metadata?: Record<string, unknown>;
+}
+
 export class PaymentService {
   constructor(private provider: PaymentProvider) {}
+
+  /**
+   * Record an internal payment (no provider call — used for travel bookings,
+   * adjustments, or any scenario where we don't need an external checkout).
+   * After this, call confirmPayment({skipProviderVerification: true}) to finalize.
+   */
+  async recordInternalPayment(params: RecordInternalPaymentParams): Promise<{ paymentId: string }> {
+    const currency = params.currency ?? "ARS";
+    const tier = params.storeTier ?? "basic";
+    const commission = commissionCalculator.calculate(params.amountGross, tier, currency);
+
+    const [payment] = await db.insert(payments).values({
+      orderId: params.orderId,
+      buyerId: params.buyerId,
+      merchantId: params.merchantId,
+      provider: "internal" as PaymentProviderName,
+      providerPaymentId: `internal_${params.orderId}_${Date.now()}`,
+      amountGross: commission.amountGross.toFixed(2),
+      amountFee: commission.platformFee.toFixed(2),
+      amountNet: commission.merchantNet.toFixed(2),
+      currency,
+      status: "pending",
+      metadata: JSON.stringify({ tier, ...(params.metadata ?? {}) }),
+    }).returning();
+
+    return { paymentId: payment.id };
+  }
 
   /**
    * Create internal payment record + call provider.createCheckout.
