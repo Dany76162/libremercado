@@ -4,8 +4,8 @@ import { z } from "zod";
 import OpenAI from "openai";
 import { storage } from "../storage-instance";
 import { requireAuth, requireRole, getCurrentUser, hashPassword, verifyPassword } from "../auth";
-import { stripeService } from "../stripeService";
 import { getStripePublishableKey } from "../stripeClient";
+import { paymentService } from "../payments";
 import {
   uploadProduct,
   uploadStore,
@@ -1599,17 +1599,19 @@ export async function registerRoutes(
         if (!d) return res.status(404).json({ error: "Disputa no encontrada" });
         const order = await storage.getOrder(d.orderId);
         if (!order) return res.status(404).json({ error: "Pedido no encontrado" });
-        if (!order.paymentIntentId) return res.status(400).json({ error: "No hay pago asociado a este pedido" });
-        const stripe = await (await import("./stripeClient")).getUncachableStripeClient();
-        const refund = await stripe.refunds.create({ payment_intent: order.paymentIntentId });
-        return res.json({ refundId: refund.id, status: refund.status });
+        const payment = await paymentService.getPaymentByOrder(d.orderId);
+        if (!payment) return res.status(400).json({ error: "No hay pago asociado a este pedido" });
+        await paymentService.refundPayment({ paymentId: payment.id, reason: "dispute_resolved" });
+        await storage.updateOrder(d.orderId, { paymentStatus: "refunded" });
+        return res.json({ success: true, paymentId: payment.id });
       }
       const order = await storage.getOrder(dispute.orderId);
       if (!order) return res.status(404).json({ error: "Pedido no encontrado" });
-      if (!order.paymentIntentId) return res.status(400).json({ error: "No hay pago asociado a este pedido" });
-      const stripe = await (await import("./stripeClient")).getUncachableStripeClient();
-      const refund = await stripe.refunds.create({ payment_intent: order.paymentIntentId });
-      res.json({ refundId: refund.id, status: refund.status });
+      const payment = await paymentService.getPaymentByOrder(dispute.orderId);
+      if (!payment) return res.status(400).json({ error: "No hay pago asociado a este pedido" });
+      await paymentService.refundPayment({ paymentId: payment.id, reason: "dispute_resolved" });
+      await storage.updateOrder(dispute.orderId, { paymentStatus: "refunded" });
+      res.json({ success: true, paymentId: payment.id });
     } catch (err: any) {
       res.status(500).json({ error: err.message ?? "Error al procesar reembolso" });
     }
@@ -2134,6 +2136,80 @@ export async function registerRoutes(
     res.json(expired);
   });
 
+  // ==================== PAYMENT CORE — ADMIN BACKOFFICE ====================
+
+  // List all internal payments (most recent first)
+  app.get("/api/admin/payments", requireRole("admin"), async (req, res) => {
+    try {
+      const limit = Math.min(parseInt(req.query.limit as string) || 50, 200);
+      const allPayments = await paymentService.listPayments(limit);
+      res.json(allPayments);
+    } catch (err: any) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
+  // Get single payment + attempts + ledger
+  app.get("/api/admin/payments/:id", requireRole("admin"), async (req, res) => {
+    try {
+      const payment = await paymentService.getPayment(req.params.id);
+      if (!payment) return res.status(404).json({ error: "Payment not found" });
+      const [attempts, ledger] = await Promise.all([
+        paymentService.listAttempts(payment.id),
+        paymentService.listLedger(payment.id),
+      ]);
+      res.json({ payment, attempts, ledger });
+    } catch (err: any) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
+  // Get payment for an order
+  app.get("/api/admin/payments/by-order/:orderId", requireRole("admin"), async (req, res) => {
+    try {
+      const payment = await paymentService.getPaymentByOrder(req.params.orderId);
+      if (!payment) return res.status(404).json({ error: "No payment for this order" });
+      const [attempts, ledger] = await Promise.all([
+        paymentService.listAttempts(payment.id),
+        paymentService.listLedger(payment.id),
+      ]);
+      res.json({ payment, attempts, ledger });
+    } catch (err: any) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
+  // Issue refund via admin (for any order, not just disputes)
+  app.post("/api/admin/payments/:id/refund", requireRole("admin"), async (req, res) => {
+    try {
+      const { amount, reason } = req.body;
+      await paymentService.refundPayment({
+        paymentId: req.params.id,
+        amountGross: amount ? parseFloat(amount) : undefined,
+        reason: reason ?? "admin_refund",
+      });
+      // Update order payment status
+      const payment = await paymentService.getPayment(req.params.id);
+      if (payment) {
+        await storage.updateOrder(payment.orderId, { paymentStatus: "refunded" });
+      }
+      res.json({ success: true });
+    } catch (err: any) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
+  // List provider webhook events (audit log)
+  app.get("/api/admin/payment-events", requireRole("admin"), async (req, res) => {
+    try {
+      const limit = Math.min(parseInt(req.query.limit as string) || 50, 200);
+      const events = await paymentService.listProviderEvents(limit);
+      res.json(events);
+    } catch (err: any) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
   // ==================== AI ADVERTISING GENERATION ====================
 
   // GET admin AI usage info
@@ -2452,23 +2528,22 @@ Responde en formato JSON con la siguiente estructura:
     }
   });
 
-  // Create order and payment intent - calculates amount server-side
+  // Create order and initiate payment — calculates amount server-side
   app.post("/api/checkout/create-order", requireAuth, async (req, res) => {
     try {
       const currentUser = await getCurrentUser(req);
       const { items, address, notes } = req.body;
-      
+
       if (!items || !Array.isArray(items) || items.length === 0) {
         return res.status(400).json({ error: "Cart is empty" });
       }
-
       if (!address || !address.trim()) {
         return res.status(400).json({ error: "Address is required" });
       }
 
       // Calculate total server-side from actual product prices
       let total = 0;
-      const orderItems: Array<{ productId: string; quantity: number; price: string }> = [];
+      const orderItemsArr: Array<{ productId: string; quantity: number; price: string }> = [];
       let storeId = "";
 
       for (const item of items) {
@@ -2476,17 +2551,10 @@ Responde en formato JSON con la siguiente estructura:
         if (!product) {
           return res.status(400).json({ error: `Product ${item.productId} not found` });
         }
-        
         const price = parseFloat(product.price);
         const quantity = parseInt(item.quantity) || 1;
         total += price * quantity;
-        
-        orderItems.push({
-          productId: item.productId,
-          quantity,
-          price: product.price
-        });
-        
+        orderItemsArr.push({ productId: item.productId, quantity, price: product.price });
         if (!storeId) storeId = product.storeId;
       }
 
@@ -2494,7 +2562,12 @@ Responde en formato JSON con la siguiente estructura:
       const shipping = 500;
       total += shipping;
 
-      // Create order with pending payment status
+      // Get store to determine commission tier
+      const store = await storage.getStore(storeId);
+      const storeTier = (store?.subscriptionTier ?? "free") as "free" | "basic" | "premium";
+      const merchantId = store?.ownerId ?? storeId;
+
+      // Create internal order
       const order = await storage.createOrder({
         customerId: currentUser!.id,
         storeId,
@@ -2512,8 +2585,7 @@ Responde en formato JSON con la siguiente estructura:
         riderLng: null,
       });
 
-      // Create order items
-      for (const item of orderItems) {
+      for (const item of orderItemsArr) {
         await storage.createOrderItem({
           orderId: order.id,
           productId: item.productId,
@@ -2522,22 +2594,33 @@ Responde en formato JSON con la siguiente estructura:
         });
       }
 
-      // Create payment intent with server-calculated amount
-      const paymentIntent = await stripeService.createPaymentIntent(
-        Math.round(total * 100),
-        'ars',
-        { orderId: order.id }
-      );
-
-      // Update order with payment intent ID
-      await storage.updateOrder(order.id, {
-        paymentIntentId: paymentIntent.id
+      // Delegate to PaymentService (decoupled from Stripe)
+      const checkout = await paymentService.initCheckout({
+        orderId: order.id,
+        buyerId: currentUser!.id,
+        merchantId,
+        amountGross: total,
+        currency: "ARS",
+        storeTier,
+        buyerEmail: currentUser!.email,
       });
 
-      res.json({ 
+      // Keep backward-compat: store providerPaymentId on order.paymentIntentId
+      await storage.updateOrder(order.id, {
+        paymentIntentId: checkout.providerPaymentId,
+      });
+
+      res.json({
         orderId: order.id,
-        clientSecret: paymentIntent.client_secret,
-        total
+        paymentId: checkout.paymentId,
+        clientSecret: checkout.clientSecret,
+        total,
+        breakdown: {
+          gross: checkout.amountGross,
+          fee: checkout.amountFee,
+          net: checkout.amountNet,
+          currency: checkout.currency,
+        },
       });
     } catch (error: any) {
       console.error("Checkout error:", error);
@@ -2548,8 +2631,8 @@ Responde en formato JSON con la siguiente estructura:
   app.post("/api/checkout/confirm-payment", requireAuth, async (req, res) => {
     try {
       const currentUser = await getCurrentUser(req);
-      const { orderId } = req.body;
-      
+      const { orderId, paymentId } = req.body;
+
       if (!orderId) {
         return res.status(400).json({ error: "Order ID required" });
       }
@@ -2558,43 +2641,46 @@ Responde en formato JSON con la siguiente estructura:
       if (!order) {
         return res.status(404).json({ error: "Order not found" });
       }
-
-      // Security: ensure this order belongs to the current user
       if (order.customerId !== currentUser!.id) {
         return res.status(403).json({ error: "Unauthorized" });
       }
 
-      // Verify payment intent with Stripe before confirming
-      if (order.paymentIntentId) {
-        try {
-          const stripe = await (await import("./stripeClient")).getUncachableStripeClient();
-          const paymentIntent = await stripe.paymentIntents.retrieve(order.paymentIntentId);
-          if (paymentIntent.status !== "succeeded") {
-            return res.status(400).json({ error: "Payment has not been completed" });
-          }
-        } catch (stripeErr: any) {
-          console.error("Stripe verify error:", stripeErr.message);
-          // Allow fallback if Stripe verify fails (test mode)
-        }
+      // Resolve paymentId: from body, or look it up by orderId
+      let resolvedPaymentId = paymentId as string | undefined;
+      if (!resolvedPaymentId) {
+        const existingPayment = await paymentService.getPaymentByOrder(orderId);
+        resolvedPaymentId = existingPayment?.id;
       }
 
-      await storage.updateOrder(orderId, { 
+      if (resolvedPaymentId) {
+        // Confirm through PaymentService (verifies with provider + records ledger)
+        await paymentService.confirmPayment({
+          paymentId: resolvedPaymentId,
+          actorId: currentUser!.id,
+        });
+      }
+
+      // Update order status (commercial state, separate from financial state)
+      await storage.updateOrder(orderId, {
         status: "confirmed",
-        paymentStatus: "paid"
+        paymentStatus: "paid",
       });
 
       // Send confirmation emails (fire-and-forget)
       try {
         const updatedOrder = await storage.getOrder(orderId);
-        const customer = await storage.getUser(updatedOrder?.userId ?? "");
+        const customer = await storage.getUser(updatedOrder?.customerId ?? "");
         const items = await storage.getOrderItems(orderId);
         if (updatedOrder && customer) {
           const storeIds = [...new Set(items.map((i) => i.storeId))];
           const storeList = await Promise.all(storeIds.map((sid) => storage.getStore(sid)));
           const storeName = storeList[0]?.name ?? "la tienda";
-          const totalFormatted = new Intl.NumberFormat("es-AR", { style: "currency", currency: "ARS", maximumFractionDigits: 0 }).format(parseFloat(updatedOrder.total));
+          const totalFormatted = new Intl.NumberFormat("es-AR", {
+            style: "currency",
+            currency: "ARS",
+            maximumFractionDigits: 0,
+          }).format(parseFloat(updatedOrder.total));
           sendOrderConfirmationEmail(customer.email, customer.username, orderId, totalFormatted, storeName).catch(() => {});
-          // Notify merchants
           for (const store of storeList) {
             if (!store) continue;
             const merchant = await storage.getUser(store.ownerId);
@@ -2605,7 +2691,7 @@ Responde en formato JSON con la siguiente estructura:
         }
       } catch (_) {}
 
-      res.json({ success: true, orderId });
+      res.json({ success: true, orderId, paymentId: resolvedPaymentId });
     } catch (error: any) {
       res.status(500).json({ error: error.message || "Failed to confirm payment" });
     }

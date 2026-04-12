@@ -665,3 +665,136 @@ export type PublicEntity = typeof publicEntities.$inferSelect;
 export const insertNovedadSchema = createInsertSchema(novedades).omit({ id: true, createdAt: true });
 export type InsertNovedad = z.infer<typeof insertNovedadSchema>;
 export type Novedad = typeof novedades.$inferSelect;
+
+// ========================
+// PAYMENT CORE — internal payment infrastructure
+// ========================
+
+export type InternalPaymentStatus =
+  | "pending"
+  | "authorized"
+  | "captured"
+  | "failed"
+  | "cancelled"
+  | "refunded"
+  | "partially_refunded"
+  | "disputed";
+
+export type PaymentProvider = "stripe" | "mercadopago" | "internal" | "mock";
+export type PaymentMethodType = "card" | "wallet" | "bank_transfer" | "cash" | "other";
+export type LedgerEntryType =
+  | "buyer_charge"
+  | "platform_commission"
+  | "merchant_payout"
+  | "rider_payout"
+  | "refund"
+  | "adjustment";
+export type LedgerDirection = "debit" | "credit";
+export type LedgerActorType = "buyer" | "merchant" | "rider" | "platform";
+
+/**
+ * payments — one payment per order, tracks the internal financial state.
+ * Decoupled from the provider: internal status is the source of truth.
+ */
+export const payments = pgTable("payments", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  orderId: varchar("order_id").notNull(),
+  buyerId: varchar("buyer_id").notNull(),
+  merchantId: varchar("merchant_id").notNull(),
+  provider: text("provider").$type<PaymentProvider>().notNull().default("stripe"),
+  providerPaymentId: text("provider_payment_id"),
+  amountGross: decimal("amount_gross", { precision: 12, scale: 2 }).notNull(),
+  amountFee: decimal("amount_fee", { precision: 12, scale: 2 }).notNull().default("0"),
+  amountNet: decimal("amount_net", { precision: 12, scale: 2 }).notNull(),
+  currency: varchar("currency", { length: 3 }).notNull().default("ARS"),
+  status: text("status").$type<InternalPaymentStatus>().notNull().default("pending"),
+  statusReason: text("status_reason"),
+  paymentMethodType: text("payment_method_type").$type<PaymentMethodType>(),
+  metadata: text("metadata"),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+  authorizedAt: timestamp("authorized_at"),
+  capturedAt: timestamp("captured_at"),
+  refundedAt: timestamp("refunded_at"),
+});
+
+/**
+ * payment_attempts — every individual attempt to charge (may fail and retry).
+ */
+export const paymentAttempts = pgTable("payment_attempts", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  paymentId: varchar("payment_id").notNull(),
+  provider: text("provider").$type<PaymentProvider>().notNull(),
+  providerAttemptId: text("provider_attempt_id"),
+  status: text("status").notNull(),
+  errorCode: text("error_code"),
+  errorMessage: text("error_message"),
+  rawResponse: text("raw_response"),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+/**
+ * provider_events — raw webhook / callback events from any provider.
+ * Idempotent: providerEventId is unique so duplicates are ignored.
+ */
+export const providerEvents = pgTable("provider_events", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  provider: text("provider").$type<PaymentProvider>().notNull(),
+  eventType: text("event_type").notNull(),
+  providerEventId: text("provider_event_id").notNull().unique(),
+  paymentId: varchar("payment_id"),
+  orderId: varchar("order_id"),
+  rawPayload: text("raw_payload"),
+  processed: boolean("processed").notNull().default(false),
+  processedAt: timestamp("processed_at"),
+  error: text("error"),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+/**
+ * ledger_entries — internal double-entry financial ledger.
+ * Records every money movement: charges, commissions, payouts, refunds.
+ */
+export const ledgerEntries = pgTable("ledger_entries", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  paymentId: varchar("payment_id"),
+  orderId: varchar("order_id"),
+  entryType: text("entry_type").$type<LedgerEntryType>().notNull(),
+  actorType: text("actor_type").$type<LedgerActorType>().notNull(),
+  actorId: varchar("actor_id").notNull(),
+  amount: decimal("amount", { precision: 12, scale: 2 }).notNull(),
+  currency: varchar("currency", { length: 3 }).notNull().default("ARS"),
+  direction: text("direction").$type<LedgerDirection>().notNull(),
+  description: text("description"),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+// Zod schemas and TypeScript types
+export const insertPaymentSchema = createInsertSchema(payments).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+export type InsertPayment = z.infer<typeof insertPaymentSchema>;
+export type Payment = typeof payments.$inferSelect;
+
+export const insertPaymentAttemptSchema = createInsertSchema(paymentAttempts).omit({
+  id: true,
+  createdAt: true,
+});
+export type InsertPaymentAttempt = z.infer<typeof insertPaymentAttemptSchema>;
+export type PaymentAttempt = typeof paymentAttempts.$inferSelect;
+
+export const insertProviderEventSchema = createInsertSchema(providerEvents).omit({
+  id: true,
+  createdAt: true,
+});
+export type InsertProviderEvent = z.infer<typeof insertProviderEventSchema>;
+export type ProviderEvent = typeof providerEvents.$inferSelect;
+
+export const insertLedgerEntrySchema = createInsertSchema(ledgerEntries).omit({
+  id: true,
+  createdAt: true,
+});
+export type InsertLedgerEntry = z.infer<typeof insertLedgerEntrySchema>;
+export type LedgerEntry = typeof ledgerEntries.$inferSelect;
