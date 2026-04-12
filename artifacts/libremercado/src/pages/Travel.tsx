@@ -772,34 +772,36 @@ export default function Travel() {
               </div>
             </div>
 
-            {/* Date + Passengers */}
-            <div className="flex gap-2">
-              <div className="relative flex-1">
-                <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-white/70" />
-                <Input
-                  type="date"
-                  className="pl-9 bg-white/10 border-white/30 text-white"
-                  value={date}
-                  onChange={(e) => setDate(e.target.value)}
-                  min={new Date().toISOString().split("T")[0]}
-                  data-testid="input-travel-date"
-                />
-              </div>
-              <div className="relative w-28">
-                <Users className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-white/70" />
-                <Select value={String(passengers)} onValueChange={(v) => setPassengers(parseInt(v))}>
-                  <SelectTrigger className="pl-9 bg-white/10 border-white/30 text-white" data-testid="select-passengers">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {[1, 2, 3, 4, 5, 6].map((n) => (
-                      <SelectItem key={n} value={String(n)}>{n} {n === 1 ? "pasajero" : "pasajeros"}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+            {/* Date + Passengers + Search — stacks on mobile */}
+            <div className="flex flex-col sm:flex-row gap-2">
+              <div className="flex gap-2 flex-1">
+                <div className="relative flex-1">
+                  <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-white/70" />
+                  <Input
+                    type="date"
+                    className="pl-9 bg-white/10 border-white/30 text-white w-full"
+                    value={date}
+                    onChange={(e) => setDate(e.target.value)}
+                    min={new Date().toISOString().split("T")[0]}
+                    data-testid="input-travel-date"
+                  />
+                </div>
+                <div className="relative w-32">
+                  <Users className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-white/70" />
+                  <Select value={String(passengers)} onValueChange={(v) => setPassengers(parseInt(v))}>
+                    <SelectTrigger className="pl-9 bg-white/10 border-white/30 text-white" data-testid="select-passengers">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {[1, 2, 3, 4, 5, 6].map((n) => (
+                        <SelectItem key={n} value={String(n)}>{n} {n === 1 ? "pasajero" : "pasajeros"}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
               </div>
               <Button
-                className="bg-white text-blue-600 hover:bg-blue-50 font-bold px-6 shrink-0"
+                className="bg-white text-blue-600 hover:bg-blue-50 font-bold px-6 w-full sm:w-auto shrink-0"
                 onClick={handleSearch}
                 disabled={!origin || !dest || origin === dest || searchQuery.isFetching}
                 data-testid="button-search-trips"

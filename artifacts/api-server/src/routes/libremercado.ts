@@ -2775,7 +2775,7 @@ Responde en formato JSON con la siguiente estructura:
     }
   });
 
-  // Create booking with payment ledger integration
+  // Create booking — atomic seat reservation + payment ledger
   app.post("/api/travel/bookings", requireAuth, async (req, res) => {
     try {
       const user = await getCurrentUser(req);
@@ -2784,57 +2784,57 @@ Responde en formato JSON con la siguiente estructura:
       const { tripId, seatCodes, seatClass, passengers, passengerNames, totalAmount } = req.body;
 
       if (!tripId) return res.status(400).json({ error: "tripId requerido" });
-      if (!totalAmount || parseFloat(totalAmount) <= 0) return res.status(400).json({ error: "totalAmount inválido" });
+      if (!Array.isArray(seatCodes) || seatCodes.length === 0)
+        return res.status(400).json({ error: "Debés seleccionar al menos un asiento" });
 
-      const trip = await travelBookingService.getTripById(tripId);
-      if (!trip) return res.status(404).json({ error: "Viaje no encontrado" });
+      const passengersInt = parseInt(passengers ?? "1", 10);
+      const amountFloat = parseFloat(totalAmount ?? "0");
 
-      const amount = parseFloat(totalAmount);
-
-      // 1. Create the booking record
+      // 1. ATOMIC booking (validates price server-side, reserves seats in DB transaction)
       const result = await travelBookingService.createBooking({
         userId: user.id,
         tripId,
-        seatCodes: seatCodes ?? [],
+        seatCodes,
         seatClass: seatClass ?? "standard",
-        passengers: passengers ?? 1,
+        passengers: passengersInt,
         passengerNames: passengerNames ?? user.username,
-        totalAmount: amount,
+        totalAmount: amountFloat,
       });
 
-      // 2. Record payment + ledger via PaymentService (internal — no Stripe call needed)
+      // 2. Payment ledger — uses server-calculated amount + real system merchantId
       try {
         const { paymentId } = await paymentService.recordInternalPayment({
           orderId: result.bookingId,
           buyerId: user.id,
-          merchantId: trip.provider.id,
-          amountGross: amount,
+          merchantId: result.systemMerchantId,         // sys_andesmar, sys_flechabus, etc.
+          amountGross: result.serverCalculatedTotal,   // always server-calculated
           currency: "ARS",
           storeTier: "basic",
           metadata: {
             bookingId: result.bookingId,
-            tripType: trip.provider.type,
             ticketCode: result.ticketCode,
-            origin: trip.origin,
-            destination: trip.destination,
+            origin: result.origin,
+            destination: result.destination,
+            commissionRate: "0.05",
           },
         });
-        // Immediately confirm the payment — creates ledger entries
+        // Confirm payment (no Stripe round-trip in dev)
         await paymentService.confirmPayment({
           paymentId,
           actorId: user.id,
           skipProviderVerification: true,
         });
-        // Confirm seat occupation in travel module
+        // Mark booking confirmed + seats occupied (inside DB transaction)
         await travelBookingService.confirmBookingPayment(result.bookingId, paymentId);
-      } catch (_payErr) {
-        // Payment ledger failure is non-blocking — booking is still valid
-        // In production this would be transactional
+      } catch (payErr: any) {
+        // Booking stands, payment failed — log for ops. Booking is "pending".
+        console.warn("[travel] Payment ledger failed for booking", result.bookingId, payErr?.message);
       }
 
       res.json({ ...result, success: true });
     } catch (err: any) {
-      res.status(500).json({ error: err.message });
+      const status = err.message?.includes("no está disponible") ? 409 : 400;
+      res.status(status).json({ error: err.message });
     }
   });
 
