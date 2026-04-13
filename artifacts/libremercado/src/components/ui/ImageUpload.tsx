@@ -2,7 +2,7 @@ import { useRef, useState } from "react";
 import { Upload, X, Image as ImageIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
-import { resolveMediaUrl } from "@/lib/apiBase";
+import { apiUrl, resolveMediaUrl } from "@/lib/apiBase";
 
 interface ImageUploadProps {
   value?: string | null;
@@ -41,7 +41,7 @@ export function ImageUpload({
 
     setUploading(true);
     try {
-      const res = await fetch(`/api/upload/${endpoint}`, {
+      const res = await fetch(apiUrl(`/api/upload/${endpoint}`), {
         method: "POST",
         body: formData,
         credentials: "include",

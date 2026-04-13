@@ -12,7 +12,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/use-auth";
 import { useIsFavorite, useToggleFavorite } from "@/hooks/use-favorites";
 import type { Product } from "@shared/schema";
-import { resolveMediaUrl } from "@/lib/apiBase";
+import { apiUrl, resolveMediaUrl } from "@/lib/apiBase";
 
 interface ProductReel {
   id: string;
@@ -39,7 +39,7 @@ export default function ProductDetail() {
   const { data: product, isLoading } = useQuery<Product>({
     queryKey: ["/api/products", productId],
     queryFn: async () => {
-      const res = await fetch(`/api/products/${productId}`);
+      const res = await fetch(apiUrl(`/api/products/${productId}`));
       if (!res.ok) throw new Error("Producto no encontrado");
       return res.json();
     },
@@ -49,7 +49,7 @@ export default function ProductDetail() {
   const { data: storeData } = useQuery<{ id: string; name: string; rating: string; category: string }>({
     queryKey: ["/api/stores", product?.storeId],
     queryFn: async () => {
-      const res = await fetch(`/api/stores/${product!.storeId}`);
+      const res = await fetch(apiUrl(`/api/stores/${product!.storeId}`));
       return res.json();
     },
     enabled: !!product?.storeId,
@@ -58,7 +58,7 @@ export default function ProductDetail() {
   const { data: productReel } = useQuery<ProductReel | null>({
     queryKey: ["/api/videos/feed", "product", productId],
     queryFn: async () => {
-      const res = await fetch(`/api/videos/feed?productId=${productId}&limit=1`);
+      const res = await fetch(apiUrl(`/api/videos/feed?productId=${productId}&limit=1`));
       if (!res.ok) return null;
       const data = await res.json();
       return data[0] ?? null;

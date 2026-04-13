@@ -15,7 +15,7 @@ import { useStore, useStoreProducts } from "@/hooks/use-marketplace";
 import { useAuth } from "@/hooks/use-auth";
 import { useToast } from "@/hooks/use-toast";
 import type { Review } from "@shared/schema";
-import { resolveMediaUrl } from "@/lib/apiBase";
+import { apiUrl, resolveMediaUrl } from "@/lib/apiBase";
 
 export default function StoreDetails() {
   const [match, params] = useRoute("/store/:id");
@@ -36,7 +36,7 @@ export default function StoreDetails() {
   const { data: reviewsData } = useQuery<{ reviews: Review[]; avgRating: number; total: number }>({
     queryKey: ["/api/stores", storeId, "reviews"],
     queryFn: async () => {
-      const res = await fetch(`/api/stores/${storeId}/reviews`);
+      const res = await fetch(apiUrl(`/api/stores/${storeId}/reviews`));
       return res.json();
     },
     enabled: !!storeId,
@@ -44,7 +44,7 @@ export default function StoreDetails() {
 
   const submitReviewMutation = useMutation({
     mutationFn: async (data: { rating: number; comment?: string }) => {
-      const res = await fetch(`/api/stores/${storeId}/review`, {
+      const res = await fetch(apiUrl(`/api/stores/${storeId}/review`), {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         credentials: "include",

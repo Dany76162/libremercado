@@ -7,6 +7,7 @@ import {
   Database, Users, ShoppingBag, Package, Bike, FileVideo,
   Upload, Shield, Newspaper, Clock, Wifi, Server,
 } from "lucide-react";
+import { apiUrl } from "@/lib/apiBase";
 
 type CheckStatus = "ok" | "error" | "warning";
 
@@ -87,7 +88,7 @@ export function AdminHealthTab() {
   const fetchHealth = useCallback(async () => {
     setLoading(true);
     try {
-      const res = await fetch("/api/admin/health", { credentials: "include" });
+      const res = await fetch(apiUrl("/api/admin/health"), { credentials: "include" });
       if (res.ok) {
         const json = await res.json();
         setData(json);

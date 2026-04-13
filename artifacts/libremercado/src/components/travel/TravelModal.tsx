@@ -16,6 +16,7 @@ import { Slider } from "@/components/ui/slider";
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue
 } from "@/components/ui/select";
+import { apiUrl } from "@/lib/apiBase";
 
 // ─── DATA ──────────────────────────────────────────────────────────────────
 
@@ -563,8 +564,8 @@ export function TravelModal({ open, onClose, defaultTab = "bus" }: TravelModalPr
     try {
       const params = new URLSearchParams({ origin, dest, date });
       const [busRes, flightRes] = await Promise.all([
-        fetch(`/api/transport/trips?${params}`).then((r) => r.json()),
-        fetch(`/api/flights/search?${params}`).then((r) => r.json()),
+        fetch(apiUrl(`/api/transport/trips?${params}`)).then((r) => r.json()),
+        fetch(apiUrl(`/api/flights/search?${params}`)).then((r) => r.json()),
       ]);
       setBusTrips(busRes.trips ?? []);
       setAirTrips(flightRes.flights ?? []);

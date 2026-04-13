@@ -12,6 +12,7 @@ import {
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
+import { apiUrl } from "@/lib/apiBase";
 import type { Review } from "@shared/schema";
 
 interface ReviewDialogProps {
@@ -30,7 +31,7 @@ export function ReviewDialog({ orderId, open, onOpenChange }: ReviewDialogProps)
   const { data: reviewState } = useQuery<{ canReview: boolean; review: Review | null }>({
     queryKey: ["/api/orders", orderId, "review"],
     queryFn: async () => {
-      const res = await fetch(`/api/orders/${orderId}/review`, { credentials: "include" });
+      const res = await fetch(apiUrl(`/api/orders/${orderId}/review`), { credentials: "include" });
       return res.json();
     },
     enabled: open && !!orderId,

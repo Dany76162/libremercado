@@ -11,6 +11,7 @@ import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/use-auth";
 import { apiRequest, queryClient } from "@/lib/queryClient";
+import { apiUrl } from "@/lib/apiBase";
 import type { Order, RiderProfile, RiderEarning } from "@shared/schema";
 
 const statusLabels: Record<Order["status"], string> = {
@@ -102,7 +103,7 @@ export default function RiderPanel() {
 
     const sendLocation = (lat: number, lng: number) => {
       inTransitOrders.forEach((order) => {
-        fetch(`/api/rider/orders/${order.id}/location`, {
+        fetch(apiUrl(`/api/rider/orders/${order.id}/location`), {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           credentials: "include",

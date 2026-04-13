@@ -22,7 +22,7 @@ import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useAuth } from "@/hooks/use-auth";
 import { useLocation } from "wouter";
 import type { Novedad } from "@/components/feed/NovedadCard";
-import { resolveMediaUrl } from "@/lib/apiBase";
+import { apiUrl, resolveMediaUrl } from "@/lib/apiBase";
 
 // ─── TYPES ────────────────────────────────────────────────────────────────────
 
@@ -101,7 +101,7 @@ function useFileUpload() {
     try {
       const fd = new FormData();
       fd.append("file", file);
-      const res = await fetch("/api/oficial/upload", { method: "POST", body: fd, credentials: "include" });
+      const res = await fetch(apiUrl("/api/oficial/upload"), { method: "POST", body: fd, credentials: "include" });
       if (!res.ok) {
         const err = await res.json().catch(() => ({}));
         throw new Error(err.error ?? "Error al subir archivo");
@@ -216,7 +216,7 @@ function NovedadesTab({ entity, isEntityAdmin }: { entity?: PublicEntity; isEnti
 
   const { data: novedades, isLoading } = useQuery<NovedadRich[]>({
     queryKey: ["/api/oficial/novedades"],
-    queryFn: () => fetch("/api/oficial/novedades").then((r) => r.json()),
+    queryFn: () => fetch(apiUrl("/api/oficial/novedades")).then((r) => r.json()),
     enabled: !!entity,
   });
 
@@ -461,7 +461,7 @@ function ReelsTab({ entity }: { entity?: PublicEntity }) {
 
   const { data: allNovedades } = useQuery<Novedad[]>({
     queryKey: ["/api/oficial/novedades"],
-    queryFn: () => fetch("/api/oficial/novedades").then(r => r.json()),
+    queryFn: () => fetch(apiUrl("/api/oficial/novedades")).then(r => r.json()),
     enabled: !!entity,
   });
   const reels = allNovedades?.filter(n => n.contentType === "reel") ?? [];
@@ -788,7 +788,7 @@ function SecretariasTab({ entity }: { entity?: PublicEntity }) {
 
   const { data: secretarias, isLoading } = useQuery<Secretaria[]>({
     queryKey: ["/api/oficial/secretarias"],
-    queryFn: () => fetch("/api/oficial/secretarias").then(r => r.json()),
+    queryFn: () => fetch(apiUrl("/api/oficial/secretarias")).then(r => r.json()),
     enabled: !!entity,
   });
 
@@ -971,7 +971,7 @@ export default function PanelInstitucional() {
 
   const { data: me, isLoading: meLoading, refetch: refetchMe } = useQuery<OfficialMe>({
     queryKey: ["/api/oficial/me"],
-    queryFn: () => fetch("/api/oficial/me").then((r) => r.json()),
+    queryFn: () => fetch(apiUrl("/api/oficial/me")).then((r) => r.json()),
     enabled: !!user,
   });
 

@@ -2,6 +2,7 @@ import { useQuery, useMutation } from "@tanstack/react-query";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import type { Favorite, FavoriteType } from "@shared/schema";
 import { useAuth } from "@/hooks/use-auth";
+import { apiUrl } from "@/lib/apiBase";
 
 export function useFavorites(type?: FavoriteType) {
   const { isAuthenticated } = useAuth();
@@ -9,7 +10,7 @@ export function useFavorites(type?: FavoriteType) {
     queryKey: ["/api/favorites", type ?? "all"],
     queryFn: async () => {
       const url = type ? `/api/favorites?type=${type}` : "/api/favorites";
-      const res = await fetch(url, { credentials: "include" });
+      const res = await fetch(apiUrl(url), { credentials: "include" });
       if (!res.ok) return [];
       return res.json();
     },
@@ -22,7 +23,7 @@ export function useIsFavorite(targetId: string, type: FavoriteType) {
   return useQuery<{ isFavorite: boolean }>({
     queryKey: ["/api/favorites/check", targetId, type],
     queryFn: async () => {
-      const res = await fetch(`/api/favorites/check?targetId=${targetId}&type=${type}`, { credentials: "include" });
+      const res = await fetch(apiUrl(`/api/favorites/check?targetId=${targetId}&type=${type}`), { credentials: "include" });
       if (!res.ok) return { isFavorite: false };
       return res.json();
     },

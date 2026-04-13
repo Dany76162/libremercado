@@ -1,5 +1,6 @@
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { queryClient, apiRequest } from "@/lib/queryClient";
+import { apiUrl } from "@/lib/apiBase";
 import type { Store, Product, Order, Promo, TravelOffer, InsertStore, InsertProduct, InsertOrder } from "@shared/schema";
 
 interface LocationFilter {
@@ -39,7 +40,7 @@ export function useFeaturedStores(location?: LocationFilter) {
   return useQuery<Store[]>({
     queryKey: key,
     queryFn: async () => {
-      const res = await fetch(url, { credentials: "include" });
+      const res = await fetch(apiUrl(url), { credentials: "include" });
       if (!res.ok) throw new Error("Failed to fetch featured stores");
       return res.json();
     },
@@ -57,7 +58,7 @@ export function useStores(location?: LocationFilter) {
   return useQuery<Store[]>({
     queryKey: key,
     queryFn: async () => {
-      const res = await fetch(url, { credentials: "include" });
+      const res = await fetch(apiUrl(url), { credentials: "include" });
       if (!res.ok) throw new Error("Failed to fetch stores");
       return res.json();
     },
@@ -89,7 +90,7 @@ export function useProducts(location?: LocationFilter) {
   return useQuery<Product[]>({
     queryKey: key,
     queryFn: async () => {
-      const res = await fetch(url, { credentials: "include" });
+      const res = await fetch(apiUrl(url), { credentials: "include" });
       if (!res.ok) throw new Error("Failed to fetch products");
       return res.json();
     },
@@ -107,7 +108,7 @@ export function useFeaturedProducts(location?: LocationFilter) {
   return useQuery<Product[]>({
     queryKey: key,
     queryFn: async () => {
-      const res = await fetch(url, { credentials: "include" });
+      const res = await fetch(apiUrl(url), { credentials: "include" });
       if (!res.ok) throw new Error("Failed to fetch featured products");
       return res.json();
     },
@@ -172,7 +173,7 @@ export function usePromoBanners(location?: BannerLocationFilter) {
   return useQuery<Promo[]>({
     queryKey: key,
     queryFn: async () => {
-      const res = await fetch(url, { credentials: "include" });
+      const res = await fetch(apiUrl(url), { credentials: "include" });
       if (!res.ok) throw new Error("Failed to fetch banners");
       return res.json();
     },
@@ -275,14 +276,14 @@ export function useDiscountedProducts(category?: string, limit = 8) {
   params.set("limit", String(limit));
   return useQuery<Product[]>({
     queryKey: ["/api/products/discounted", category, limit],
-    queryFn: () => fetch(`/api/products/discounted?${params.toString()}`).then((r) => r.json()),
+    queryFn: () => fetch(apiUrl(`/api/products/discounted?${params.toString()}`)).then((r) => r.json()),
   });
 }
 
 export function useHomeSettings() {
   return useQuery<Record<string, string>>({
     queryKey: ["/api/config/home-settings"],
-    queryFn: () => fetch("/api/config/home-settings").then((r) => r.json()),
+    queryFn: () => fetch(apiUrl("/api/config/home-settings")).then((r) => r.json()),
   });
 }
 
@@ -295,6 +296,6 @@ export function useNovedades(filters?: { provincia?: string; official?: boolean;
   const qs = params.toString();
   return useQuery<import("@/components/feed/NovedadCard").Novedad[]>({
     queryKey: ["/api/novedades", qs],
-    queryFn: () => fetch(`/api/novedades${qs ? `?${qs}` : ""}`).then((r) => r.json()),
+    queryFn: () => fetch(apiUrl(`/api/novedades${qs ? `?${qs}` : ""}`)).then((r) => r.json()),
   });
 }

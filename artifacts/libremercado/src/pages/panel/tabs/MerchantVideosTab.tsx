@@ -16,7 +16,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, Dialog
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import type { ShoppableVideo } from "@shared/schema";
-import { resolveMediaUrl } from "@/lib/apiBase";
+import { apiUrl, resolveMediaUrl } from "@/lib/apiBase";
 
 const statusConfig: Record<string, { label: string; color: string; icon: typeof Clock }> = {
   draft: { label: "Borrador", color: "bg-zinc-500", icon: Edit },
@@ -126,7 +126,7 @@ export function MerchantVideosTab() {
     try {
       const formData = new FormData();
       formData.append("video", file);
-      const res = await fetch("/api/merchant/videos/upload-video", { method: "POST", body: formData });
+      const res = await fetch(apiUrl("/api/merchant/videos/upload-video"), { method: "POST", body: formData });
       if (!res.ok) throw new Error("Error al subir el video");
       const { url } = await res.json();
       setForm((f) => ({ ...f, videoUrl: url }));

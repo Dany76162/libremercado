@@ -1,6 +1,7 @@
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import { useAuth } from "@/hooks/use-auth";
+import { apiUrl } from "@/lib/apiBase";
 
 interface FollowStatus {
   isFollowing: boolean;
@@ -13,7 +14,7 @@ export function useFollowStore(storeId: string) {
   const { data, isLoading } = useQuery<FollowStatus>({
     queryKey: ["/api/stores", storeId, "follow"],
     queryFn: async () => {
-      const res = await fetch(`/api/stores/${storeId}/follow`);
+      const res = await fetch(apiUrl(`/api/stores/${storeId}/follow`));
       if (!res.ok) return { isFollowing: false, followersCount: 0 };
       return res.json();
     },

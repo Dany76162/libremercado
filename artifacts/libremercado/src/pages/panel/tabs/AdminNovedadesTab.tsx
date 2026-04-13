@@ -17,7 +17,7 @@ import { Switch } from "@/components/ui/switch";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import type { Novedad } from "@/components/feed/NovedadCard";
-import { resolveMediaUrl } from "@/lib/apiBase";
+import { apiUrl, resolveMediaUrl } from "@/lib/apiBase";
 
 type PublicEntity = {
   id: string;
@@ -86,7 +86,7 @@ function NovedadesSection() {
 
   const { data: novedades, isLoading } = useQuery<Novedad[]>({
     queryKey: ["/api/admin/novedades"],
-    queryFn: () => fetch("/api/admin/novedades").then((r) => r.json()),
+    queryFn: () => fetch(apiUrl("/api/admin/novedades")).then((r) => r.json()),
   });
 
   const createMutation = useMutation({
@@ -358,7 +358,7 @@ function PublicEntitiesSection() {
 
   const { data: entities, isLoading } = useQuery<PublicEntity[]>({
     queryKey: ["/api/admin/public-entities"],
-    queryFn: () => fetch("/api/admin/public-entities").then((r) => r.json()),
+    queryFn: () => fetch(apiUrl("/api/admin/public-entities")).then((r) => r.json()),
   });
 
   const createMutation = useMutation({

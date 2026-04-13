@@ -16,7 +16,7 @@ import { useLocation as useLocationStore } from "@/hooks/use-location";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 import type { VideoFeedItem } from "@shared/schema";
-import { resolveMediaUrl } from "@/lib/apiBase";
+import { apiUrl, resolveMediaUrl } from "@/lib/apiBase";
 
 function formatPrice(price: string): string {
   return new Intl.NumberFormat("es-AR", { style: "currency", currency: "ARS", maximumFractionDigits: 0 }).format(Number(price));
@@ -505,7 +505,7 @@ export default function Videos() {
   const { data: productReel } = useQuery<VideoFeedItem | null>({
     queryKey: ["/api/videos/feed", "ctx-product", ctxProductId],
     queryFn: async () => {
-      const res = await fetch(`/api/videos/feed?productId=${ctxProductId}&limit=1`);
+      const res = await fetch(apiUrl(`/api/videos/feed?productId=${ctxProductId}&limit=1`));
       const data = await res.json();
       return data[0] ?? null;
     },
@@ -515,7 +515,7 @@ export default function Videos() {
   const { data: storeReels } = useQuery<VideoFeedItem[]>({
     queryKey: ["/api/videos/feed", "ctx-store", ctxStoreId],
     queryFn: async () => {
-      const res = await fetch(`/api/videos/feed?storeId=${ctxStoreId}&limit=20`);
+      const res = await fetch(apiUrl(`/api/videos/feed?storeId=${ctxStoreId}&limit=20`));
       return res.json();
     },
     enabled: !!ctxStoreId,
@@ -528,7 +528,7 @@ export default function Videos() {
       if (provinciaId) params.set("provinciaId", provinciaId);
       if (ciudadId) params.set("ciudadId", ciudadId);
       params.set("limit", "20");
-      const res = await fetch(`/api/videos/feed?${params}`);
+      const res = await fetch(apiUrl(`/api/videos/feed?${params}`));
       return res.json();
     },
   });

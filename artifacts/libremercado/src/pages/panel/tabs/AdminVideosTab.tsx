@@ -12,7 +12,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import type { ShoppableVideo } from "@shared/schema";
-import { resolveMediaUrl } from "@/lib/apiBase";
+import { apiUrl, resolveMediaUrl } from "@/lib/apiBase";
 
 interface AdminVideo extends ShoppableVideo {
   store?: { id: string; name: string };
@@ -36,7 +36,7 @@ export function AdminVideosTab() {
     queryKey: ["/api/admin/videos", statusFilter],
     queryFn: async () => {
       const params = statusFilter !== "all" ? `?status=${statusFilter}` : "";
-      const res = await fetch(`/api/admin/videos${params}`);
+      const res = await fetch(apiUrl(`/api/admin/videos${params}`));
       return res.json();
     },
   });

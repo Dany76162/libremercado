@@ -17,6 +17,7 @@ import { Slider } from "@/components/ui/slider";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "@/hooks/use-auth";
 import { Separator } from "@/components/ui/separator";
+import { apiUrl } from "@/lib/apiBase";
 
 // ─── CONSTANTS ──────────────────────────────────────────────────────────────
 
@@ -292,7 +293,7 @@ function BookingFlow({
 
   const { data: seatMap, isLoading: seatLoading } = useQuery<SeatMapResult>({
     queryKey: ["/api/travel/trips", trip.tripId, "seats"],
-    queryFn: () => fetch(`/api/travel/trips/${encodeURIComponent(trip.tripId)}/seats`).then((r) => r.json()),
+    queryFn: () => fetch(apiUrl(`/api/travel/trips/${encodeURIComponent(trip.tripId)}/seats`)).then((r) => r.json()),
   });
 
   const bookMutation = useMutation({
@@ -565,7 +566,7 @@ function MyBookings() {
   const { data: bookings, isLoading } = useQuery<any[]>({
     queryKey: ["/api/travel/my-bookings"],
     queryFn: async () => {
-      const r = await fetch("/api/travel/my-bookings");
+      const r = await fetch(apiUrl("/api/travel/my-bookings"));
       const data = await r.json();
       if (!r.ok) throw new Error(data.error ?? "Error al cargar reservas");
       return data;
@@ -658,7 +659,7 @@ export default function Travel() {
         ...(tripType !== "all" ? { type: tripType } : {}),
         seatClass,
       });
-      const r = await fetch(`/api/travel/search?${p}`);
+      const r = await fetch(apiUrl(`/api/travel/search?${p}`));
       const data = await r.json();
       if (!r.ok) throw new Error(data.error ?? "Error al buscar viajes");
       return data;

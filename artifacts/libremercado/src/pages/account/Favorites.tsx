@@ -8,13 +8,13 @@ import { useAuth } from "@/hooks/use-auth";
 import { useFavorites, useToggleFavorite } from "@/hooks/use-favorites";
 import { useQuery } from "@tanstack/react-query";
 import type { Product, Store as StoreType } from "@shared/schema";
-import { resolveMediaUrl } from "@/lib/apiBase";
+import { apiUrl, resolveMediaUrl } from "@/lib/apiBase";
 
 function FavoriteProductCard({ productId, onRemove }: { productId: string; onRemove: () => void }) {
   const { data: product, isLoading } = useQuery<Product>({
     queryKey: ["/api/products", productId],
     queryFn: async () => {
-      const res = await fetch(`/api/products/${productId}`, { credentials: "include" });
+      const res = await fetch(apiUrl(`/api/products/${productId}`), { credentials: "include" });
       if (!res.ok) throw new Error("Not found");
       return res.json();
     },
@@ -68,7 +68,7 @@ function FavoriteStoreCard({ storeId, onRemove }: { storeId: string; onRemove: (
   const { data: store, isLoading } = useQuery<StoreType>({
     queryKey: ["/api/stores", storeId],
     queryFn: async () => {
-      const res = await fetch(`/api/stores/${storeId}`, { credentials: "include" });
+      const res = await fetch(apiUrl(`/api/stores/${storeId}`), { credentials: "include" });
       if (!res.ok) throw new Error("Not found");
       return res.json();
     },
