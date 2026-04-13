@@ -37,6 +37,21 @@ export async function uploadFileToGCS(
 ): Promise<string> {
   const ext = path.extname(originalFilename) || "";
   const objectPath = `${folder}/${randomUUID()}${ext}`;
+
+  const useLocal =
+    process.env.USE_LOCAL_UPLOADS === "true" ||
+    process.env.USE_LOCAL_UPLOADS === "1";
+
+  if (useLocal) {
+    const destDir = path.resolve("uploads", "local-gcs", folder);
+    fs.mkdirSync(destDir, { recursive: true });
+    const fileName = path.basename(objectPath);
+    const destPath = path.join(destDir, fileName);
+    fs.copyFileSync(localPath, destPath);
+    void mimeType;
+    return `/uploads/local-gcs/${folder}/${fileName}`;
+  }
+
   const bucket = getBucket();
 
   await bucket.upload(localPath, {

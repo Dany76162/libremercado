@@ -44,6 +44,12 @@ Thumbs.db
 .cursor/rules/nx-rules.mdc
 .github/instructions/nx.instructions.md
 
+# Local env (copiá desde .env.example)
+.env
+
+# Monorepo usa pnpm; evitar lockfile de npm accidental
+package-lock.json
+
 # Replit
 .cache/
 .local/

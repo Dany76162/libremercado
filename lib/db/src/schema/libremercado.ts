@@ -1,7 +1,6 @@
 import { sql } from "drizzle-orm";
 import { pgTable, text, varchar, integer, boolean, timestamp, decimal } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
-import { z } from "zod";
 
 export type UserRole = "customer" | "merchant" | "rider" | "admin" | "official";
 export type VehicleType = "moto" | "auto" | "utilitario" | null;
@@ -168,7 +167,7 @@ export const notifications = pgTable("notifications", {
 });
 
 export const insertNotificationSchema = createInsertSchema(notifications).omit({ id: true, createdAt: true, isRead: true });
-export type InsertNotification = z.infer<typeof insertNotificationSchema>;
+export type InsertNotification = typeof notifications.$inferInsert;
 export type Notification = typeof notifications.$inferSelect;
 
 export const reviews = pgTable("reviews", {
@@ -182,7 +181,7 @@ export const reviews = pgTable("reviews", {
 });
 
 export const insertReviewSchema = createInsertSchema(reviews).omit({ id: true, createdAt: true });
-export type InsertReview = z.infer<typeof insertReviewSchema>;
+export type InsertReview = typeof reviews.$inferInsert;
 export type Review = typeof reviews.$inferSelect;
 
 export type PromoMediaType = "image" | "video";
@@ -262,21 +261,21 @@ export const insertPromoSchema = createInsertSchema(promos).omit({ id: true, cre
 export const insertKycDocumentSchema = createInsertSchema(kycDocuments).omit({ id: true, createdAt: true, reviewedAt: true, reviewedBy: true });
 export const insertAdBillingSchema = createInsertSchema(adBillings).omit({ id: true, createdAt: true });
 
-export type InsertUser = z.infer<typeof insertUserSchema>;
+export type InsertUser = typeof users.$inferInsert;
 export type User = typeof users.$inferSelect;
-export type InsertStore = z.infer<typeof insertStoreSchema>;
+export type InsertStore = typeof stores.$inferInsert;
 export type Store = typeof stores.$inferSelect;
-export type InsertProduct = z.infer<typeof insertProductSchema>;
+export type InsertProduct = typeof products.$inferInsert;
 export type Product = typeof products.$inferSelect;
-export type InsertOrder = z.infer<typeof insertOrderSchema>;
+export type InsertOrder = typeof orders.$inferInsert;
 export type Order = typeof orders.$inferSelect;
-export type InsertOrderItem = z.infer<typeof insertOrderItemSchema>;
+export type InsertOrderItem = typeof orderItems.$inferInsert;
 export type OrderItem = typeof orderItems.$inferSelect;
-export type InsertPromo = z.infer<typeof insertPromoSchema>;
+export type InsertPromo = typeof promos.$inferInsert;
 export type Promo = typeof promos.$inferSelect;
-export type InsertKycDocument = z.infer<typeof insertKycDocumentSchema>;
+export type InsertKycDocument = typeof kycDocuments.$inferInsert;
 export type KycDocument = typeof kycDocuments.$inferSelect;
-export type InsertAdBilling = z.infer<typeof insertAdBillingSchema>;
+export type InsertAdBilling = typeof adBillings.$inferInsert;
 export type AdBilling = typeof adBillings.$inferSelect;
 
 export interface CartItem {
@@ -311,7 +310,7 @@ export const travelOffers = pgTable("travel_offers", {
 });
 
 export const insertTravelOfferSchema = createInsertSchema(travelOffers).omit({ id: true });
-export type InsertTravelOffer = z.infer<typeof insertTravelOfferSchema>;
+export type InsertTravelOffer = typeof travelOffers.$inferInsert;
 export type TravelOffer = typeof travelOffers.$inferSelect;
 
 export const riderProfiles = pgTable("rider_profiles", {
@@ -342,23 +341,23 @@ export const riderEarnings = pgTable("rider_earnings", {
 });
 
 export const insertSubscriptionPlanSchema = createInsertSchema(subscriptionPlans).omit({ id: true });
-export type InsertSubscriptionPlan = z.infer<typeof insertSubscriptionPlanSchema>;
+export type InsertSubscriptionPlan = typeof subscriptionPlans.$inferInsert;
 export type SubscriptionPlan = typeof subscriptionPlans.$inferSelect;
 
 export const insertMerchantApplicationSchema = createInsertSchema(merchantApplications).omit({ id: true, createdAt: true, reviewedAt: true, reviewedBy: true });
-export type InsertMerchantApplication = z.infer<typeof insertMerchantApplicationSchema>;
+export type InsertMerchantApplication = typeof merchantApplications.$inferInsert;
 export type MerchantApplication = typeof merchantApplications.$inferSelect;
 
 export const insertRiderProfileSchema = createInsertSchema(riderProfiles).omit({ id: true, createdAt: true });
-export type InsertRiderProfile = z.infer<typeof insertRiderProfileSchema>;
+export type InsertRiderProfile = typeof riderProfiles.$inferInsert;
 export type RiderProfile = typeof riderProfiles.$inferSelect;
 
 export const insertRiderEarningSchema = createInsertSchema(riderEarnings).omit({ id: true, createdAt: true, paidAt: true });
-export type InsertRiderEarning = z.infer<typeof insertRiderEarningSchema>;
+export type InsertRiderEarning = typeof riderEarnings.$inferInsert;
 export type RiderEarning = typeof riderEarnings.$inferSelect;
 
 export const insertPlatformCommissionSchema = createInsertSchema(platformCommissions).omit({ id: true, createdAt: true, collectedAt: true });
-export type InsertPlatformCommission = z.infer<typeof insertPlatformCommissionSchema>;
+export type InsertPlatformCommission = typeof platformCommissions.$inferInsert;
 export type PlatformCommission = typeof platformCommissions.$inferSelect;
 
 // ==================== FUTURE: TRANSPORT & FLIGHTS BASE ====================
@@ -472,7 +471,7 @@ export const travelProviders = pgTable("travel_providers", {
 
 export type TravelProvider = typeof travelProviders.$inferSelect;
 export const insertTravelProviderSchema = createInsertSchema(travelProviders).omit({ id: true, createdAt: true });
-export type InsertTravelProvider = z.infer<typeof insertTravelProviderSchema>;
+export type InsertTravelProvider = typeof travelProviders.$inferInsert;
 
 // ─── TRAVEL ROUTES ────────────────────────────────────────────────────────────
 
@@ -489,7 +488,7 @@ export const travelRoutes = pgTable("travel_routes", {
 
 export type TravelRoute = typeof travelRoutes.$inferSelect;
 export const insertTravelRouteSchema = createInsertSchema(travelRoutes).omit({ id: true, createdAt: true });
-export type InsertTravelRoute = z.infer<typeof insertTravelRouteSchema>;
+export type InsertTravelRoute = typeof travelRoutes.$inferInsert;
 
 // ─── TRAVEL TRIPS ─────────────────────────────────────────────────────────────
 
@@ -518,7 +517,7 @@ export const travelTrips = pgTable("travel_trips", {
 
 export type TravelTrip = typeof travelTrips.$inferSelect;
 export const insertTravelTripSchema = createInsertSchema(travelTrips).omit({ id: true, createdAt: true });
-export type InsertTravelTrip = z.infer<typeof insertTravelTripSchema>;
+export type InsertTravelTrip = typeof travelTrips.$inferInsert;
 
 // ─── TRAVEL SEAT INVENTORY ────────────────────────────────────────────────────
 
@@ -536,7 +535,7 @@ export const travelSeatInventory = pgTable("travel_seat_inventory", {
 
 export type TravelSeatInventoryRow = typeof travelSeatInventory.$inferSelect;
 export const insertTravelSeatInventorySchema = createInsertSchema(travelSeatInventory).omit({ id: true });
-export type InsertTravelSeatInventory = z.infer<typeof insertTravelSeatInventorySchema>;
+export type InsertTravelSeatInventory = typeof travelSeatInventory.$inferInsert;
 
 // ─── TRAVEL BOOKINGS (Bus + Flights) ─────────────────────────────────────────
 
@@ -571,7 +570,7 @@ export const travelBookings = pgTable("travel_bookings", {
 });
 
 export const insertTravelBookingSchema = createInsertSchema(travelBookings).omit({ id: true, createdAt: true });
-export type InsertTravelBooking = z.infer<typeof insertTravelBookingSchema>;
+export type InsertTravelBooking = typeof travelBookings.$inferInsert;
 export type TravelBooking = typeof travelBookings.$inferSelect;
 
 // ─── DISPUTES / RETURNS ───────────────────────────────────────────────────────
@@ -590,7 +589,7 @@ export const disputes = pgTable("disputes", {
 });
 
 export const insertDisputeSchema = createInsertSchema(disputes).omit({ id: true, createdAt: true, updatedAt: true, status: true, resolution: true, adminId: true });
-export type InsertDispute = z.infer<typeof insertDisputeSchema>;
+export type InsertDispute = typeof disputes.$inferInsert;
 export type Dispute = typeof disputes.$inferSelect;
 
 export type FavoriteType = "product" | "store";
@@ -604,7 +603,7 @@ export const favorites = pgTable("favorites", {
 });
 
 export const insertFavoriteSchema = createInsertSchema(favorites).omit({ id: true, createdAt: true });
-export type InsertFavorite = z.infer<typeof insertFavoriteSchema>;
+export type InsertFavorite = typeof favorites.$inferInsert;
 export type Favorite = typeof favorites.$inferSelect;
 
 // ─── STORE FOLLOWS ────────────────────────────────────────────────────────────
@@ -617,7 +616,7 @@ export const storeFollows = pgTable("store_follows", {
 });
 
 export const insertStoreFollowSchema = createInsertSchema(storeFollows).omit({ id: true, createdAt: true });
-export type InsertStoreFollow = z.infer<typeof insertStoreFollowSchema>;
+export type InsertStoreFollow = typeof storeFollows.$inferInsert;
 export type StoreFollow = typeof storeFollows.$inferSelect;
 
 export interface FutureFlightBooking {
@@ -666,7 +665,7 @@ export const shoppableVideos = pgTable("shoppable_videos", {
 });
 
 export const insertShoppableVideoSchema = createInsertSchema(shoppableVideos).omit({ id: true, createdAt: true, updatedAt: true });
-export type InsertShoppableVideo = z.infer<typeof insertShoppableVideoSchema>;
+export type InsertShoppableVideo = typeof shoppableVideos.$inferInsert;
 export type ShoppableVideo = typeof shoppableVideos.$inferSelect;
 
 export const siteSettings = pgTable("site_settings", {
@@ -764,11 +763,11 @@ export const novedades = pgTable("novedades", {
 });
 
 export const insertPublicEntitySchema = createInsertSchema(publicEntities).omit({ id: true, createdAt: true, verifiedAt: true, verifiedBy: true });
-export type InsertPublicEntity = z.infer<typeof insertPublicEntitySchema>;
+export type InsertPublicEntity = typeof publicEntities.$inferInsert;
 export type PublicEntity = typeof publicEntities.$inferSelect;
 
 export const insertNovedadSchema = createInsertSchema(novedades).omit({ id: true, createdAt: true });
-export type InsertNovedad = z.infer<typeof insertNovedadSchema>;
+export type InsertNovedad = typeof novedades.$inferInsert;
 export type Novedad = typeof novedades.$inferSelect;
 
 // ========================
@@ -882,26 +881,26 @@ export const insertPaymentSchema = createInsertSchema(payments).omit({
   createdAt: true,
   updatedAt: true,
 });
-export type InsertPayment = z.infer<typeof insertPaymentSchema>;
+export type InsertPayment = typeof payments.$inferInsert;
 export type Payment = typeof payments.$inferSelect;
 
 export const insertPaymentAttemptSchema = createInsertSchema(paymentAttempts).omit({
   id: true,
   createdAt: true,
 });
-export type InsertPaymentAttempt = z.infer<typeof insertPaymentAttemptSchema>;
+export type InsertPaymentAttempt = typeof paymentAttempts.$inferInsert;
 export type PaymentAttempt = typeof paymentAttempts.$inferSelect;
 
 export const insertProviderEventSchema = createInsertSchema(providerEvents).omit({
   id: true,
   createdAt: true,
 });
-export type InsertProviderEvent = z.infer<typeof insertProviderEventSchema>;
+export type InsertProviderEvent = typeof providerEvents.$inferInsert;
 export type ProviderEvent = typeof providerEvents.$inferSelect;
 
 export const insertLedgerEntrySchema = createInsertSchema(ledgerEntries).omit({
   id: true,
   createdAt: true,
 });
-export type InsertLedgerEntry = z.infer<typeof insertLedgerEntrySchema>;
+export type InsertLedgerEntry = typeof ledgerEntries.$inferInsert;
 export type LedgerEntry = typeof ledgerEntries.$inferSelect;

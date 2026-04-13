@@ -26,6 +26,9 @@ if (!basePath) {
   );
 }
 
+/** En local, reenvía /api y /ws al backend (misma cookie de sesión que en Replit). */
+const devApiProxy = process.env.DEV_API_PROXY?.trim();
+
 export default defineConfig({
   base: basePath,
   plugins: [
@@ -63,6 +66,21 @@ export default defineConfig({
     port,
     host: "0.0.0.0",
     allowedHosts: true,
+    ...(devApiProxy
+      ? {
+          proxy: {
+            "/api": {
+              target: devApiProxy,
+              changeOrigin: true,
+            },
+            "/ws": {
+              target: devApiProxy,
+              changeOrigin: true,
+              ws: true,
+            },
+          },
+        }
+      : {}),
     fs: {
       strict: true,
       deny: ["**/.*"],
