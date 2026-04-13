@@ -20,13 +20,27 @@ export function assertProductionConfig(): void {
     issues.push("SESSION_SECRET (definí un secreto fuerte, no el valor de desarrollo)");
   }
 
+  const fatalIssues: string[] = [];
+
   const useLocal =
     process.env.USE_LOCAL_UPLOADS === "true" ||
     process.env.USE_LOCAL_UPLOADS === "1";
 
+  if (issues.includes("DATABASE_URL")) {
+    fatalIssues.push("DATABASE_URL");
+  }
+
+  if (
+    issues.some((issue) =>
+      issue.startsWith("SESSION_SECRET")
+    )
+  ) {
+    fatalIssues.push("SESSION_SECRET");
+  }
+
   if (useLocal) {
-    issues.push(
-      "USE_LOCAL_UPLOADS está activo: no uses almacenamiento en disco en producción (Railway). Configurá R2 y desactivá USE_LOCAL_UPLOADS."
+    logger.warn(
+      "USE_LOCAL_UPLOADS está activo en producción: usá R2 para evitar pérdida de archivos al reiniciar el contenedor."
     );
   }
 
@@ -37,27 +51,38 @@ export function assertProductionConfig(): void {
       "R2_BUCKET",
     ] as const) {
       if (!process.env[k]?.trim()) {
-        issues.push(k);
+        logger.warn(
+          { key: k },
+          "Falta configuración de R2 en producción; endpoints de archivos pueden fallar."
+        );
       }
     }
     if (
       !process.env.R2_ACCOUNT_ID?.trim() &&
       !process.env.R2_ENDPOINT?.trim()
     ) {
-      issues.push("R2_ACCOUNT_ID o R2_ENDPOINT");
+      logger.warn(
+        "Falta R2_ACCOUNT_ID o R2_ENDPOINT; endpoints de archivos pueden fallar."
+      );
     }
   }
 
   if (!process.env.STRIPE_WEBHOOK_SECRET?.trim()) {
-    issues.push("STRIPE_WEBHOOK_SECRET");
+    logger.warn(
+      "Falta STRIPE_WEBHOOK_SECRET; no se podrán validar webhooks firmados de Stripe."
+    );
   }
 
   if (!process.env.STRIPE_SECRET_KEY?.trim()) {
-    issues.push("STRIPE_SECRET_KEY");
+    logger.warn(
+      "Falta STRIPE_SECRET_KEY; checkout/cobros con Stripe fallarán."
+    );
   }
 
   if (!process.env.STRIPE_PUBLISHABLE_KEY?.trim()) {
-    issues.push("STRIPE_PUBLISHABLE_KEY");
+    logger.warn(
+      "Falta STRIPE_PUBLISHABLE_KEY; endpoint de config de Stripe devolverá error."
+    );
   }
 
   if (!process.env.CORS_ORIGINS?.trim() && !process.env.ALLOWED_ORIGIN?.trim()) {
@@ -76,9 +101,9 @@ export function assertProductionConfig(): void {
     );
   }
 
-  if (issues.length > 0) {
+  if (fatalIssues.length > 0) {
     throw new Error(
-      `Configuración de producción incompleta: ${issues.join(", ")}`
+      `Configuración de producción incompleta (crítica): ${fatalIssues.join(", ")}`
     );
   }
 }

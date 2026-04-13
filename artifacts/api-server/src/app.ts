@@ -18,6 +18,15 @@ const app: Express = express();
 const httpServer = createServer(app);
 app.set("trust proxy", process.env.TRUST_PROXY === "0" ? false : true);
 
+// Railway default checks often probe "/" or "/health".
+app.get("/", (_req, res) => {
+  res.status(200).json({ status: "ok", service: "api-server" });
+});
+
+app.get("/health", (_req, res) => {
+  res.status(200).json({ status: "ok" });
+});
+
 app.use(
   pinoHttp({
     logger,
