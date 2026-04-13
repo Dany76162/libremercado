@@ -1,4 +1,10 @@
 ﻿{
   "buildCommand": "pnpm install && pnpm --filter libremercado build",
-  "outputDirectory": "artifacts/libremercado/dist/public"
+  "outputDirectory": "artifacts/libremercado/dist/public",
+  "rewrites": [
+    {
+      "source": "/(.*)",
+      "destination": "/index.html"
+    }
+  ]
 }
