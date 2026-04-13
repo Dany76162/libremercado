@@ -1,5 +1,6 @@
 import { Shield, MapPin, ExternalLink, Building2, Store, BadgeCheck } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
+import { resolveMediaUrl } from "@/lib/apiBase";
 
 export interface Novedad {
   id: string;
@@ -78,7 +79,7 @@ export function NovedadCard({ novedad, size = "md" }: NovedadCardProps) {
       {novedad.image && (
         <div className={`w-full overflow-hidden relative ${isLg ? "h-44" : isSm ? "h-28" : "h-36"}`}>
           <img
-            src={novedad.image}
+            src={resolveMediaUrl(novedad.image) ?? novedad.image}
             alt={novedad.title}
             className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
           />
@@ -118,7 +119,7 @@ export function NovedadCard({ novedad, size = "md" }: NovedadCardProps) {
         <div className="flex items-center gap-2 mb-2">
           {novedad.emitterLogo ? (
             <div className={`rounded-full overflow-hidden border-2 shrink-0 ${novedad.isOfficial ? "border-blue-400 shadow-[0_0_0_2px_rgba(59,130,246,0.2)]" : "border-border"} ${isSm ? "w-7 h-7" : "w-8 h-8"}`}>
-              <img src={novedad.emitterLogo} alt={novedad.emitterName} className="w-full h-full object-cover" />
+              <img src={resolveMediaUrl(novedad.emitterLogo) ?? novedad.emitterLogo} alt={novedad.emitterName} className="w-full h-full object-cover" />
             </div>
           ) : (
             <div className={`rounded-full border-2 shrink-0 flex items-center justify-center ${novedad.isOfficial ? "border-blue-400 bg-blue-50" : "border-border bg-muted"} ${isSm ? "w-7 h-7" : "w-8 h-8"}`}>

@@ -232,14 +232,16 @@ const SERVICE_MAP = {
 
 // ─── TRIP CARD ──────────────────────────────────────────────────────────────
 
+type BuiltTrip = ReturnType<typeof buildTrips>[number];
+
 function TripCard({
   trip,
   isBus,
   onBook,
 }: {
-  trip: ReturnType<typeof buildTrips>[0];
+  trip: BuiltTrip;
   isBus: boolean;
-  onBook: (trip: typeof trip) => void;
+  onBook: (trip: BuiltTrip) => void;
 }) {
   const { company: c } = trip;
   return (
@@ -435,20 +437,17 @@ function BookingConfirm({
     setStatus("loading");
     try {
       const endpoint = isBus ? "/api/transport/bookings" : "/api/flights/bookings";
-      await apiRequest(endpoint, {
-        method: "POST",
-        body: JSON.stringify({
-          companyId: c.id,
-          companyName: c.name,
-          origin: trip.origin,
-          destination: trip.destination,
-          travelDate: trip.date,
-          departureTime: trip.departure,
-          arrivalTime: trip.arrival,
-          duration: trip.duration,
-          price: trip.discountedPrice,
-          seats: 1,
-        }),
+      await apiRequest("POST", endpoint, {
+        companyId: c.id,
+        companyName: c.name,
+        origin: trip.origin,
+        destination: trip.destination,
+        travelDate: trip.date,
+        departureTime: trip.departure,
+        arrivalTime: trip.arrival,
+        duration: trip.duration,
+        price: trip.discountedPrice,
+        seats: 1,
       });
       setStatus("success");
     } catch {

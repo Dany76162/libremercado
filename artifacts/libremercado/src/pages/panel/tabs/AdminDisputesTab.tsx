@@ -36,15 +36,15 @@ function DisputeRow({ dispute }: { dispute: Dispute }) {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [expanded, setExpanded] = useState(false);
-  const [newStatus, setNewStatus] = useState<DisputeStatus>(dispute.status);
+  const [newStatus, setNewStatus] = useState<DisputeStatus>(dispute.status ?? "pending");
   const [resolution, setResolution] = useState(dispute.resolution ?? "");
   const [refundResult, setRefundResult] = useState<string | null>(null);
 
   const updateMutation = useMutation({
     mutationFn: () =>
-      apiRequest(`/api/admin/disputes/${dispute.id}`, {
-        method: "PATCH",
-        body: JSON.stringify({ status: newStatus, resolution }),
+      apiRequest("PATCH", `/api/admin/disputes/${dispute.id}`, {
+        status: newStatus,
+        resolution,
       }),
     onSuccess: () => {
       toast({ title: "Disputa actualizada" });
@@ -79,15 +79,17 @@ function DisputeRow({ dispute }: { dispute: Dispute }) {
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 flex-wrap">
             <span className="font-medium text-sm truncate">Pedido #{dispute.orderId.slice(-8)}</span>
-            <Badge className={`text-xs px-1.5 py-0.5 border-0 ${STATUS_COLORS[dispute.status]}`}>
-              {STATUS_LABELS[dispute.status]}
+            <Badge className={`text-xs px-1.5 py-0.5 border-0 ${STATUS_COLORS[dispute.status ?? "pending"]}`}>
+              {STATUS_LABELS[dispute.status ?? "pending"]}
             </Badge>
             <Badge variant="outline" className="text-xs px-1.5 py-0.5">
               {TYPE_LABELS[dispute.type] ?? dispute.type}
             </Badge>
           </div>
           <p className="text-xs text-muted-foreground mt-0.5">
-            {new Date(dispute.createdAt).toLocaleDateString("es-AR", { day: "numeric", month: "short", year: "numeric" })}
+            {dispute.createdAt
+              ? new Date(dispute.createdAt).toLocaleDateString("es-AR", { day: "numeric", month: "short", year: "numeric" })
+              : "—"}
           </p>
         </div>
         {expanded ? <ChevronUp className="h-4 w-4 text-muted-foreground" /> : <ChevronDown className="h-4 w-4 text-muted-foreground" />}

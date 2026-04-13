@@ -15,6 +15,7 @@ import { useStore, useStoreProducts } from "@/hooks/use-marketplace";
 import { useAuth } from "@/hooks/use-auth";
 import { useToast } from "@/hooks/use-toast";
 import type { Review } from "@shared/schema";
+import { resolveMediaUrl } from "@/lib/apiBase";
 
 export default function StoreDetails() {
   const [match, params] = useRoute("/store/:id");
@@ -131,7 +132,7 @@ export default function StoreDetails() {
       <div className="relative h-48 md:h-64 bg-muted">
         {store.banner ? (
           <img
-            src={store.banner}
+            src={resolveMediaUrl(store.banner) ?? store.banner}
             alt={store.name}
             className="w-full h-full object-cover"
           />
@@ -157,7 +158,7 @@ export default function StoreDetails() {
           {store.logo ? (
             <div className="w-24 h-24 rounded-md overflow-hidden bg-card shadow-lg border-4 border-card shrink-0">
               <img
-                src={store.logo}
+                src={resolveMediaUrl(store.logo) ?? store.logo}
                 alt={`${store.name} logo`}
                 className="w-full h-full object-cover"
               />
@@ -271,7 +272,7 @@ export default function StoreDetails() {
                     className="aspect-video rounded-lg overflow-hidden cursor-pointer hover:opacity-90 transition-opacity bg-muted"
                     onClick={() => setLightboxImg(src)}
                   >
-                    <img src={src} alt={`${store.name} ${i + 1}`} className="w-full h-full object-cover" />
+                    <img src={resolveMediaUrl(src) ?? src} alt={`${store.name} ${i + 1}`} className="w-full h-full object-cover" />
                   </div>
                 ))}
               </div>
@@ -285,7 +286,7 @@ export default function StoreDetails() {
             className="fixed inset-0 z-50 bg-black/90 flex items-center justify-center p-4"
             onClick={() => setLightboxImg(null)}
           >
-            <img src={lightboxImg} alt="Galería" className="max-w-full max-h-full rounded-lg object-contain" />
+            <img src={resolveMediaUrl(lightboxImg) ?? lightboxImg} alt="Galería" className="max-w-full max-h-full rounded-lg object-contain" />
           </div>
         )}
 

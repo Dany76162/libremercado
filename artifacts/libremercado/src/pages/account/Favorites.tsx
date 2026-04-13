@@ -8,6 +8,7 @@ import { useAuth } from "@/hooks/use-auth";
 import { useFavorites, useToggleFavorite } from "@/hooks/use-favorites";
 import { useQuery } from "@tanstack/react-query";
 import type { Product, Store as StoreType } from "@shared/schema";
+import { resolveMediaUrl } from "@/lib/apiBase";
 
 function FavoriteProductCard({ productId, onRemove }: { productId: string; onRemove: () => void }) {
   const { data: product, isLoading } = useQuery<Product>({
@@ -29,7 +30,7 @@ function FavoriteProductCard({ productId, onRemove }: { productId: string; onRem
     <div className="flex items-center gap-4 p-3 border rounded-lg" data-testid={`favorite-product-${productId}`}>
       <div className="w-16 h-16 rounded-md overflow-hidden bg-muted shrink-0">
         {product.image ? (
-          <img src={product.image} alt={product.name} className="w-full h-full object-cover" />
+          <img src={resolveMediaUrl(product.image) ?? product.image} alt={product.name} className="w-full h-full object-cover" />
         ) : (
           <div className="w-full h-full flex items-center justify-center">
             <Package className="h-6 w-6 text-muted-foreground" />
@@ -80,7 +81,7 @@ function FavoriteStoreCard({ storeId, onRemove }: { storeId: string; onRemove: (
     <div className="flex items-center gap-4 p-3 border rounded-lg" data-testid={`favorite-store-${storeId}`}>
       <div className="w-16 h-16 rounded-md overflow-hidden bg-muted shrink-0">
         {store.logo ? (
-          <img src={store.logo} alt={store.name} className="w-full h-full object-cover" />
+          <img src={resolveMediaUrl(store.logo) ?? store.logo} alt={store.name} className="w-full h-full object-cover" />
         ) : (
           <div className="w-full h-full flex items-center justify-center bg-primary/10">
             <span className="text-xl font-bold text-primary">{store.name.charAt(0)}</span>

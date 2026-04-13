@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from "react";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import type { Promo } from "@shared/schema";
+import { resolveMediaUrl } from "@/lib/apiBase";
 
 interface PromoBannerProps {
   promos: Promo[];
@@ -77,7 +78,7 @@ export function PromoBanner({ promos }: PromoBannerProps) {
     >
       {currentPromo.image ? (
         <img
-          src={currentPromo.image}
+          src={resolveMediaUrl(currentPromo.image) ?? currentPromo.image}
           alt={currentPromo.title}
           className="w-full h-full object-cover"
         />

@@ -12,6 +12,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/use-auth";
 import { useIsFavorite, useToggleFavorite } from "@/hooks/use-favorites";
 import type { Product } from "@shared/schema";
+import { resolveMediaUrl } from "@/lib/apiBase";
 
 interface ProductReel {
   id: string;
@@ -178,7 +179,7 @@ export default function ProductDetail() {
             >
               {mainImage ? (
                 <img
-                  src={mainImage}
+                  src={resolveMediaUrl(mainImage) ?? mainImage}
                   alt={product.name}
                   className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                   data-testid="img-product-main"
@@ -231,7 +232,7 @@ export default function ProductDetail() {
                         : "border-transparent hover:border-muted-foreground/40"
                     }`}
                   >
-                    <img src={src} alt={`${product.name} ${i + 1}`} className="w-full h-full object-cover" />
+                    <img src={resolveMediaUrl(src) ?? src} alt={`${product.name} ${i + 1}`} className="w-full h-full object-cover" />
                   </button>
                 ))}
 
@@ -244,7 +245,7 @@ export default function ProductDetail() {
                   >
                     {productReel?.thumbnailUrl ? (
                       <img
-                        src={productReel.thumbnailUrl}
+                        src={resolveMediaUrl(productReel.thumbnailUrl) ?? productReel.thumbnailUrl}
                         alt="Reel"
                         className="absolute inset-0 w-full h-full object-cover"
                       />
@@ -437,7 +438,7 @@ export default function ProductDetail() {
           onClick={() => setLightbox(false)}
         >
           <img
-            src={mainImage}
+            src={resolveMediaUrl(mainImage) ?? mainImage}
             alt={product.name}
             className="max-w-full max-h-full rounded-lg object-contain"
           />

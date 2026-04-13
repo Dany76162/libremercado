@@ -8,6 +8,7 @@ import { useMutation } from "@tanstack/react-query";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { useHomeSettings } from "@/hooks/use-marketplace";
+import { resolveMediaUrl } from "@/lib/apiBase";
 import { UtensilsCrossed, ShoppingCart, Pill, Smartphone, Shirt, Home as HomeIcon, Sparkles, PawPrint } from "lucide-react";
 
 const CATEGORIES = [
@@ -69,7 +70,7 @@ function CategoryImageEditor({
     <Card className="overflow-hidden">
       <div className="relative h-28 bg-muted overflow-hidden group">
         <img
-          src={displayImg}
+          src={resolveMediaUrl(displayImg) ?? displayImg}
           alt={catName}
           className="w-full h-full object-cover"
           onError={(e) => { (e.target as HTMLImageElement).src = defaultImg; }}

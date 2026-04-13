@@ -12,6 +12,7 @@ import { apiRequest } from "@/lib/queryClient";
 import { loadStripe } from "@stripe/stripe-js";
 import { Elements, CardElement, useStripe, useElements } from "@stripe/react-stripe-js";
 import { useQuery } from "@tanstack/react-query";
+import { resolveMediaUrl } from "@/lib/apiBase";
 
 function CheckoutForm({ 
   items,
@@ -318,7 +319,7 @@ export default function Cart() {
                     <div className="w-24 h-24 rounded-md overflow-hidden bg-muted shrink-0">
                       {item.product.image ? (
                         <img
-                          src={item.product.image}
+                          src={resolveMediaUrl(item.product.image) ?? item.product.image}
                           alt={item.product.name}
                           className="w-full h-full object-cover"
                         />

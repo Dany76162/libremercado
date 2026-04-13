@@ -13,6 +13,7 @@ import { StoreCard } from "@/components/marketplace/StoreCard";
 import { TravelModal } from "@/components/travel/TravelModal";
 import { useFeaturedProducts, useFeaturedStores, useStores, usePromoBanners, usePromoNotices, usePromoCategories, useDiscountedProducts, useHomeSettings, useNovedades } from "@/hooks/use-marketplace";
 import { useLocation as useUserLocation } from "@/hooks/use-location";
+import { resolveMediaUrl } from "@/lib/apiBase";
 
 const DEFAULT_CATEGORY_IMAGES: Record<string, string> = {
   food: "https://images.unsplash.com/photo-1504674900247-0877df9cc836?w=300&h=200&fit=crop&auto=format&q=80",
@@ -163,7 +164,7 @@ function LargeCategoryCard({ cat }: { cat: CategoryDef }) {
       <Card className="hover-elevate cursor-pointer h-full overflow-hidden group" data-testid={`card-category-promo-${cat.id}`}>
         <div className="relative h-[180px] bg-muted overflow-hidden">
           <img
-            src={heroImage}
+            src={resolveMediaUrl(heroImage) ?? heroImage}
             alt={cat.name}
             className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
             onError={(e) => { (e.target as HTMLImageElement).src = cat.fallbackImage; }}
@@ -173,7 +174,7 @@ function LargeCategoryCard({ cat }: { cat: CategoryDef }) {
             <div className="absolute bottom-2 right-2 flex gap-1">
               {productImages.slice(1, 4).map((img, i) => (
                 <div key={i} className="w-10 h-10 rounded border-2 border-white/70 overflow-hidden bg-muted">
-                  <img src={img} alt="" className="w-full h-full object-cover" onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }} />
+                  <img src={resolveMediaUrl(img) ?? img} alt="" className="w-full h-full object-cover" onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }} />
                 </div>
               ))}
             </div>
@@ -349,7 +350,7 @@ export default function Home() {
                       {img ? (
                         <>
                           <img
-                            src={img}
+                            src={resolveMediaUrl(img) ?? img}
                             alt={category.name}
                             className="w-full h-full object-cover"
                             onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }}

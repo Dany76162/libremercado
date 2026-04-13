@@ -2,6 +2,7 @@ import { useRef, useState } from "react";
 import { Upload, X, Image as ImageIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
+import { resolveMediaUrl } from "@/lib/apiBase";
 
 interface ImageUploadProps {
   value?: string | null;
@@ -95,7 +96,7 @@ export function ImageUpload({
         <div className="relative group">
           <div className={`w-full ${aspectClass} overflow-hidden rounded-lg border border-border`}>
             <img
-              src={preview}
+              src={resolveMediaUrl(preview) ?? preview}
               alt="Preview"
               className="w-full h-full object-cover"
             />

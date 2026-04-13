@@ -177,7 +177,7 @@ export default function RiderPanel() {
           <div className="flex items-center space-x-2">
             <Switch
               id="availability"
-              checked={profile.isAvailable}
+              checked={profile.isAvailable ?? false}
               onCheckedChange={(checked) => toggleAvailabilityMutation.mutate(checked)}
               disabled={toggleAvailabilityMutation.isPending}
               data-testid="switch-availability"

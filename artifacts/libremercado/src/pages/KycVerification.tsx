@@ -11,6 +11,7 @@ import { useAuth } from "@/hooks/use-auth";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import type { KycDocument, KycDocType, KycStatus } from "@shared/schema";
+import { resolveMediaUrl } from "@/lib/apiBase";
 
 const docTypes: { type: KycDocType; label: string; description: string; icon: typeof CreditCard }[] = [
   { type: "dni_front", label: "DNI Frente", description: "Foto del frente de tu DNI", icon: CreditCard },
@@ -190,7 +191,7 @@ export default function KycVerification() {
                 {existingDoc?.imageUrl && (
                   <div className="relative aspect-video w-full max-w-xs rounded-lg overflow-hidden bg-muted">
                     <img
-                      src={existingDoc.imageUrl}
+                      src={resolveMediaUrl(existingDoc.imageUrl) ?? existingDoc.imageUrl}
                       alt={docType.label}
                       className="w-full h-full object-cover"
                     />

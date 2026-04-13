@@ -8,6 +8,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useIsFavorite, useToggleFavorite } from "@/hooks/use-favorites";
 import { useAuth } from "@/hooks/use-auth";
 import type { Product } from "@shared/schema";
+import { resolveMediaUrl } from "@/lib/apiBase";
 
 interface ProductCardProps {
   product: Product;
@@ -57,7 +58,7 @@ export function ProductCard({ product, showStore = false }: ProductCardProps) {
       <div className="relative aspect-square overflow-hidden bg-muted">
         {product.image ? (
           <img
-            src={product.image}
+            src={resolveMediaUrl(product.image) ?? product.image}
             alt={product.name}
             className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
           />
@@ -95,7 +96,7 @@ export function ProductCard({ product, showStore = false }: ProductCardProps) {
           </Badge>
         )}
 
-        {product.stock === 0 && (
+        {(product.stock ?? 0) === 0 && (
           <div className="absolute inset-0 bg-background/80 flex items-center justify-center">
             <Badge variant="secondary">Sin stock</Badge>
           </div>
@@ -142,9 +143,9 @@ export function ProductCard({ product, showStore = false }: ProductCardProps) {
           </p>
         </div>
 
-        {product.stock > 0 && product.stock <= 5 && (
+        {(product.stock ?? 0) > 0 && (product.stock ?? 0) <= 5 && (
           <p className="text-xs text-destructive mt-1">
-            ¡Solo quedan {product.stock}!
+            ¡Solo quedan {product.stock ?? 0}!
           </p>
         )}
 
@@ -152,7 +153,7 @@ export function ProductCard({ product, showStore = false }: ProductCardProps) {
           size="sm"
           className="w-full mt-3"
           onClick={handleAddToCart}
-          disabled={product.stock === 0}
+          disabled={(product.stock ?? 0) === 0}
           data-testid={`button-add-cart-${product.id}`}
         >
           <ShoppingCart className="h-4 w-4 mr-2" />

@@ -107,7 +107,7 @@ export function NotificationBell() {
           ) : (
             <div>
               {items.map((n, i) => {
-                const Icon = typeIcons[n.type] ?? Info;
+                const Icon = typeIcons[n.type ?? ""] ?? Info;
                 return (
                   <div key={n.id}>
                     {i > 0 && <Separator />}
@@ -129,7 +129,7 @@ export function NotificationBell() {
                           {n.title}
                         </p>
                         <p className="text-xs text-muted-foreground mt-0.5 line-clamp-2">
-                          {n.body}
+                          {n.body ?? n.message ?? ""}
                         </p>
                         <p className="text-xs text-muted-foreground/70 mt-1">
                           {n.createdAt ? new Date(n.createdAt).toLocaleTimeString("es-AR", { hour: "2-digit", minute: "2-digit" }) : ""}

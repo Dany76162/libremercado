@@ -13,7 +13,7 @@ import type {
   WebhookEventResult,
 } from "../PaymentProvider";
 import { PaymentProviderNotImplementedError } from "../PaymentProvider";
-import { getUncachableStripeClient, getStripeSecretKey } from "../../stripeClient";
+import { getUncachableStripeClient } from "../../stripeClient";
 import Stripe from "stripe";
 
 const STRIPE_STATUS_MAP: Record<string, PaymentStatusResult["status"]> = {
@@ -36,7 +36,7 @@ export class StripeProvider implements PaymentProvider {
     buyerEmail?: string;
     metadata?: Record<string, string>;
   }): Promise<CheckoutResult> {
-    const stripe = await getUncachableStripeClient();
+    const stripe = getUncachableStripeClient();
 
     const intent = await stripe.paymentIntents.create({
       amount: params.amountInMinorUnits,
@@ -53,7 +53,7 @@ export class StripeProvider implements PaymentProvider {
   }
 
   async getPaymentStatus(providerPaymentId: string): Promise<PaymentStatusResult> {
-    const stripe = await getUncachableStripeClient();
+    const stripe = getUncachableStripeClient();
     const intent = await stripe.paymentIntents.retrieve(providerPaymentId);
 
     return {
@@ -68,7 +68,7 @@ export class StripeProvider implements PaymentProvider {
     amountInMinorUnits?: number;
     reason?: string;
   }): Promise<RefundResult> {
-    const stripe = await getUncachableStripeClient();
+    const stripe = getUncachableStripeClient();
 
     const refundParams: Stripe.RefundCreateParams = {
       payment_intent: params.providerPaymentId,
@@ -90,17 +90,17 @@ export class StripeProvider implements PaymentProvider {
     rawBody: Buffer | string;
     signature?: string;
   }): Promise<WebhookEventResult> {
-    const rawBodyStr: string =
+    const rawBodyStr =
       params.rawBody instanceof Buffer
         ? params.rawBody.toString("utf-8")
-        : params.rawBody;
+        : String(params.rawBody);
 
     let event: Stripe.Event;
 
     const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET;
     if (webhookSecret && params.signature) {
       // Only fetch the Stripe client when we actually need it for signature verification
-      const stripe = await getUncachableStripeClient();
+      const stripe = getUncachableStripeClient();
       event = stripe.webhooks.constructEvent(
         rawBodyStr,
         params.signature,
@@ -146,9 +146,13 @@ export class StripeProvider implements PaymentProvider {
   ): Promise<boolean> {
     try {
       const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET;
-      if (!webhookSecret) return true; // No secret configured — allow in dev
-      // Only fetch the Stripe client when signature verification is needed
-      const stripe = await getUncachableStripeClient();
+      if (!webhookSecret) {
+        if (process.env.NODE_ENV === "production") {
+          return false;
+        }
+        return true;
+      }
+      const stripe = getUncachableStripeClient();
       const bodyStr = rawBody instanceof Buffer ? rawBody.toString("utf-8") : rawBody;
       stripe.webhooks.constructEvent(bodyStr, signature, webhookSecret);
       return true;

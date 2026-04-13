@@ -17,6 +17,7 @@ import { Switch } from "@/components/ui/switch";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import type { Novedad } from "@/components/feed/NovedadCard";
+import { resolveMediaUrl } from "@/lib/apiBase";
 
 type PublicEntity = {
   id: string;
@@ -174,7 +175,7 @@ function NovedadesSection() {
                   <div className="flex gap-0">
                     {nov.image && (
                       <div className="w-24 h-24 shrink-0">
-                        <img src={nov.image} alt={nov.title} className="w-full h-full object-cover" />
+                        <img src={resolveMediaUrl(nov.image) ?? nov.image} alt={nov.title} className="w-full h-full object-cover" />
                       </div>
                     )}
                     <div className="flex-1 p-3">
@@ -419,7 +420,7 @@ function PublicEntitiesSection() {
                   <div className="flex items-center gap-3">
                     {entity.logo ? (
                       <div className="w-10 h-10 rounded-full overflow-hidden border shrink-0">
-                        <img src={entity.logo} alt={entity.name} className="w-full h-full object-cover" />
+                        <img src={resolveMediaUrl(entity.logo) ?? entity.logo} alt={entity.name} className="w-full h-full object-cover" />
                       </div>
                     ) : (
                       <div className="w-10 h-10 rounded-full bg-muted flex items-center justify-center shrink-0">

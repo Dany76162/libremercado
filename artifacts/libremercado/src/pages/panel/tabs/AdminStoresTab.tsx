@@ -380,8 +380,8 @@ export function AdminStoresTab() {
                           <span className="text-sm">{store.category}</span>
                         </TableCell>
                         <TableCell>
-                          <Badge variant={TIER_VARIANT[store.subscriptionTier] ?? "outline"} className="capitalize text-xs">
-                            {store.subscriptionTier}
+                          <Badge variant={TIER_VARIANT[store.subscriptionTier ?? "free"] ?? "outline"} className="capitalize text-xs">
+                            {store.subscriptionTier ?? "free"}
                           </Badge>
                         </TableCell>
                         <TableCell>

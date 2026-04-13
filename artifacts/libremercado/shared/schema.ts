@@ -1,4 +1,4 @@
-export type UserRole = "customer" | "merchant" | "rider" | "admin";
+export type UserRole = "customer" | "merchant" | "rider" | "admin" | "official";
 export type VehicleType = "moto" | "auto" | "utilitario" | null;
 export type KycStatus = "none" | "pending" | "approved" | "rejected";
 export type SubscriptionTier = "free" | "basic" | "premium";
@@ -81,7 +81,10 @@ export interface KycDocument {
   docType: KycDocType;
   imageUrl: string;
   status: "pending" | "approved" | "rejected";
+  rejectionReason?: string | null;
   createdAt?: Date | null;
+  reviewedAt?: Date | null;
+  reviewedBy?: string | null;
 }
 
 export interface InsertKycDocument {
@@ -92,28 +95,37 @@ export interface InsertKycDocument {
 
 export interface Store {
   id: string;
+  ownerId: string;
   name: string;
   description?: string | null;
   category: string;
-  ownerId: string;
-  imageUrl?: string | null;
-  coverImageUrl?: string | null;
+  logo?: string | null;
+  banner?: string | null;
   images?: string | null;
+  rating?: string | null;
+  isActive?: boolean | null;
+  isFeatured?: boolean | null;
+  featuredUntil?: Date | string | null;
+  featuredScore?: number | null;
+  subscriptionTier?: SubscriptionTier | null;
+  subscriptionExpiresAt?: Date | string | null;
   address?: string | null;
   provinciaId?: string | null;
   ciudadId?: string | null;
   lat?: string | null;
   lng?: string | null;
-  rating?: string | null;
+  phone?: string | null;
+  openingHours?: string | null;
   reviewCount?: number | null;
   totalSales?: number | null;
-  subscriptionTier?: SubscriptionTier | null;
   isVerified?: boolean | null;
   isPaused?: boolean | null;
   followerCount?: number | null;
   createdAt?: Date | null;
-  logo?: string | null;
-  banner?: string | null;
+  /** Algunas rutas de búsqueda devuelven logoUrl en lugar de logo */
+  logoUrl?: string | null;
+  imageUrl?: string | null;
+  coverImageUrl?: string | null;
 }
 
 export interface InsertStore {
@@ -144,6 +156,7 @@ export interface Product {
   isActive?: boolean | null;
   isSponsored?: boolean | null;
   sponsoredPriority?: number | null;
+  sponsoredUntil?: Date | string | null;
   isFeatured?: boolean | null;
   createdAt?: Date | null;
 }
@@ -165,10 +178,18 @@ export interface Order {
   riderId?: string | null;
   status: string;
   total: string;
+  address?: string | null;
   shippingAddress?: string | null;
   notes?: string | null;
   paymentStatus?: PaymentStatus | null;
   stripePaymentIntentId?: string | null;
+  paymentIntentId?: string | null;
+  storeLat?: string | null;
+  storeLng?: string | null;
+  deliveryLat?: string | null;
+  deliveryLng?: string | null;
+  riderLat?: string | null;
+  riderLng?: string | null;
   createdAt?: Date | null;
   updatedAt?: Date | null;
 }
@@ -199,33 +220,46 @@ export interface InsertOrderItem {
 
 export interface Promo {
   id: string;
-  storeId: string;
   title: string;
   description?: string | null;
+  image?: string | null;
   imageUrl?: string | null;
   videoUrl?: string | null;
   mediaType?: PromoMediaType | null;
   link?: string | null;
+  type?: "banner" | "notice" | "category" | null;
+  advertiser?: string | null;
+  discount?: string | null;
+  isActive?: boolean | null;
+  priority?: number | null;
   startDate?: Date | null;
   endDate?: Date | null;
+  createdAt?: Date | null;
+  generatedByAi?: boolean | null;
   targetType?: PromoTargetType | null;
+  targetProvince?: string | null;
+  targetCity?: string | null;
   targetProvinciaId?: string | null;
   targetCiudadId?: string | null;
   targetLat?: string | null;
   targetLng?: string | null;
   targetRadiusKm?: number | null;
+  impressions?: number | null;
+  clicks?: number | null;
   placement?: PromoPlacement | null;
   pricingModel?: PromoPricingModel | null;
   budget?: string | null;
-  impressions?: number | null;
-  clicks?: number | null;
+  spentAmount?: string | null;
+  maxImpressions?: number | null;
+  maxClicks?: number | null;
   commercialStatus?: PromoCommercialStatus | null;
+  advertiserId?: string | null;
   isApproved?: boolean | null;
-  createdAt?: Date | null;
+  storeId?: string | null;
 }
 
 export interface InsertPromo {
-  storeId: string;
+  storeId?: string;
   title: string;
   description?: string | null;
   imageUrl?: string | null;
@@ -254,16 +288,17 @@ export interface InsertTravelOffer {
   price: string;
 }
 
-export interface KycStatus {}
-
 export interface SubscriptionPlan {
   id: string;
   name: string;
-  price: string;
-  features?: string[] | null;
   tier: SubscriptionTier;
-  maxProducts?: number | null;
+  monthlyFee: string;
+  productLimit: number;
+  commissionPercent: string;
+  features?: string | null;
   isActive?: boolean | null;
+  price?: string;
+  maxProducts?: number | null;
 }
 
 export interface InsertSubscriptionPlan {
@@ -278,9 +313,12 @@ export interface MerchantApplication {
   businessName: string;
   businessType: string;
   description?: string | null;
+  address?: string | null;
+  phone?: string | null;
   provinciaId?: string | null;
   ciudadId?: string | null;
   status?: MerchantApplicationStatus | null;
+  rejectionReason?: string | null;
   createdAt?: Date | null;
 }
 
@@ -297,7 +335,11 @@ export interface RiderProfile {
   id: string;
   userId: string;
   vehicleType: string;
+  vehiclePlate?: string | null;
+  licenseNumber?: string | null;
   status?: RiderStatus | null;
+  isAvailable?: boolean | null;
+  totalDeliveries?: number | null;
   createdAt?: Date | null;
 }
 
@@ -311,7 +353,9 @@ export interface RiderEarning {
   riderId: string;
   orderId: string;
   amount: string;
+  status?: "pending" | "paid" | null;
   createdAt?: Date | null;
+  paidAt?: Date | null;
 }
 
 export interface InsertRiderEarning {
@@ -323,14 +367,25 @@ export interface InsertRiderEarning {
 export interface PlatformCommission {
   id: string;
   orderId: string;
-  amount: string;
+  storeId: string;
+  orderTotal: string;
+  commissionPercent: string;
+  commissionAmount: string;
+  merchantAmount: string;
   status?: CommissionStatus | null;
   createdAt?: Date | null;
+  collectedAt?: Date | null;
+  amount?: string;
 }
 
 export interface InsertPlatformCommission {
   orderId: string;
-  amount: string;
+  storeId: string;
+  orderTotal: string;
+  commissionPercent: string;
+  commissionAmount: string;
+  merchantAmount: string;
+  amount?: string;
 }
 
 export interface AdBilling {
@@ -366,7 +421,9 @@ export interface Notification {
   id: string;
   userId: string;
   title: string;
-  message: string;
+  body: string;
+  message?: string;
+  link?: string | null;
   isRead?: boolean | null;
   type?: string | null;
   relatedId?: string | null;
@@ -376,7 +433,8 @@ export interface Notification {
 export interface InsertNotification {
   userId: string;
   title: string;
-  message: string;
+  body: string;
+  message?: string;
   type?: string | null;
   relatedId?: string | null;
 }
@@ -397,16 +455,21 @@ export interface InsertTravelBooking {
 export interface Dispute {
   id: string;
   orderId: string;
-  customerId: string;
+  userId?: string;
+  customerId?: string;
   type: DisputeType;
   description: string;
   status?: DisputeStatus | null;
+  resolution?: string | null;
+  adminId?: string | null;
   createdAt?: Date | null;
+  updatedAt?: Date | null;
 }
 
 export interface InsertDispute {
   orderId: string;
-  customerId: string;
+  customerId?: string;
+  userId?: string;
   type: DisputeType;
   description: string;
 }
@@ -468,19 +531,30 @@ export interface VideoFeedItem {
 
 export interface ShoppableVideo {
   id: string;
+  merchantId?: string;
   storeId: string;
   productId?: string | null;
   title: string;
   description?: string | null;
+  tags?: string | null;
   videoUrl: string;
   thumbnailUrl?: string | null;
+  contentType?: string | null;
   status?: VideoStatus | null;
+  isFeatured?: boolean | null;
+  isSponsored?: boolean | null;
+  viewsCount?: number | null;
+  clicksCount?: number | null;
+  addToCartCount?: number | null;
+  purchasesCount?: number | null;
+  savesCount?: number | null;
+  targetProvince?: string | null;
+  targetCity?: string | null;
   views?: number | null;
   likes?: number | null;
-  isSponsored?: boolean | null;
-  isFeatured?: boolean | null;
-  publishedAt?: Date | null;
-  createdAt?: Date | null;
+  publishedAt?: Date | string | null;
+  createdAt?: Date | string | null;
+  updatedAt?: Date | string | null;
 }
 
 export interface InsertShoppableVideo {

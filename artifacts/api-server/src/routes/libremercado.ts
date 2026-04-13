@@ -53,13 +53,16 @@ import {
   sendDisputeStatusEmail,
 } from "../email";
 
-function getOpenAI() {
+function getOpenAI(): OpenAI {
+  const apiKey = process.env.AI_INTEGRATIONS_OPENAI_API_KEY?.trim();
+  if (!apiKey) {
+    throw new Error("AI_INTEGRATIONS_OPENAI_API_KEY no configurada");
+  }
   return new OpenAI({
-    apiKey: process.env.AI_INTEGRATIONS_OPENAI_API_KEY || "placeholder",
+    apiKey,
     baseURL: process.env.AI_INTEGRATIONS_OPENAI_BASE_URL,
   });
 }
-const openai = { chat: { completions: { create: async (...args: any[]) => getOpenAI().chat.completions.create(...args) } } };
 
 // ==================== HELPERS ====================
 
@@ -1243,6 +1246,8 @@ export async function registerRoutes(
     phone: z.string().optional(),
     openingHours: z.string().optional(),
     isActive: z.boolean().optional(),
+    logo: z.string().nullable().optional(),
+    banner: z.string().nullable().optional(),
   });
 
   app.patch("/api/merchant/stores/:id", requireRole("merchant", "admin"), async (req, res) => {
@@ -2305,7 +2310,7 @@ Responde en formato JSON con la siguiente estructura:
   "suggestedDuration": "Duración sugerida en días"
 }`;
 
-      const response = await openai.chat.completions.create({
+      const response = await getOpenAI().chat.completions.create({
         model: "gpt-4o-mini",
         messages: [
           { role: "system", content: "Eres un experto en marketing digital y publicidad para e-commerce en Argentina. Genera contenido publicitario efectivo y atractivo." },
@@ -2520,11 +2525,11 @@ Responde en formato JSON con la siguiente estructura:
   });
 
   // Stripe payment routes
-  app.get("/api/stripe/config", async (req, res) => {
+  app.get("/api/stripe/config", async (_req, res) => {
     try {
-      const publishableKey = await getStripePublishableKey();
+      const publishableKey = getStripePublishableKey();
       res.json({ publishableKey });
-    } catch (error) {
+    } catch {
       res.status(500).json({ error: "Failed to get Stripe config" });
     }
   });

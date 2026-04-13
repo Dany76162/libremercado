@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState, useCallback } from "react";
+import { websocketUrl } from "@/lib/apiBase";
 
 export interface TrackingState {
   status: string | null;
@@ -22,9 +23,7 @@ export function useOrderTracking(orderId: string | undefined) {
   const connect = useCallback(() => {
     if (!orderId) return;
 
-    const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
-    const wsUrl = `${protocol}//${window.location.host}/ws`;
-
+    const wsUrl = websocketUrl("/ws");
     const ws = new WebSocket(wsUrl);
     wsRef.current = ws;
 
@@ -69,7 +68,6 @@ export function useOrderTracking(orderId: string | undefined) {
 
     ws.onclose = () => {
       setState((prev) => ({ ...prev, connected: false }));
-      // Reconnect after 3 seconds unless unmounted
       reconnectTimer.current = setTimeout(() => {
         connect();
       }, 3000);

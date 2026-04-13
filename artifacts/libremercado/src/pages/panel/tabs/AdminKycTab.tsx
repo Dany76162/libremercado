@@ -10,6 +10,7 @@ import { useMutation, useQuery } from "@tanstack/react-query";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import type { KycDocument, KycDocType } from "@shared/schema";
+import { resolveMediaUrl } from "@/lib/apiBase";
 
 interface PendingKycDoc extends KycDocument {
   user: { id: string; username: string; email: string } | null;
@@ -87,7 +88,7 @@ export function AdminKycTab() {
                 <div key={doc.id} className="flex items-center justify-between p-4 border rounded-lg" data-testid={`kyc-pending-${doc.id}`}>
                   <div className="flex items-center gap-4">
                     <div className="w-12 h-12 rounded-lg overflow-hidden bg-muted">
-                      <img src={doc.imageUrl} alt={docTypeLabels[doc.docType]} className="w-full h-full object-cover" />
+                      <img src={resolveMediaUrl(doc.imageUrl) ?? doc.imageUrl} alt={docTypeLabels[doc.docType]} className="w-full h-full object-cover" />
                     </div>
                     <div>
                       <div className="flex items-center gap-2">
@@ -123,7 +124,7 @@ export function AdminKycTab() {
             <DialogDescription>Usuario: {selectedDoc?.user?.username} ({selectedDoc?.user?.email})</DialogDescription>
           </DialogHeader>
           <div className="aspect-video w-full rounded-lg overflow-hidden bg-muted">
-            <img src={selectedDoc?.imageUrl} alt="Documento" className="w-full h-full object-contain" />
+            <img src={(resolveMediaUrl(selectedDoc?.imageUrl) ?? selectedDoc?.imageUrl) || ""} alt="Documento" className="w-full h-full object-contain" />
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setSelectedDoc(null)}>Cerrar</Button>

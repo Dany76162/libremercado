@@ -22,6 +22,7 @@ import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useAuth } from "@/hooks/use-auth";
 import { useLocation } from "wouter";
 import type { Novedad } from "@/components/feed/NovedadCard";
+import { resolveMediaUrl } from "@/lib/apiBase";
 
 // ─── TYPES ────────────────────────────────────────────────────────────────────
 
@@ -144,9 +145,9 @@ function FileDropzone({
       {value ? (
         <div className="relative rounded-lg overflow-hidden border border-border bg-muted">
           {isVideo ? (
-            <video src={value} className="w-full max-h-48 object-cover" controls />
+            <video src={resolveMediaUrl(value) ?? value} className="w-full max-h-48 object-cover" controls />
           ) : (
-            <img src={value} alt="" className="w-full max-h-48 object-cover" />
+            <img src={resolveMediaUrl(value) ?? value} alt="" className="w-full max-h-48 object-cover" />
           )}
           <button
             type="button"
@@ -331,7 +332,7 @@ function NovedadesTab({ entity, isEntityAdmin }: { entity?: PublicEntity; isEnti
               <Card key={nov.id} className={`overflow-hidden hover:shadow-md transition-shadow ${nov.secretariaId ? "border-l-4 border-l-indigo-300" : ""}`}>
                 <CardContent className="p-0">
                   <div className="flex">
-                    {nov.image && <div className="w-20 h-20 shrink-0"><img src={nov.image} alt={nov.title} className="w-full h-full object-cover" /></div>}
+                    {nov.image && <div className="w-20 h-20 shrink-0"><img src={resolveMediaUrl(nov.image) ?? nov.image} alt={nov.title} className="w-full h-full object-cover" /></div>}
                     <div className="flex-1 p-3 min-w-0">
                       <div className="flex items-start justify-between gap-2">
                         <div className="flex-1 min-w-0">
@@ -513,7 +514,7 @@ function ReelsTab({ entity }: { entity?: PublicEntity }) {
           {reels.map(r => (
             <Card key={r.id} className="overflow-hidden group relative">
               <div className="aspect-[9/16] bg-black relative overflow-hidden">
-                {r.image && <img src={r.image} alt={r.title} className="w-full h-full object-cover opacity-80" />}
+                {r.image && <img src={resolveMediaUrl(r.image) ?? r.image} alt={r.title} className="w-full h-full object-cover opacity-80" />}
                 {!(r as any).image && <div className="w-full h-full flex items-center justify-center"><Film className="h-10 w-10 text-white/30" /></div>}
                 <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
                 <div className="absolute bottom-0 left-0 right-0 p-2">
@@ -855,7 +856,7 @@ function SecretariasTab({ entity }: { entity?: PublicEntity }) {
               <CardContent className="p-4">
                 <div className="flex items-center gap-3">
                   <div className="w-10 h-10 rounded-lg bg-blue-100 flex items-center justify-center shrink-0 overflow-hidden">
-                    {sec.logo ? <img src={sec.logo} alt={sec.name} className="w-full h-full object-cover" /> : <Users className="h-5 w-5 text-blue-600" />}
+                    {sec.logo ? <img src={resolveMediaUrl(sec.logo) ?? sec.logo} alt={sec.name} className="w-full h-full object-cover" /> : <Users className="h-5 w-5 text-blue-600" />}
                   </div>
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 flex-wrap">
@@ -1054,13 +1055,13 @@ export default function PanelInstitucional() {
         ) : entity ? (
           <Card className="overflow-hidden border-0 shadow-md">
             <div className="h-20 relative overflow-hidden bg-gradient-to-r from-blue-600 to-blue-500">
-              {entity.banner && <img src={entity.banner} alt="" className="w-full h-full object-cover opacity-40" />}
+              {entity.banner && <img src={resolveMediaUrl(entity.banner) ?? entity.banner} alt="" className="w-full h-full object-cover opacity-40" />}
               <div className="absolute inset-0 bg-gradient-to-r from-blue-700/60 to-blue-500/30" />
             </div>
             <CardContent className="p-4 -mt-6 relative">
               <div className="flex items-end gap-3">
                 <div className="w-14 h-14 rounded-xl bg-white border-2 border-white shadow-md overflow-hidden shrink-0">
-                  {entity.logo ? <img src={entity.logo} alt={entity.name} className="w-full h-full object-cover" /> : <div className="w-full h-full bg-blue-100 flex items-center justify-center"><Building2 className="h-7 w-7 text-blue-600" /></div>}
+                  {entity.logo ? <img src={resolveMediaUrl(entity.logo) ?? entity.logo} alt={entity.name} className="w-full h-full object-cover" /> : <div className="w-full h-full bg-blue-100 flex items-center justify-center"><Building2 className="h-7 w-7 text-blue-600" /></div>}
                 </div>
                 <div className="flex-1 min-w-0 pb-1">
                   <div className="flex items-center gap-1.5 flex-wrap">

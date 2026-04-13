@@ -906,8 +906,8 @@ export default function MerchantPanel() {
                   <Label>Imagen de portada</Label>
                   <ImageUpload
                     endpoint="store"
-                    value={(store as any).coverImage || null}
-                    onChange={(url) => updateStoreMutation.mutate({ coverImage: url })}
+                    value={(store as any).banner || (store as any).coverImageUrl || (store as any).coverImage || null}
+                    onChange={(url) => updateStoreMutation.mutate({ banner: url })}
                     label="Subir portada"
                     aspectRatio="landscape"
                   />

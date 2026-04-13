@@ -30,6 +30,9 @@ export default defineConfig({
     env: {
       NODE_ENV: "test",
       SKIP_DEMO_UPDATE: "true",
+      USE_LOCAL_UPLOADS: "true",
+      STRIPE_SECRET_KEY: "sk_test_libremercado_dummy",
+      STRIPE_PUBLISHABLE_KEY: "pk_test_libremercado_dummy",
     },
   },
 });

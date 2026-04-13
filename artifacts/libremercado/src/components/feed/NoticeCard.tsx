@@ -2,6 +2,7 @@ import { Megaphone, ExternalLink } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import type { Promo } from "@shared/schema";
+import { resolveMediaUrl } from "@/lib/apiBase";
 
 interface NoticeCardProps {
   notice: Promo;
@@ -25,7 +26,7 @@ export function NoticeCard({ notice }: NoticeCardProps) {
           {notice.image ? (
             <div className="w-20 h-20 shrink-0 rounded-md overflow-hidden bg-muted">
               <img
-                src={notice.image}
+                src={resolveMediaUrl(notice.image) ?? notice.image}
                 alt={notice.title}
                 className="w-full h-full object-cover"
               />

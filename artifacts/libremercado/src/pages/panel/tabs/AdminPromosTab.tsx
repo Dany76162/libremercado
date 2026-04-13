@@ -14,6 +14,7 @@ import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { usePromoBanners, usePromoNotices } from "@/hooks/use-marketplace";
 import type { Promo } from "@shared/schema";
+import { resolveMediaUrl } from "@/lib/apiBase";
 
 const COMMERCIAL_STATUS_LABELS: Record<string, { label: string; variant: "default" | "secondary" | "destructive" | "outline" }> = {
   active: { label: "Activa", variant: "default" },
@@ -344,7 +345,7 @@ export function AdminPromosTab() {
               <Input placeholder="https://images.unsplash.com/..." value={createForm.image} onChange={(e) => setCreateForm((f) => ({ ...f, image: e.target.value }))} />
               {createForm.image && (
                 <div className="mt-2 rounded-md overflow-hidden border h-24">
-                  <img src={createForm.image} alt="preview" className="w-full h-full object-cover" onError={(e) => { (e.target as HTMLImageElement).src = ""; }} />
+                  <img src={resolveMediaUrl(createForm.image) ?? createForm.image} alt="preview" className="w-full h-full object-cover" onError={(e) => { (e.target as HTMLImageElement).src = ""; }} />
                 </div>
               )}
             </div>

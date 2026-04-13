@@ -34,10 +34,7 @@ export function DisputeDialog({ orderId, open, onOpenChange }: DisputeDialogProp
 
   const mutation = useMutation({
     mutationFn: () =>
-      apiRequest(`/api/orders/${orderId}/dispute`, {
-        method: "POST",
-        body: JSON.stringify({ type, description }),
-      }),
+      apiRequest("POST", `/api/orders/${orderId}/dispute`, { type, description }),
     onSuccess: () => {
       toast({ title: "Disputa enviada", description: "Revisaremos tu caso pronto y te contactaremos." });
       queryClient.invalidateQueries({ queryKey: ["/api/orders"] });

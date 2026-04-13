@@ -12,6 +12,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import type { ShoppableVideo } from "@shared/schema";
+import { resolveMediaUrl } from "@/lib/apiBase";
 
 interface AdminVideo extends ShoppableVideo {
   store?: { id: string; name: string };
@@ -119,8 +120,8 @@ export function AdminVideosTab() {
             { label: "Total", value: videos.length },
             { label: "Publicados", value: videos.filter((v) => v.status === "published").length },
             { label: "Pendientes", value: videos.filter((v) => v.status === "pending").length },
-            { label: "Total vistas", value: videos.reduce((a, v) => a + v.viewsCount, 0) },
-            { label: "Total ventas", value: videos.reduce((a, v) => a + v.purchasesCount, 0) },
+            { label: "Total vistas", value: videos.reduce((a, v) => a + (v.viewsCount ?? 0), 0) },
+            { label: "Total ventas", value: videos.reduce((a, v) => a + (v.purchasesCount ?? 0), 0) },
           ].map(({ label, value }) => (
             <Card key={label}>
               <CardContent className="p-3 text-center">
@@ -148,7 +149,7 @@ export function AdminVideosTab() {
       )}
 
       {filteredVideos.map((video) => {
-        const status = statusConfig[video.status] ?? statusConfig.draft;
+        const status = statusConfig[video.status ?? "draft"] ?? statusConfig.draft;
         return (
           <Card key={video.id} data-testid={`admin-video-${video.id}`}>
             <CardContent className="p-4">
@@ -157,7 +158,7 @@ export function AdminVideosTab() {
                 <div className="w-full lg:w-40 h-32 lg:h-28 bg-zinc-900 rounded-lg overflow-hidden flex-none relative group cursor-pointer"
                   onClick={() => setPreviewUrl(previewUrl === video.videoUrl ? null : video.videoUrl)}>
                   {previewUrl === video.videoUrl ? (
-                    <video src={video.videoUrl} className="w-full h-full object-cover" autoPlay muted controls />
+                    <video src={resolveMediaUrl(video.videoUrl) ?? video.videoUrl} className="w-full h-full object-cover" autoPlay muted controls />
                   ) : (
                     <>
                       <div className="absolute inset-0 flex items-center justify-center">
@@ -194,10 +195,10 @@ export function AdminVideosTab() {
                   </div>
 
                   <div className="flex items-center gap-4 text-xs text-muted-foreground mb-3">
-                    <span className="flex items-center gap-1"><Eye className="h-3 w-3" />{video.viewsCount.toLocaleString()} vistas</span>
-                    <span className="flex items-center gap-1"><BarChart3 className="h-3 w-3" />{video.clicksCount.toLocaleString()} clics</span>
-                    <span className="flex items-center gap-1"><ShoppingCart className="h-3 w-3" />{video.addToCartCount.toLocaleString()} carritos</span>
-                    <span className="flex items-center gap-1"><Star className="h-3 w-3" />{video.purchasesCount.toLocaleString()} ventas</span>
+                    <span className="flex items-center gap-1"><Eye className="h-3 w-3" />{(video.viewsCount ?? 0).toLocaleString()} vistas</span>
+                    <span className="flex items-center gap-1"><BarChart3 className="h-3 w-3" />{(video.clicksCount ?? 0).toLocaleString()} clics</span>
+                    <span className="flex items-center gap-1"><ShoppingCart className="h-3 w-3" />{(video.addToCartCount ?? 0).toLocaleString()} carritos</span>
+                    <span className="flex items-center gap-1"><Star className="h-3 w-3" />{(video.purchasesCount ?? 0).toLocaleString()} ventas</span>
                   </div>
 
                   {/* Action buttons */}

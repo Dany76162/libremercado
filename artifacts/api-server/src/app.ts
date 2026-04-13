@@ -16,7 +16,7 @@ const pgPool = new pg.Pool({ connectionString: process.env.DATABASE_URL });
 
 const app: Express = express();
 const httpServer = createServer(app);
-app.set("trust proxy", 1);
+app.set("trust proxy", process.env.TRUST_PROXY === "0" ? false : true);
 
 app.use(
   pinoHttp({
@@ -38,25 +38,34 @@ app.use(
   }),
 );
 
-const allowedOrigins = [
-  /^https?:\/\/localhost(:\d+)?$/,
-  /\.replit\.dev$/,
-  /\.picard\.replit\.dev$/,
-  /\.repl\.co$/,
-];
+function isOriginAllowed(origin: string | undefined): boolean {
+  if (!origin) {
+    return true;
+  }
 
-if (process.env.ALLOWED_ORIGIN) {
-  allowedOrigins.push(new RegExp(`^${process.env.ALLOWED_ORIGIN.replace(/\./g, "\\.")}$`));
+  const explicit = [
+    ...(process.env.CORS_ORIGINS ?? "")
+      .split(",")
+      .map((s) => s.trim())
+      .filter(Boolean),
+  ];
+  if (process.env.ALLOWED_ORIGIN?.trim()) {
+    explicit.push(process.env.ALLOWED_ORIGIN.trim());
+  }
+
+  if (explicit.length > 0) {
+    return explicit.includes(origin);
+  }
+
+  return /^https?:\/\/localhost(:\d+)?$/.test(origin);
 }
 
 app.use(
   cors({
     origin: (origin, callback) => {
-      if (!origin) return callback(null, true);
-      const ok = allowedOrigins.some((pattern) =>
-        pattern instanceof RegExp ? pattern.test(origin) : origin === pattern
-      );
-      if (ok) return callback(null, true);
+      if (isOriginAllowed(origin)) {
+        return callback(null, true);
+      }
       callback(new Error(`CORS: origin '${origin}' not allowed`));
     },
     credentials: true,
@@ -102,7 +111,7 @@ const processWebhook = async (req: any, res: any) => {
     }
     await WebhookHandlers.processWebhook(req.body as Buffer, sig);
     res.status(200).json({ received: true });
-  } catch (error: any) {
+  } catch {
     res.status(400).json({ error: "Webhook processing error" });
   }
 };
@@ -112,24 +121,45 @@ app.post("/api/payments/webhook", webhookHandler, processWebhook);
 // Legacy Stripe-specific alias (keep until Stripe dashboard is updated)
 app.post("/api/stripe/webhook", webhookHandler, processWebhook);
 
-// Serve uploads statically (legacy on-disk files)
+// On-disk uploads (solo desarrollo / fallback local)
 app.use("/uploads", express.static("uploads"));
 
-// Serve GCS-stored files via proxy
+// Proxy de objetos en R2 (producción). En USE_LOCAL_UPLOADS las URLs van a /uploads/...
 app.get(/^\/api\/files\/(.+)$/, async (req: any, res: any) => {
+  const useLocal =
+    process.env.USE_LOCAL_UPLOADS === "true" ||
+    process.env.USE_LOCAL_UPLOADS === "1";
+  if (useLocal) {
+    return res.status(404).json({ error: "Archivo no encontrado" });
+  }
+
   try {
-    const { getBucket } = await import("./lib/gcsUpload");
-    const objectPath = req.params[0] as string;
-    if (!objectPath) return res.status(404).end();
-    const bucket = getBucket();
-    const file = bucket.file(objectPath);
-    const [exists] = await file.exists();
-    if (!exists) return res.status(404).json({ error: "Archivo no encontrado" });
-    const [metadata] = await file.getMetadata();
-    res.setHeader("Content-Type", (metadata as any).contentType || "application/octet-stream");
+    const raw = req.params[0] as string;
+    const objectPath = decodeURIComponent(raw);
+    if (!objectPath || objectPath.includes("..")) {
+      return res.status(400).json({ error: "Ruta inválida" });
+    }
+
+    const { getR2ObjectStream } = await import("./lib/gcsUpload");
+    const { stream, contentType, contentLength } = await getR2ObjectStream(
+      objectPath
+    );
+    res.setHeader("Content-Type", contentType);
+    if (contentLength != null) {
+      res.setHeader("Content-Length", String(contentLength));
+    }
     res.setHeader("Cache-Control", "public, max-age=31536000, immutable");
-    file.createReadStream().pipe(res);
+    stream.pipe(res);
   } catch (err: any) {
+    const code = err?.name || err?.Code || err?.code;
+    if (
+      code === "NotFound" ||
+      code === "NoSuchKey" ||
+      String(err?.message || "").includes("Not Found")
+    ) {
+      return res.status(404).json({ error: "Archivo no encontrado" });
+    }
+    logger.error({ err }, "Error sirviendo objeto R2");
     res.status(500).json({ error: "Error al servir el archivo" });
   }
 });
@@ -139,22 +169,30 @@ app.use(express.urlencoded({ extended: false }));
 
 const sessionSecret = process.env.SESSION_SECRET || "libremercado-dev-secret";
 const isTest = process.env.NODE_ENV === "test";
+const isProd = process.env.NODE_ENV === "production";
+const crossSite =
+  process.env.SESSION_CROSS_SITE === "1" ||
+  process.env.SESSION_CROSS_SITE === "true";
+
 app.use(
   session({
     // In test environment use the default in-memory store to avoid PG connection overhead
-    ...(isTest ? {} : {
-      store: new PgStore({
-        pool: pgPool,
-        tableName: "session",
-      }),
-    }),
+    ...(isTest
+      ? {}
+      : {
+          store: new PgStore({
+            pool: pgPool,
+            tableName: "session",
+          }),
+        }),
     secret: sessionSecret,
     resave: false,
     saveUninitialized: false,
     cookie: {
-      secure: process.env.NODE_ENV === "production",
+      secure: isProd,
       httpOnly: true,
-      sameSite: "lax",
+      // En producción con front (Vercel) y API (Railway) en distinto sitio: SESSION_CROSS_SITE=true + HTTPS.
+      sameSite: isProd && crossSite ? ("none" as const) : ("lax" as const),
       maxAge: 7 * 24 * 60 * 60 * 1000,
     },
   })

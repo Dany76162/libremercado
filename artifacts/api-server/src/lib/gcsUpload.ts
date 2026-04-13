@@ -1,32 +1,53 @@
-import { Storage } from "@google-cloud/storage";
 import fs from "fs";
 import path from "path";
 import { randomUUID } from "crypto";
+import { S3Client, PutObjectCommand, GetObjectCommand } from "@aws-sdk/client-s3";
+import { Readable } from "stream";
 
-const REPLIT_SIDECAR_ENDPOINT = "http://127.0.0.1:1106";
+let r2Client: S3Client | null = null;
 
-export const storageClient = new Storage({
-  credentials: {
-    audience: "replit",
-    subject_token_type: "access_token",
-    token_url: `${REPLIT_SIDECAR_ENDPOINT}/token`,
-    type: "external_account",
-    credential_source: {
-      url: `${REPLIT_SIDECAR_ENDPOINT}/credential`,
-      format: {
-        type: "json",
-        subject_token_field_name: "access_token",
-      },
-    },
-    universe_domain: "googleapis.com",
-  } as any,
-  projectId: "",
-});
+function getR2Client(): S3Client {
+  if (r2Client) return r2Client;
 
-export function getBucket() {
-  const bucketId = process.env.DEFAULT_OBJECT_STORAGE_BUCKET_ID;
-  if (!bucketId) throw new Error("DEFAULT_OBJECT_STORAGE_BUCKET_ID no configurado");
-  return storageClient.bucket(bucketId);
+  const accountId = process.env.R2_ACCOUNT_ID?.trim();
+  const accessKeyId = process.env.R2_ACCESS_KEY_ID?.trim();
+  const secretAccessKey = process.env.R2_SECRET_ACCESS_KEY?.trim();
+  const endpoint =
+    process.env.R2_ENDPOINT?.trim() ||
+    (accountId ? `https://${accountId}.r2.cloudflarestorage.com` : "");
+
+  if (!endpoint || !accessKeyId || !secretAccessKey) {
+    throw new Error(
+      "R2 no configurado: definí R2_ACCESS_KEY_ID, R2_SECRET_ACCESS_KEY y R2_ACCOUNT_ID (o R2_ENDPOINT completo)."
+    );
+  }
+
+  r2Client = new S3Client({
+    region: "auto",
+    endpoint,
+    credentials: { accessKeyId, secretAccessKey },
+    forcePathStyle: true,
+  });
+  return r2Client;
+}
+
+function getR2Bucket(): string {
+  const bucket = process.env.R2_BUCKET?.trim();
+  if (!bucket) throw new Error("R2_BUCKET no configurado");
+  return bucket;
+}
+
+/** URL pública servida por CDN o por la API (proxy). */
+function publicFileUrl(objectPath: string): string {
+  const cdn = process.env.R2_PUBLIC_BASE_URL?.replace(/\/$/, "");
+  if (cdn) {
+    return `${cdn}/${objectPath}`;
+  }
+  const api = process.env.API_PUBLIC_URL?.replace(/\/$/, "");
+  if (api) {
+    return `${api}/api/files/${objectPath}`;
+  }
+  return `/api/files/${objectPath}`;
 }
 
 export async function uploadFileToGCS(
@@ -49,22 +70,56 @@ export async function uploadFileToGCS(
     const destPath = path.join(destDir, fileName);
     fs.copyFileSync(localPath, destPath);
     void mimeType;
-    return `/uploads/local-gcs/${folder}/${fileName}`;
+    const api = process.env.API_PUBLIC_URL?.replace(/\/$/, "");
+    const rel = `/uploads/local-gcs/${folder}/${fileName}`;
+    return api ? `${api}${rel}` : rel;
   }
 
-  const bucket = getBucket();
+  const client = getR2Client();
+  const bucket = getR2Bucket();
+  const body = fs.createReadStream(localPath);
 
-  await bucket.upload(localPath, {
-    destination: objectPath,
-    metadata: { contentType: mimeType },
-  });
+  await client.send(
+    new PutObjectCommand({
+      Bucket: bucket,
+      Key: objectPath,
+      Body: body,
+      ContentType: mimeType || "application/octet-stream",
+    })
+  );
 
-  return `/api/files/${objectPath}`;
+  return publicFileUrl(objectPath);
+}
+
+export async function getR2ObjectStream(objectPath: string): Promise<{
+  stream: NodeJS.ReadableStream;
+  contentType: string;
+  contentLength?: number;
+}> {
+  const client = getR2Client();
+  const bucket = getR2Bucket();
+  const out = await client.send(
+    new GetObjectCommand({ Bucket: bucket, Key: objectPath })
+  );
+  const body = out.Body;
+  if (!body) {
+    throw new Error("Objeto vacío");
+  }
+  const stream =
+    body instanceof Readable
+      ? body
+      : Readable.fromWeb(body as import("stream/web").ReadableStream);
+  return {
+    stream,
+    contentType: out.ContentType || "application/octet-stream",
+    contentLength: out.ContentLength,
+  };
 }
 
 export function deleteLocalFile(localPath: string): void {
   try {
     if (fs.existsSync(localPath)) fs.unlinkSync(localPath);
   } catch {
+    /* ignore */
   }
 }

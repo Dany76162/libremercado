@@ -4,6 +4,7 @@ import { Search, Package, Store, X } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { useQuery } from "@tanstack/react-query";
 import type { Product, Store as StoreType } from "@shared/schema";
+import { resolveMediaUrl } from "@/lib/apiBase";
 
 interface SearchResult {
   products: Product[];
@@ -130,7 +131,7 @@ export function SearchBar({ className = "", inputClassName = "", onSearch }: Sea
                     >
                       {store.logoUrl ? (
                         <img
-                          src={store.logoUrl}
+                          src={resolveMediaUrl(store.logoUrl) ?? store.logoUrl}
                           alt={store.name}
                           className="h-8 w-8 rounded-full object-cover flex-shrink-0"
                         />
@@ -165,7 +166,7 @@ export function SearchBar({ className = "", inputClassName = "", onSearch }: Sea
                     >
                       {product.imageUrl ? (
                         <img
-                          src={product.imageUrl}
+                          src={resolveMediaUrl(product.imageUrl) ?? product.imageUrl}
                           alt={product.name}
                           className="h-8 w-8 rounded object-cover flex-shrink-0"
                         />

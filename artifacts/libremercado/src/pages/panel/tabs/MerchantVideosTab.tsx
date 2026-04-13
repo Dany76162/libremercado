@@ -16,6 +16,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, Dialog
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import type { ShoppableVideo } from "@shared/schema";
+import { resolveMediaUrl } from "@/lib/apiBase";
 
 const statusConfig: Record<string, { label: string; color: string; icon: typeof Clock }> = {
   draft: { label: "Borrador", color: "bg-zinc-500", icon: Edit },
@@ -34,14 +35,26 @@ interface MerchantProduct {
   name: string;
 }
 
-const defaultForm = {
+type MerchantVideoForm = {
+  title: string;
+  description: string;
+  tags: string;
+  videoUrl: string;
+  thumbnailUrl: string;
+  productId: string;
+  contentType: string;
+  targetProvince: string;
+  targetCity: string;
+};
+
+const defaultForm: MerchantVideoForm = {
   title: "",
   description: "",
   tags: "",
   videoUrl: "",
   thumbnailUrl: "",
   productId: "",
-  contentType: "product" as const,
+  contentType: "product",
   targetProvince: "",
   targetCity: "",
 };
@@ -62,7 +75,7 @@ export function MerchantVideosTab() {
   });
 
   const createMutation = useMutation({
-    mutationFn: async (data: typeof form) => {
+    mutationFn: async (data: MerchantVideoForm) => {
       const res = await apiRequest("POST", "/api/merchant/videos", {
         ...data,
         productId: data.productId || null,
@@ -81,7 +94,7 @@ export function MerchantVideosTab() {
   });
 
   const updateMutation = useMutation({
-    mutationFn: async ({ id, data }: { id: string; data: Partial<typeof form> }) => {
+    mutationFn: async ({ id, data }: { id: string; data: Partial<MerchantVideoForm> }) => {
       const res = await apiRequest("PATCH", `/api/merchant/videos/${id}`, data);
       return res.json();
     },
@@ -140,7 +153,7 @@ export function MerchantVideosTab() {
       videoUrl: video.videoUrl,
       thumbnailUrl: video.thumbnailUrl ?? "",
       productId: video.productId ?? "",
-      contentType: video.contentType,
+      contentType: video.contentType ?? "product",
       targetProvince: video.targetProvince ?? "",
       targetCity: video.targetCity ?? "",
     });
@@ -148,8 +161,14 @@ export function MerchantVideosTab() {
   };
 
   const handleSubmit = () => {
-    if (!form.title.trim()) return toast({ title: "El título es requerido", variant: "destructive" });
-    if (!form.videoUrl.trim()) return toast({ title: "La URL del video es requerida", variant: "destructive" });
+    if (!form.title.trim()) {
+      toast({ title: "El título es requerido", variant: "destructive" });
+      return;
+    }
+    if (!form.videoUrl.trim()) {
+      toast({ title: "La URL del video es requerida", variant: "destructive" });
+      return;
+    }
     if (editingVideo) {
       updateMutation.mutate({ id: editingVideo.id, data: form });
     } else {
@@ -162,8 +181,8 @@ export function MerchantVideosTab() {
         total: videos.length,
         published: videos.filter((v) => v.status === "published").length,
         pending: videos.filter((v) => v.status === "pending").length,
-        totalViews: videos.reduce((acc, v) => acc + v.viewsCount, 0),
-        totalAddToCart: videos.reduce((acc, v) => acc + v.addToCartCount, 0),
+        totalViews: videos.reduce((acc, v) => acc + (v.viewsCount ?? 0), 0),
+        totalAddToCart: videos.reduce((acc, v) => acc + (v.addToCartCount ?? 0), 0),
       }
     : null;
 
@@ -379,7 +398,7 @@ export function MerchantVideosTab() {
       {videos && videos.length > 0 && (
         <div className="space-y-3">
           {videos.map((video) => {
-            const status = statusConfig[video.status] ?? statusConfig.draft;
+            const status = statusConfig[video.status ?? "draft"] ?? statusConfig.draft;
             const StatusIcon = status.icon;
             return (
               <Card key={video.id} data-testid={`video-row-${video.id}`}>
@@ -388,7 +407,7 @@ export function MerchantVideosTab() {
                     {/* Thumbnail preview */}
                     <div className="w-16 h-16 bg-zinc-900 rounded-lg flex items-center justify-center flex-none overflow-hidden">
                       {video.thumbnailUrl ? (
-                        <img src={video.thumbnailUrl} alt="" className="w-full h-full object-cover" />
+                        <img src={resolveMediaUrl(video.thumbnailUrl) ?? video.thumbnailUrl ?? ""} alt="" className="w-full h-full object-cover" />
                       ) : (
                         <Play className="h-6 w-6 text-zinc-400" />
                       )}

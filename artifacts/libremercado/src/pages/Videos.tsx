@@ -16,6 +16,7 @@ import { useLocation as useLocationStore } from "@/hooks/use-location";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 import type { VideoFeedItem } from "@shared/schema";
+import { resolveMediaUrl } from "@/lib/apiBase";
 
 function formatPrice(price: string): string {
   return new Intl.NumberFormat("es-AR", { style: "currency", currency: "ARS", maximumFractionDigits: 0 }).format(Number(price));
@@ -203,8 +204,8 @@ function VideoCard({
           <video
             ref={videoRef}
             className="absolute inset-0 w-full h-full object-cover"
-            src={video.videoUrl}
-            poster={video.thumbnailUrl ?? undefined}
+            src={resolveMediaUrl(video.videoUrl) ?? video.videoUrl}
+            poster={(resolveMediaUrl(video.thumbnailUrl) ?? video.thumbnailUrl) ?? undefined}
             loop playsInline preload="auto"
             onCanPlay={() => setIsLoaded(true)}
             onClick={togglePause}

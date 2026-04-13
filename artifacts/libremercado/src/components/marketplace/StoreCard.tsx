@@ -3,6 +3,7 @@ import { Star, MapPin, Sparkles } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import type { Store } from "@shared/schema";
+import { resolveMediaUrl } from "@/lib/apiBase";
 
 interface StoreCardProps {
   store: Store;
@@ -18,7 +19,7 @@ export function StoreCard({ store }: StoreCardProps) {
         <div className="relative aspect-[16/9] overflow-hidden bg-muted">
           {store.banner ? (
             <img
-              src={store.banner}
+              src={resolveMediaUrl(store.banner) ?? store.banner}
               alt={store.name}
               className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
             />
@@ -45,7 +46,7 @@ export function StoreCard({ store }: StoreCardProps) {
           {store.logo && (
             <div className="absolute bottom-3 left-3 w-14 h-14 rounded-md bg-card shadow-md overflow-hidden border">
               <img
-                src={store.logo}
+                src={resolveMediaUrl(store.logo) ?? store.logo}
                 alt={`${store.name} logo`}
                 className="w-full h-full object-cover"
               />

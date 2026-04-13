@@ -1,28 +1,23 @@
 import app, { httpServer } from "./app";
 import { logger } from "./lib/logger";
+import { assertProductionConfig } from "./lib/envCheck";
 import { registerRoutes } from "./routes/libremercado";
 import { seedIfEmpty, updateDemoData } from "./database-storage";
 import { travelBookingService } from "./travel/TravelBookingService";
 
-const rawPort = process.env["PORT"];
-
-if (!rawPort) {
-  throw new Error(
-    "PORT environment variable is required but was not provided.",
-  );
-}
-
-const port = Number(rawPort);
+const port = Number(process.env.PORT ?? "5000");
 
 if (Number.isNaN(port) || port <= 0) {
-  throw new Error(`Invalid PORT value: "${rawPort}"`);
+  throw new Error(`Invalid PORT value: "${process.env.PORT}"`);
 }
 
 (async () => {
+  assertProductionConfig();
+
   await registerRoutes(httpServer, app);
-  if (process.env["NODE_ENV"] !== "production") {
+  if (process.env.NODE_ENV !== "production") {
     await seedIfEmpty();
-    if (process.env["SKIP_DEMO_UPDATE"] !== "true") {
+    if (process.env.SKIP_DEMO_UPDATE !== "true") {
       await updateDemoData();
     }
   }

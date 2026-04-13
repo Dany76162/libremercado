@@ -210,7 +210,7 @@ export default function OrderTracking() {
               riderLat={riderLat}
               riderLng={riderLng}
               storeName={store?.name}
-              deliveryAddress={order.address}
+              deliveryAddress={order.address ?? undefined}
               status={currentStatus}
             />
           </CardContent>
