@@ -37,6 +37,8 @@ function Router() {
     <Switch>
       <Route path="/" component={Home} />
       <Route path="/admin" component={PanelRouter} />
+      <Route path="/panel" component={PanelRouter} />
+      <Route path="/panel/admin" component={PanelRouter} />
       <Route path="/explore" component={Explore} />
       <Route path="/videos" component={Videos} />
       <Route path="/store/:id" component={StoreDetails} />
@@ -59,6 +61,7 @@ function Router() {
       <Route path="/terms" component={Terms} />
       <Route path="/privacy" component={Privacy} />
       <Route path="/institucional" component={PanelInstitucional} />
+      <Route path="/panel-institucional" component={PanelInstitucional} />
       <Route path="/vender" component={MerchantOnboarding} />
       <Route path="/repartidor" component={RiderOnboarding} />
       <Route path="/help" component={Help} />
@@ -70,7 +73,8 @@ function Router() {
 function AppLayout() {
   const [isVideos] = useRoute("/videos");
   const [isInstitucional] = useRoute("/institucional");
-  if (isInstitucional) return <Router />;
+  const [isInstitucionalAlias] = useRoute("/panel-institucional");
+  if (isInstitucional || isInstitucionalAlias) return <Router />;
   return (
     <div className={`min-h-screen flex flex-col${isVideos ? " h-screen overflow-hidden" : ""}`}>
       <Navbar />
