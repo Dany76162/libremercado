@@ -10,6 +10,7 @@
     "dev:docker": "docker compose up -d",
     "dev:wait-db": "pnpm exec wait-on tcp:127.0.0.1:5434 -t 120000",
     "db:push": "node scripts/run-db-push.mjs",
+    "demo:seed": "pnpm --filter @workspace/api-server run seed:demo",
     "dev:api": "node scripts/run-api-dev.mjs",
     "dev:web": "node scripts/run-web-dev.mjs",
     "dev": "pnpm run dev:docker && pnpm run dev:wait-db && pnpm run db:push && concurrently -k -n api,web -c cyan,magenta \"pnpm run dev:api\" \"pnpm run dev:web\""
