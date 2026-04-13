@@ -3,9 +3,11 @@ import { pgTable, text, varchar, integer, boolean, timestamp, decimal } from "dr
 import { createInsertSchema } from "drizzle-zod";
 
 export type UserRole = "customer" | "merchant" | "rider" | "admin" | "official";
+export type MarketAccess = "none" | "pending" | "approved";
 export type VehicleType = "moto" | "auto" | "utilitario" | null;
 export type KycStatus = "none" | "pending" | "approved" | "rejected";
 export type SubscriptionTier = "free" | "basic" | "premium";
+export type ProductMarketType = "retail" | "wholesale";
 export type MerchantApplicationStatus = "pending" | "approved" | "rejected";
 export type RiderStatus = "pending" | "approved" | "active" | "inactive";
 export type PromoTargetType = "global" | "province" | "city" | "radius";
@@ -29,6 +31,7 @@ export const users = pgTable("users", {
   termsAccepted: boolean("terms_accepted").notNull().default(false),
   termsAcceptedAt: timestamp("terms_accepted_at"),
   kycStatus: text("kyc_status").$type<KycStatus>().notNull().default("none"),
+  marketAccess: text("market_access").$type<MarketAccess>().notNull().default("none"),
   aiGenerationsUsed: integer("ai_generations_used").notNull().default(0),
   locationProvinciaId: text("location_provincia_id"),
   locationCiudadId: text("location_ciudad_id"),
@@ -119,6 +122,7 @@ export const products = pgTable("products", {
   category: text("category"),
   stock: integer("stock").notNull().default(0),
   isActive: boolean("is_active").notNull().default(true),
+  marketType: text("market_type").$type<ProductMarketType>().notNull().default("retail"),
   attributes: text("attributes"), // JSON object of key-value attributes (e.g. {"Talle":"M","Color":"Rojo"})
   // M2 — Patrocinio comercial
   isSponsored: boolean("is_sponsored").notNull().default(false),

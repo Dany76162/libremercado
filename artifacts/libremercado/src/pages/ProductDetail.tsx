@@ -13,6 +13,7 @@ import { useAuth } from "@/hooks/use-auth";
 import { useIsFavorite, useToggleFavorite } from "@/hooks/use-favorites";
 import type { Product } from "@shared/schema";
 import { apiUrl, resolveMediaUrl } from "@/lib/apiBase";
+import { resolveMarketAccess } from "@/lib/market-access";
 
 interface ProductReel {
   id: string;
@@ -31,15 +32,16 @@ export default function ProductDetail() {
 
   const addItem = useCart((s) => s.addItem);
   const { toast } = useToast();
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated, user } = useAuth();
   const { data: favData } = useIsFavorite(productId, "product");
   const isFav = favData?.isFavorite ?? false;
   const toggleFav = useToggleFavorite();
 
-  const { data: product, isLoading } = useQuery<Product>({
+  const { data: product, isLoading, error } = useQuery<Product>({
     queryKey: ["/api/products", productId],
     queryFn: async () => {
       const res = await fetch(apiUrl(`/api/products/${productId}`));
+      if (res.status === 403) throw new Error("restricted");
       if (!res.ok) throw new Error("Producto no encontrado");
       return res.json();
     },
@@ -115,6 +117,30 @@ export default function ProductDetail() {
   }
 
   if (!product) {
+    const marketStatus = resolveMarketAccess(user);
+    if (error instanceof Error && error.message === "restricted") {
+      return (
+        <div className="min-h-screen flex items-center justify-center px-4">
+          <Card className="max-w-lg w-full">
+            <CardContent className="pt-6 text-center">
+              <h2 className="text-lg font-semibold mb-2">Acceso restringido</h2>
+              <p className="text-muted-foreground mb-6">
+                Este producto pertenece al canal mayorista y solo está disponible para cuentas aprobadas.
+              </p>
+              <div className="flex flex-wrap justify-center gap-3">
+                <Link href={isAuthenticated ? "/account/kyc" : "/auth"}>
+                  <Button>{marketStatus === "pending" ? "Ver estado de verificación" : "Solicitar acceso"}</Button>
+                </Link>
+                <Link href="/explore">
+                  <Button variant="outline">Volver al catálogo general</Button>
+                </Link>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      );
+    }
+
     return (
       <div className="min-h-screen flex items-center justify-center">
         <Card className="max-w-sm w-full mx-4">

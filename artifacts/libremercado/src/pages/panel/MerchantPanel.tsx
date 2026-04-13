@@ -57,6 +57,7 @@ export default function MerchantPanel() {
     category: "",
     stock: 0,
     imageUrl: "",
+    marketType: "retail" as "retail" | "wholesale",
   });
   const [extraImages, setExtraImages] = useState<string[]>([]);
   const [attrs, setAttrs] = useState<{ key: string; value: string }[]>([]);
@@ -136,6 +137,7 @@ export default function MerchantPanel() {
       images: allImages.length > 0 ? JSON.stringify(allImages) : null,
       attributes: Object.keys(attrsObj).length > 0 ? JSON.stringify(attrsObj) : null,
       originalPrice: data.originalPrice || null,
+      marketType: data.marketType,
     };
   };
 
@@ -189,7 +191,7 @@ export default function MerchantPanel() {
   });
 
   const resetProductForm = () => {
-    setProductForm({ name: "", description: "", price: "", originalPrice: "", category: "", stock: 0, imageUrl: "" });
+    setProductForm({ name: "", description: "", price: "", originalPrice: "", category: "", stock: 0, imageUrl: "", marketType: "retail" });
     setExtraImages([]);
     setAttrs([]);
   };
@@ -216,6 +218,7 @@ export default function MerchantPanel() {
       category: product.category || "",
       stock: product.stock ?? 0,
       imageUrl: primaryImg,
+      marketType: product.marketType === "wholesale" ? "wholesale" : "retail",
     });
     setExtraImages(rest);
     setAttrs(existingAttrs);
@@ -414,6 +417,23 @@ export default function MerchantPanel() {
                       data-testid="input-product-stock"
                     />
                   </div>
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="product-market-type">Canal de venta</Label>
+                  <select
+                    id="product-market-type"
+                    value={productForm.marketType}
+                    onChange={(e) => setProductForm({ ...productForm, marketType: e.target.value as "retail" | "wholesale" })}
+                    className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                    data-testid="select-product-market-type"
+                  >
+                    <option value="retail">Minorista</option>
+                    <option value="wholesale">Mayorista</option>
+                  </select>
+                  <p className="text-xs text-muted-foreground">
+                    Los productos mayoristas se ocultan del catálogo público y requieren acceso aprobado.
+                  </p>
                 </div>
 
                 {/* Attributes section */}
@@ -676,9 +696,14 @@ export default function MerchantPanel() {
                   <CardContent className="p-4">
                     <div className="flex justify-between items-start mb-2">
                       <h3 className="font-semibold">{product.name}</h3>
-                      <Badge variant={product.isActive ? "default" : "secondary"}>
-                        {product.isActive ? "Activo" : "Inactivo"}
-                      </Badge>
+                      <div className="flex flex-col items-end gap-1">
+                        <Badge variant={product.isActive ? "default" : "secondary"}>
+                          {product.isActive ? "Activo" : "Inactivo"}
+                        </Badge>
+                        <Badge variant={product.marketType === "wholesale" ? "outline" : "secondary"}>
+                          {product.marketType === "wholesale" ? "Mayorista" : "Minorista"}
+                        </Badge>
+                      </div>
                     </div>
                     {product.description && (
                       <p className="text-sm text-muted-foreground line-clamp-2 mb-2">{product.description}</p>

@@ -49,6 +49,7 @@ import { useLocation as useUserLocation } from "@/hooks/use-location";
 import { useAuth } from "@/hooks/use-auth";
 import { resolveMediaUrl } from "@/lib/apiBase";
 import { CATALOG_CATEGORIES, normalizeCatalogCategory } from "@/lib/catalog";
+import { canAccessWholesaleChannel } from "@/lib/market-access";
 
 const DEFAULT_CATEGORY_IMAGES: Record<string, string> = {
   food: "https://images.unsplash.com/photo-1504674900247-0877df9cc836?w=300&h=200&fit=crop&auto=format&q=80",
@@ -246,13 +247,7 @@ export default function Home() {
   const { data: promoCategories } = usePromoCategories();
   const { data: homeSettings } = useHomeSettings();
 
-  const canAccessProfessionalChannel =
-    !!user &&
-    (
-      user.role === "admin" ||
-      user.role === "official" ||
-      (user.role === "merchant" && user.kycStatus === "approved")
-    );
+  const canAccessProfessionalChannel = canAccessWholesaleChannel(user);
 
   const officialNovedades = useMemo(
     () => (novedadesData ?? []).filter((novedad) => novedad.isOfficial),

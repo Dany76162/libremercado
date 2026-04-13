@@ -31,6 +31,7 @@ import Videos from "@/pages/Videos";
 import ProductDetail from "@/pages/ProductDetail";
 import Help from "@/pages/Help";
 import PanelInstitucional from "@/pages/PanelInstitucional";
+import WholesaleHub from "@/pages/WholesaleHub";
 import NotFound from "@/pages/not-found";
 
 function Router() {
@@ -42,6 +43,8 @@ function Router() {
       <Route path="/panel/admin" component={PanelRouter} />
       <Route path="/explore" component={Explore} />
       <Route path="/videos" component={Videos} />
+      <Route path="/wholesale" component={WholesaleHub} />
+      <Route path="/distributors" component={WholesaleHub} />
       <Route path="/store/:id" component={StoreDetails} />
       <Route path="/product/:id" component={ProductDetail} />
       <Route path="/cart" component={Cart} />

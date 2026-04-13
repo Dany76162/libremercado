@@ -79,6 +79,29 @@ function haversineKm(lat1: number, lng1: number, lat2: number, lng2: number): nu
   return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
 }
 
+type MarketAccessStatus = "none" | "pending" | "approved";
+
+function resolveMarketAccessStatus(user: Awaited<ReturnType<typeof getCurrentUser>> | null): MarketAccessStatus {
+  if (!user) return "none";
+  if (user.role === "admin" || user.role === "official") return "approved";
+  if (user.marketAccess === "approved") return "approved";
+  if (user.marketAccess === "pending") return "pending";
+  if (user.role === "merchant") {
+    if (user.kycStatus === "approved") return "approved";
+    if (user.kycStatus === "pending") return "pending";
+  }
+  return "none";
+}
+
+function canAccessWholesale(user: Awaited<ReturnType<typeof getCurrentUser>> | null): boolean {
+  return resolveMarketAccessStatus(user) === "approved";
+}
+
+function filterVisibleProducts<T extends { marketType?: string | null }>(items: T[], canSeeWholesale: boolean): T[] {
+  if (canSeeWholesale) return items;
+  return items.filter((item) => item.marketType !== "wholesale");
+}
+
 async function getUserSubscriptionTier(userId: string): Promise<string> {
   const stores = await storage.getStoresByOwner(userId);
   if (stores.length > 0) {
@@ -178,6 +201,7 @@ export async function registerRoutes(
         termsAccepted: true,
         termsAcceptedAt: new Date(),
         kycStatus: "none",
+        marketAccess: "none",
       });
 
       // Set session
@@ -376,6 +400,38 @@ export async function registerRoutes(
     res.json({
       status: user.kycStatus,
       documents: documents,
+    });
+  });
+
+  app.get("/api/account/market-access", requireAuth, async (req, res) => {
+    const user = await getCurrentUser(req);
+    if (!user) {
+      return res.status(401).json({ error: "No autenticado" });
+    }
+
+    res.json({
+      status: resolveMarketAccessStatus(user),
+      marketAccess: user.marketAccess,
+      role: user.role,
+      kycStatus: user.kycStatus,
+    });
+  });
+
+  app.patch("/api/admin/users/:userId/market-access", requireRole("admin"), async (req, res) => {
+    const status = req.body?.marketAccess;
+    if (!["none", "pending", "approved"].includes(status)) {
+      return res.status(400).json({ error: "marketAccess inválido" });
+    }
+
+    const updated = await storage.updateUser(req.params.userId, { marketAccess: status });
+    if (!updated) {
+      return res.status(404).json({ error: "Usuario no encontrado" });
+    }
+
+    const { password, passwordResetToken, passwordResetExpiry, ...safeUser } = updated;
+    res.json({
+      ...safeUser,
+      resolvedMarketAccess: resolveMarketAccessStatus(updated),
     });
   });
 
@@ -729,8 +785,9 @@ export async function registerRoutes(
   });
 
   app.get("/api/stores/:id/products", async (req, res) => {
+    const currentUser = await getCurrentUser(req);
     const products = await storage.getProductsByStore(req.params.id);
-    res.json(products);
+    res.json(filterVisibleProducts(products, canAccessWholesale(currentUser)));
   });
 
   app.post("/api/stores", requireRole("merchant", "admin"), async (req, res) => {
@@ -766,8 +823,10 @@ export async function registerRoutes(
   });
 
   app.get("/api/products", async (req, res) => {
+    const currentUser = await getCurrentUser(req);
+    const canSeeWholesale = canAccessWholesale(currentUser);
     const { provinciaId, ciudadId, lat, lng, radiusKm } = req.query;
-    let products = await storage.getProducts();
+    let products = filterVisibleProducts(await storage.getProducts(), canSeeWholesale);
 
     const userLat = lat && typeof lat === "string" ? parseFloat(lat) : null;
     const userLng = lng && typeof lng === "string" ? parseFloat(lng) : null;
@@ -817,8 +876,10 @@ export async function registerRoutes(
   });
 
   app.get("/api/products/featured", async (req, res) => {
+    const currentUser = await getCurrentUser(req);
+    const canSeeWholesale = canAccessWholesale(currentUser);
     const { provinciaId, ciudadId, lat, lng, radiusKm } = req.query;
-    let products = await storage.getFeaturedProducts();
+    let products = filterVisibleProducts(await storage.getFeaturedProducts(), canSeeWholesale);
 
     const userLat = lat && typeof lat === "string" ? parseFloat(lat) : null;
     const userLng = lng && typeof lng === "string" ? parseFloat(lng) : null;
@@ -857,25 +918,64 @@ export async function registerRoutes(
 
   app.get("/api/products/discounted", async (req, res) => {
     try {
+      const currentUser = await getCurrentUser(req);
       const category = req.query.category as string | undefined;
       const limit = parseInt((req.query.limit as string) || "8", 10);
       const result = await storage.getDiscountedProducts(category, limit);
-      res.json(result);
+      const visible = filterVisibleProducts(result, canAccessWholesale(currentUser));
+      res.json(visible);
     } catch (err) {
       res.status(500).json({ error: "Error fetching discounted products" });
     }
   });
 
   app.get("/api/products/:id", async (req, res) => {
+    const currentUser = await getCurrentUser(req);
     const product = await storage.getProduct(req.params.id);
     if (!product) {
       return res.status(404).json({ error: "Product not found" });
     }
+    if (product.marketType === "wholesale" && !canAccessWholesale(currentUser)) {
+      return res.status(403).json({ error: "Acceso restringido al canal mayorista" });
+    }
     res.json(product);
+  });
+
+  app.get("/api/wholesale/products", requireAuth, async (req, res) => {
+    const currentUser = await getCurrentUser(req);
+    if (!currentUser) {
+      return res.status(401).json({ error: "No autenticado" });
+    }
+    if (!canAccessWholesale(currentUser)) {
+      return res.status(403).json({ error: "Acceso restringido al canal mayorista" });
+    }
+
+    const { provinciaId, ciudadId } = req.query;
+    let products = (await storage.getProducts()).filter((product) => product.marketType === "wholesale");
+
+    if (provinciaId && typeof provinciaId === "string") {
+      const stores = await storage.getStores();
+      const storeIds = new Set(
+        stores
+          .filter((store) => {
+            if (store.provinciaId !== provinciaId) return false;
+            if (ciudadId && typeof ciudadId === "string" && store.ciudadId !== ciudadId) return false;
+            return true;
+          })
+          .map((store) => store.id),
+      );
+      products = products.filter((product) => storeIds.has(product.storeId));
+    }
+
+    res.json(products);
   });
 
   app.post("/api/products", requireRole("merchant", "admin"), async (req, res) => {
     try {
+      const currentUser = await getCurrentUser(req);
+      if (req.body?.marketType === "wholesale" && !canAccessWholesale(currentUser)) {
+        return res.status(403).json({ error: "Acceso restringido al canal mayorista" });
+      }
       const product = await storage.createProduct(req.body);
       res.status(201).json(product);
     } catch (error) {
@@ -895,6 +995,14 @@ export async function registerRoutes(
       if (!store || store.ownerId !== user.id) {
         return res.status(403).json({ error: "No tenés permiso para editar este producto" });
       }
+    }
+
+    if (req.body?.marketType === "wholesale" && !canAccessWholesale(user)) {
+      return res.status(403).json({ error: "Tu cuenta todavÃ­a no tiene acceso aprobado al canal mayorista" });
+    }
+
+    if (req.body?.marketType === "wholesale" && !canAccessWholesale(user)) {
+      return res.status(403).json({ error: "Acceso restringido al canal mayorista" });
     }
 
     const updated = await storage.updateProduct(req.params.id, req.body);
@@ -1305,6 +1413,7 @@ export async function registerRoutes(
     category: z.string().optional(),
     stock: z.number().min(0).optional(),
     isActive: z.boolean().optional(),
+    marketType: z.enum(["retail", "wholesale"]).optional(),
   });
 
   app.post("/api/merchant/products", requireRole("merchant", "admin"), async (req, res) => {
@@ -1325,6 +1434,10 @@ export async function registerRoutes(
         return res.status(403).json({ error: "No tenés permiso para agregar productos a esta tienda" });
       }
 
+      if (data.marketType === "wholesale" && !canAccessWholesale(user)) {
+        return res.status(403).json({ error: "Tu cuenta todavÃ­a no tiene acceso aprobado al canal mayorista" });
+      }
+
       const product = await storage.createProduct({
         storeId: data.storeId,
         name: data.name,
@@ -1337,6 +1450,7 @@ export async function registerRoutes(
         category: data.category || null,
         stock: data.stock ?? 0,
         isActive: data.isActive ?? true,
+        marketType: data.marketType ?? "retail",
       } as any);
 
       res.status(201).json(product);
@@ -1627,6 +1741,7 @@ export async function registerRoutes(
 
   // Unified search: products + stores
   app.get("/api/search", async (req, res) => {
+    const currentUser = await getCurrentUser(req);
     const q = String(req.query.q ?? "").trim();
     if (!q || q.length < 2) {
       return res.json({ products: [], stores: [], query: q });
@@ -1636,7 +1751,7 @@ export async function registerRoutes(
       storage.searchProducts(q, category, 20),
       storage.searchStores(q, category, 10),
     ]);
-    res.json({ products, stores: storeResults, query: q });
+    res.json({ products: filterVisibleProducts(products, canAccessWholesale(currentUser)), stores: storeResults, query: q });
   });
 
   // ==================== NOTIFICATIONS ====================

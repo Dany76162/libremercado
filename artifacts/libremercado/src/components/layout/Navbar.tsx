@@ -41,6 +41,7 @@ import { LocationSelector } from "@/components/layout/LocationSelector";
 import { NotificationBell } from "@/components/NotificationBell";
 import { SearchBar } from "@/components/layout/SearchBar";
 import { CATALOG_CATEGORIES, type CatalogCategoryId } from "@/lib/catalog";
+import { canAccessWholesaleChannel } from "@/lib/market-access";
 
 const categoryIcons: Record<CatalogCategoryId, LucideIcon> = {
   electronics: Smartphone,
@@ -69,13 +70,7 @@ export function Navbar() {
   const featuredStoresHref = "/explore?tab=stores&featured=true";
   const isOfficial = isAuthenticated && user?.role === "official";
   const canSeePanel = isAuthenticated && user?.role && user.role !== "customer" && user.role !== "official";
-  const canAccessProfessionalChannel =
-    !!user &&
-    (
-      user.role === "admin" ||
-      user.role === "official" ||
-      (user.role === "merchant" && user.kycStatus === "approved")
-    );
+  const canAccessProfessionalChannel = canAccessWholesaleChannel(user);
   const isVideosRoute = location === "/videos";
 
   if (isVideosRoute) return null;
@@ -191,6 +186,18 @@ export function Navbar() {
                       <Link href={isAuthenticated ? "/account/kyc" : "/vender"}>
                         <span className="block rounded-md px-4 py-2 font-medium text-amber-600 hover-elevate" data-testid="link-mobile-request-professional-access">
                           Solicitar acceso mayorista
+                        </span>
+                      </Link>
+                    </>
+                  )}
+                  {canAccessProfessionalChannel && (
+                    <>
+                      <div className="mt-2 px-4 py-2 text-sm font-semibold text-muted-foreground">
+                        Canal profesional
+                      </div>
+                      <Link href="/wholesale">
+                        <span className="block rounded-md px-4 py-2 font-medium text-emerald-700 hover-elevate" data-testid="link-mobile-wholesale">
+                          Ver mercado mayorista
                         </span>
                       </Link>
                     </>
@@ -545,6 +552,19 @@ export function Navbar() {
                   >
                     <Shield className="h-3 w-3" />
                     Acceso mayorista
+                  </Button>
+                </Link>
+              )}
+              {canAccessProfessionalChannel && (
+                <Link href="/wholesale">
+                  <Button
+                    size="sm"
+                    variant="secondary"
+                    className="gap-1 font-semibold"
+                    data-testid="link-wholesale"
+                  >
+                    <Shield className="h-3 w-3" />
+                    Mercado mayorista
                   </Button>
                 </Link>
               )}

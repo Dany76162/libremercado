@@ -253,6 +253,7 @@ export class MemStorage implements IStorage {
       termsAccepted: true,
       termsAcceptedAt: new Date(),
       kycStatus: "approved",
+      marketAccess: "approved",
       aiGenerationsUsed: 0,
       locationProvinciaId: null,
       locationCiudadId: null,
@@ -276,6 +277,7 @@ export class MemStorage implements IStorage {
       termsAccepted: true,
       termsAcceptedAt: new Date(),
       kycStatus: "approved",
+      marketAccess: "approved",
       aiGenerationsUsed: 0,
       locationProvinciaId: null,
       locationCiudadId: null,
@@ -444,7 +446,7 @@ export class MemStorage implements IStorage {
     ];
     stores.forEach((s) => this.stores.set(s.id, s));
 
-    const products: Product[] = [
+    const products = [
       {
         id: "prod-1",
         storeId: "store-1",
@@ -590,7 +592,7 @@ export class MemStorage implements IStorage {
         isActive: true,
       },
     ];
-    products.forEach((p) => this.products.set(p.id, p));
+    products.forEach((p) => this.products.set(p.id, { marketType: "retail", ...p } as Product));
 
     const promoDefaults = {
       image: null,
@@ -908,7 +910,7 @@ export class MemStorage implements IStorage {
 
   async createUser(insertUser: InsertUser): Promise<User> {
     const id = randomUUID();
-    const user = { id, ...insertUser } as User;
+    const user = { id, marketAccess: "none", ...insertUser } as User;
     this.users.set(id, user);
     return user;
   }
@@ -972,7 +974,7 @@ export class MemStorage implements IStorage {
 
   async createProduct(insertProduct: InsertProduct): Promise<Product> {
     const id = randomUUID();
-    const product = { id, ...insertProduct } as Product;
+    const product = { id, marketType: "retail", ...insertProduct } as Product;
     this.products.set(id, product);
     return product;
   }
