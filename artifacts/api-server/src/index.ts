@@ -11,6 +11,71 @@ if (Number.isNaN(port) || port <= 0) {
   throw new Error(`Invalid PORT value: "${process.env.PORT}"`);
 }
 
+function parseErrorDetails(err: unknown) {
+  if (err instanceof Error) {
+    const errorWithCode = err as Error & { code?: string };
+    return {
+      message: err.message,
+      stack: err.stack,
+      code: errorWithCode.code,
+    };
+  }
+  return { message: String(err) };
+}
+
+function startTravelExpiryJob(): void {
+  const disabled =
+    process.env.DISABLE_TRAVEL_EXPIRY_JOB === "1" ||
+    process.env.DISABLE_TRAVEL_EXPIRY_JOB === "true";
+  if (disabled) {
+    logger.warn("[travel:expiry] Job disabled by DISABLE_TRAVEL_EXPIRY_JOB");
+    return;
+  }
+
+  const intervalMs = Number(process.env.TRAVEL_EXPIRY_INTERVAL_MS ?? "60000");
+  let running = false;
+
+  const runTick = async () => {
+    if (running) {
+      logger.warn("[travel:expiry] Previous run still in progress; skipping this tick");
+      return;
+    }
+    running = true;
+    const startedAt = Date.now();
+    try {
+      const freed = await travelBookingService.expireOldReservations();
+      const durationMs = Date.now() - startedAt;
+      logger.info(
+        { freed, durationMs },
+        "[travel:expiry] Job run completed"
+      );
+    } catch (err: unknown) {
+      const details = parseErrorDetails(err);
+      const code = (details as { code?: string }).code;
+      // 42P01: undefined_table (Drizzle/PG) - common during migrations mismatch.
+      if (code === "42P01") {
+        logger.error(
+          { ...details },
+          "[travel:expiry] Missing DB table. Job degraded safely; HTTP server remains healthy."
+        );
+      } else {
+        logger.error(
+          { ...details },
+          "[travel:expiry] Failed to run expiry job"
+        );
+      }
+    } finally {
+      running = false;
+    }
+  };
+
+  const timer = setInterval(() => {
+    void runTick();
+  }, intervalMs);
+  timer.unref();
+  void runTick();
+}
+
 (async () => {
   assertProductionConfig();
 
@@ -24,19 +89,6 @@ if (Number.isNaN(port) || port <= 0) {
 
   httpServer.listen(port, "0.0.0.0", () => {
     logger.info({ port }, "Server listening");
-
-    // ─── Travel: periodic seat expiry job ─────────────────────────────────────
-    // Frees seats that were reserved but never paid (TTL = 15 min).
-    // Runs every 60 seconds so inventory stays clean without relying on booking flow.
-    setInterval(async () => {
-      try {
-        const freed = await travelBookingService.expireOldReservations();
-        if (freed > 0) {
-          logger.info({ freed }, "[travel:expiry] Released stale reserved seats");
-        }
-      } catch (err: any) {
-        logger.warn({ err: err.message }, "[travel:expiry] Failed to run expiry job");
-      }
-    }, 60_000);
+    startTravelExpiryJob();
   });
 })();

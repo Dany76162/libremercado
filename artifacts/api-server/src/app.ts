@@ -18,6 +18,18 @@ const app: Express = express();
 const httpServer = createServer(app);
 app.set("trust proxy", process.env.TRUST_PROXY === "0" ? false : true);
 
+type AsyncMiddleware = (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => Promise<unknown>;
+
+function withAsyncErrorHandling(fn: AsyncMiddleware) {
+  return (req: Request, res: Response, next: NextFunction) => {
+    Promise.resolve(fn(req, res, next)).catch(next);
+  };
+}
+
 // Railway default checks often probe "/" or "/health".
 app.get("/", (_req, res) => {
   res.status(200).json({ status: "ok", service: "api-server" });
@@ -75,7 +87,8 @@ app.use(
       if (isOriginAllowed(origin)) {
         return callback(null, true);
       }
-      callback(new Error(`CORS: origin '${origin}' not allowed`));
+      logger.warn({ origin }, "CORS origin rejected");
+      callback(null, false);
     },
     credentials: true,
   })
@@ -108,7 +121,7 @@ export const forgotPasswordLimiter = rateLimit({
 // Payment webhook — provider-agnostic route. Must be before express.json()
 // Legacy alias kept for backward compat with existing Stripe dashboard config.
 const webhookHandler = express.raw({ type: "application/json" });
-const processWebhook = async (req: any, res: any) => {
+const processWebhook = withAsyncErrorHandling(async (req: any, res: any) => {
   const signature = req.headers["stripe-signature"] as string | string[] | undefined;
   if (!signature) {
     return res.status(400).json({ error: "Missing webhook signature" });
@@ -123,7 +136,7 @@ const processWebhook = async (req: any, res: any) => {
   } catch {
     res.status(400).json({ error: "Webhook processing error" });
   }
-};
+});
 
 // Primary provider-agnostic path
 app.post("/api/payments/webhook", webhookHandler, processWebhook);
@@ -134,7 +147,9 @@ app.post("/api/stripe/webhook", webhookHandler, processWebhook);
 app.use("/uploads", express.static("uploads"));
 
 // Proxy de objetos en R2 (producción). En USE_LOCAL_UPLOADS las URLs van a /uploads/...
-app.get(/^\/api\/files\/(.+)$/, async (req: any, res: any) => {
+app.get(
+  /^\/api\/files\/(.+)$/,
+  withAsyncErrorHandling(async (req: any, res: any) => {
   const useLocal =
     process.env.USE_LOCAL_UPLOADS === "true" ||
     process.env.USE_LOCAL_UPLOADS === "1";
@@ -171,7 +186,8 @@ app.get(/^\/api\/files\/(.+)$/, async (req: any, res: any) => {
     logger.error({ err }, "Error sirviendo objeto R2");
     res.status(500).json({ error: "Error al servir el archivo" });
   }
-});
+  })
+);
 
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
@@ -210,13 +226,12 @@ app.use(
 app.use("/api", router);
 
 app.use((err: any, _req: Request, res: Response, next: NextFunction) => {
-  const status = err.status || err.statusCode || 500;
-  const message = err.message || "Internal Server Error";
-  logger.error({ err }, "Internal Server Error");
+  logger.error({ err }, "Unhandled application error");
+  console.error(err);
   if (res.headersSent) {
     return next(err);
   }
-  return res.status(status).json({ message });
+  return res.status(500).json({ error: "Internal server error" });
 });
 
 setupWebSocket(httpServer);
