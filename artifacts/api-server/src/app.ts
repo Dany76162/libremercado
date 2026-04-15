@@ -74,11 +74,28 @@ function isOriginAllowed(origin: string | undefined): boolean {
     explicit.push(process.env.ALLOWED_ORIGIN.trim());
   }
 
-  if (explicit.length > 0) {
-    return explicit.includes(origin);
+  if (explicit.length > 0 && explicit.includes(origin)) {
+    return true;
   }
 
-  return /^https?:\/\/localhost(:\d+)?$/.test(origin);
+  // Allow any vercel.app preview deployment for this project
+  // Matches: https://libremercado-*.vercel.app and https://libremercado-*-daniels-projects-*.vercel.app
+  const vercelPattern = /^https:\/\/libremercado(-[a-z0-9]+)*(-daniels-projects-[a-z0-9]+)?\.vercel\.app$/;
+  if (vercelPattern.test(origin)) {
+    return true;
+  }
+
+  // Localhost always allowed in dev
+  if (/^https?:\/\/localhost(:\d+)?$/.test(origin)) {
+    return true;
+  }
+
+  // If explicit list provided but origin not in it, reject
+  if (explicit.length > 0) {
+    return false;
+  }
+
+  return false;
 }
 
 app.use(
