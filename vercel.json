@@ -1,5 +1,6 @@
-﻿{
-  "buildCommand": "pnpm install && pnpm --filter libremercado build",
+{
+  "installCommand": "pnpm install --frozen-lockfile",
+  "buildCommand": "pnpm --filter @workspace/libremercado build",
   "outputDirectory": "artifacts/libremercado/dist",
   "rewrites": [
     {
