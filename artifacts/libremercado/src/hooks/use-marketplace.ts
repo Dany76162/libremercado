@@ -1,7 +1,7 @@
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import { apiUrl } from "@/lib/apiBase";
-import type { Store, Product, Order, Promo, TravelOffer, InsertStore, InsertProduct, InsertOrder } from "@shared/schema";
+import type { Store, Product, Order, Promo, TravelOffer, VideoFeedItem, InsertStore, InsertProduct, InsertOrder } from "@shared/schema";
 
 interface LocationFilter {
   provinciaId?: string | null;
@@ -10,6 +10,7 @@ interface LocationFilter {
   lng?: number | null;
   radiusKm?: number | null;
   useGps?: boolean;
+  mode?: string;
 }
 
 function buildLocationParams(location?: LocationFilter): URLSearchParams {
@@ -25,6 +26,9 @@ function buildLocationParams(location?: LocationFilter): URLSearchParams {
     if (location.ciudadId) {
       params.set("ciudadId", location.ciudadId);
     }
+  }
+  if (location.mode) {
+    params.set("mode", location.mode);
   }
   return params;
 }
@@ -84,8 +88,8 @@ export function useProducts(location?: LocationFilter) {
   const queryString = params.toString();
   const url = queryString ? `/api/products?${queryString}` : "/api/products";
   const key = location?.useGps
-    ? ["/api/products", "gps", location.lat, location.lng, location.radiusKm]
-    : ["/api/products", location?.provinciaId, location?.ciudadId];
+    ? ["/api/products", "gps", location.lat, location.lng, location.radiusKm, location.mode]
+    : ["/api/products", location?.provinciaId, location?.ciudadId, location?.mode];
 
   return useQuery<Product[]>({
     queryKey: key,
@@ -102,8 +106,8 @@ export function useFeaturedProducts(location?: LocationFilter) {
   const queryString = params.toString();
   const url = queryString ? `/api/products/featured?${queryString}` : "/api/products/featured";
   const key = location?.useGps
-    ? ["/api/products/featured", "gps", location.lat, location.lng, location.radiusKm]
-    : ["/api/products/featured", location?.provinciaId, location?.ciudadId];
+    ? ["/api/products/featured", "gps", location.lat, location.lng, location.radiusKm, location.mode]
+    : ["/api/products/featured", location?.provinciaId, location?.ciudadId, location?.mode];
 
   return useQuery<Product[]>({
     queryKey: key,
@@ -270,13 +274,14 @@ export function useUpdateOrder() {
   });
 }
 
-export function useDiscountedProducts(category?: string, limit = 8) {
+export function useDiscountedProducts(category?: string, limit = 8, mode?: string) {
   const params = new URLSearchParams();
   if (category) params.set("category", category);
   params.set("limit", String(limit));
+  if (mode) params.set("mode", mode);
   return useQuery<Product[]>({
-    queryKey: ["/api/products/discounted", category, limit],
-    queryFn: () => fetch(apiUrl(`/api/products/discounted?${params.toString()}`)).then((r) => r.json()),
+    queryKey: ["/api/products/discounted", category, limit, mode],
+    queryFn: () => fetch(apiUrl(`/api/products/discounted?${params.toString()}`), { credentials: "include" }).then((r) => r.json()),
   });
 }
 
@@ -297,5 +302,28 @@ export function useNovedades(filters?: { provincia?: string; official?: boolean;
   return useQuery<import("@/components/feed/NovedadCard").Novedad[]>({
     queryKey: ["/api/novedades", qs],
     queryFn: () => fetch(apiUrl(`/api/novedades${qs ? `?${qs}` : ""}`)).then((r) => r.json()),
+  });
+}
+
+export function useVideoFeed(filters?: {
+  provinciaId?: string;
+  ciudadId?: string;
+  storeId?: string;
+  productId?: string;
+  limit?: number;
+  offset?: number;
+}) {
+  const params = new URLSearchParams();
+  if (filters?.provinciaId) params.set("provinciaId", filters.provinciaId);
+  if (filters?.ciudadId) params.set("ciudadId", filters.ciudadId);
+  if (filters?.storeId) params.set("storeId", filters.storeId);
+  if (filters?.productId) params.set("productId", filters.productId);
+  if (filters?.limit) params.set("limit", String(filters.limit));
+  if (filters?.offset) params.set("offset", String(filters.offset));
+
+  const qs = params.toString();
+  return useQuery<VideoFeedItem[]>({
+    queryKey: ["/api/videos/feed", qs],
+    queryFn: () => fetch(apiUrl(`/api/videos/feed${qs ? `?${qs}` : ""}`)).then((r) => r.json()),
   });
 }

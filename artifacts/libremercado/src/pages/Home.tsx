@@ -1,28 +1,5 @@
-import { useMemo, useState } from "react";
-import {
-  ArrowRight,
-  Bike,
-  Building2,
-  CreditCard,
-  MapPin,
-  Pill,
-  Plane,
-  Shield,
-  ShoppingCart,
-  Smartphone,
-  Sparkles,
-  Store,
-  Shirt,
-  Tag,
-  Truck,
-  UtensilsCrossed,
-  PawPrint,
-  Home as HomeIcon,
-  Bus,
-  type LucideIcon,
-  Lock,
-  BadgeCheck,
-} from "lucide-react";
+import { useState } from "react";
+import { ArrowRight, Truck, Shield, Clock, CreditCard, Package, UtensilsCrossed, ShoppingCart, Pill, Smartphone, Shirt, Home as HomeIcon, Sparkles, PawPrint, Bus, MapPin, Store, Bike, Tag, Plane, Zap, Smile, ChevronLeft, ChevronRight, BadgeCheck, type LucideIcon } from "lucide-react";
 import { Link } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -34,22 +11,10 @@ import { NovedadCard } from "@/components/feed/NovedadCard";
 import { ProductCard } from "@/components/marketplace/ProductCard";
 import { StoreCard } from "@/components/marketplace/StoreCard";
 import { TravelModal } from "@/components/travel/TravelModal";
-import {
-  useFeaturedProducts,
-  useFeaturedStores,
-  useStores,
-  usePromoBanners,
-  usePromoNotices,
-  usePromoCategories,
-  useDiscountedProducts,
-  useHomeSettings,
-  useNovedades,
-} from "@/hooks/use-marketplace";
+import { ReelMarkSection } from "@/components/feed/ReelMarkSection";
+import { useFeaturedProducts, useFeaturedStores, useStores, usePromoBanners, usePromoNotices, usePromoCategories, useDiscountedProducts, useHomeSettings, useNovedades } from "@/hooks/use-marketplace";
 import { useLocation as useUserLocation } from "@/hooks/use-location";
-import { useAuth } from "@/hooks/use-auth";
 import { resolveMediaUrl } from "@/lib/apiBase";
-import { CATALOG_CATEGORIES, normalizeCatalogCategory } from "@/lib/catalog";
-import { canAccessWholesaleChannel } from "@/lib/market-access";
 
 const DEFAULT_CATEGORY_IMAGES: Record<string, string> = {
   food: "https://images.unsplash.com/photo-1504674900247-0877df9cc836?w=300&h=200&fit=crop&auto=format&q=80",
@@ -62,25 +27,24 @@ const DEFAULT_CATEGORY_IMAGES: Record<string, string> = {
   pets: "https://images.unsplash.com/photo-1415369629372-26f2fe60c467?w=300&h=200&fit=crop&auto=format&q=80",
 };
 
-const categoryIcons: Record<string, LucideIcon> = {
-  food: UtensilsCrossed,
-  grocery: ShoppingCart,
-  pharmacy: Pill,
-  electronics: Smartphone,
-  fashion: Shirt,
-  home: HomeIcon,
-  beauty: Sparkles,
-  pets: PawPrint,
-};
+interface CategoryDef {
+  id: string;
+  name: string;
+  icon: LucideIcon;
+  queryCategory: string;
+  link: string;
+  fallbackImage: string;
+  discountLabel: string;
+}
 
-const LARGE_CATEGORIES = [
+const LARGE_CATEGORIES: CategoryDef[] = [
   {
     id: "electronics-mobile",
     name: "Celulares y Tablets",
     icon: Smartphone,
     queryCategory: "celulares",
     link: "/explore?category=electronics",
-    fallbackImage: "https://images.unsplash.com/photo-1610945415295-d9bbf067e59c?w=420&h=280&fit=crop&auto=format&q=80",
+    fallbackImage: "https://images.unsplash.com/photo-1610945415295-d9bbf067e59c?w=400&h=280&fit=crop&auto=format&q=80",
     discountLabel: "Hasta 40% OFF",
   },
   {
@@ -89,7 +53,7 @@ const LARGE_CATEGORIES = [
     icon: Smartphone,
     queryCategory: "computacion",
     link: "/explore?category=electronics",
-    fallbackImage: "https://images.unsplash.com/photo-1593642632559-0c6d3fc62b89?w=420&h=280&fit=crop&auto=format&q=80",
+    fallbackImage: "https://images.unsplash.com/photo-1593642632559-0c6d3fc62b89?w=400&h=280&fit=crop&auto=format&q=80",
     discountLabel: "Hasta 40% OFF",
   },
   {
@@ -98,7 +62,7 @@ const LARGE_CATEGORIES = [
     icon: Shirt,
     queryCategory: "zapatillas",
     link: "/explore?category=fashion",
-    fallbackImage: "https://images.unsplash.com/photo-1542291026-7eec264c27ff?w=420&h=280&fit=crop&auto=format&q=80",
+    fallbackImage: "https://images.unsplash.com/photo-1542291026-7eec264c27ff?w=400&h=280&fit=crop&auto=format&q=80",
     discountLabel: "Hasta 40% OFF",
   },
   {
@@ -107,116 +71,137 @@ const LARGE_CATEGORIES = [
     icon: Shirt,
     queryCategory: "ropa",
     link: "/explore?category=fashion",
-    fallbackImage: "https://images.unsplash.com/photo-1490481651871-ab68de25d43d?w=420&h=280&fit=crop&auto=format&q=80",
+    fallbackImage: "https://images.unsplash.com/photo-1490481651871-ab68de25d43d?w=400&h=280&fit=crop&auto=format&q=80",
     discountLabel: "Hasta 40% OFF",
   },
+];
+
+const SMALL_CATEGORIES: { id: string; name: string; icon: LucideIcon }[] = [
+  { id: "food", name: "Comida", icon: UtensilsCrossed },
+  { id: "grocery", name: "Supermercado", icon: ShoppingCart },
+  { id: "pharmacy", name: "Farmacia", icon: Pill },
+  { id: "electronics", name: "Electrónica", icon: Smartphone },
+  { id: "fashion", name: "Moda", icon: Shirt },
+  { id: "home", name: "Hogar", icon: HomeIcon },
+  { id: "beauty", name: "Belleza", icon: Sparkles },
+  { id: "pets", name: "Mascotas", icon: PawPrint },
 ];
 
 const benefitCards = [
   {
     icon: CreditCard,
-    title: "Cuotas y pagos flexibles",
-    description: "Campañas, descuentos y opciones de pago sin fricción para impulsar conversión.",
+    accentIcon: Smile,
+    iconAnim: "animate-card-tap",
+    accentIconAnim: "animate-wink",
+    badge: "FINANCIACIÓN",
+    stat: "18",
+    statSuffix: "x",
+    title: "Sin interés",
+    description: "Pagá en cuotas sin recargo con todas las tarjetas",
+    cta: "Ver cuotas",
     gradient: "from-[#f59e0b] via-[#d97706] to-[#b45309]",
+    glowColor: "rgba(251,191,36,0.4)",
+    orb1: "bg-yellow-300/25",
+    orb2: "bg-amber-200/20",
+    link: null,
+    travelTab: null,
   },
   {
     icon: Truck,
-    title: "Cobertura logística",
-    description: "Experiencia lista para delivery, comercios locales y expansión por zonas.",
+    accentIcon: Bike,
+    iconAnim: "animate-truck-drive",
+    accentIconAnim: "animate-bike-zip",
+    badge: "LOGÍSTICA",
+    stat: "24",
+    statSuffix: "hs",
+    title: "Envío express",
+    description: "Recibí tu pedido al día siguiente en todo el país",
+    cta: "Cómo funciona",
     gradient: "from-[#059669] via-[#047857] to-[#065f46]",
+    glowColor: "rgba(16,185,129,0.4)",
+    orb1: "bg-emerald-300/25",
+    orb2: "bg-green-200/20",
+    link: null,
+    travelTab: null,
   },
   {
     icon: Plane,
-    title: "Viajes y servicios",
-    description: "La plataforma ya convive con verticales como vuelos, micros y oportunidades regionales.",
+    accentIcon: Bus,
+    iconAnim: "animate-plane-takeoff",
+    accentIconAnim: "animate-bus-drive",
+    badge: "VIAJES",
+    stat: "500",
+    statSuffix: "+",
+    title: "Destinos",
+    description: "Micros y vuelos al mejor precio desde cualquier provincia",
+    cta: "Buscar viaje",
     gradient: "from-[#2563eb] via-[#1d4ed8] to-[#1e3a8a]",
-    travelTab: "bus" as const,
+    glowColor: "rgba(59,130,246,0.4)",
+    orb1: "bg-blue-300/25",
+    orb2: "bg-sky-200/20",
+    link: null,
+    travelTab: "bus",
   },
 ];
 
-function LargeCategoryCard({
-  name,
-  queryCategory,
-  link,
-  fallbackImage,
-  discountLabel,
-}: {
-  name: string;
-  queryCategory: string;
-  link: string;
-  fallbackImage: string;
-  discountLabel: string;
-}) {
-  const { data: discounted, isLoading } = useDiscountedProducts(queryCategory, 4);
+function LargeCategoryCard({ cat }: { cat: CategoryDef }) {
+  const { data: discounted, isLoading } = useDiscountedProducts(cat.queryCategory, 4);
   const firstProduct = discounted?.[0];
   const productImages = (discounted ?? [])
-    .map((product) => {
-      try {
-        return (JSON.parse(product.images || "[]") as string[])[0];
-      } catch {
-        return product.images || product.image || "";
-      }
+    .map((p) => {
+      try { return (JSON.parse(p.images || "[]") as string[])[0]; } catch { return p.images || ""; }
     })
     .filter(Boolean)
     .slice(0, 4);
 
-  const heroImage = productImages[0] || fallbackImage;
+  const heroImage = productImages[0] || cat.fallbackImage;
 
   const discountPct = firstProduct && firstProduct.originalPrice
     ? Math.round((1 - parseFloat(firstProduct.price) / parseFloat(firstProduct.originalPrice)) * 100)
     : null;
 
   return (
-    <Link href={link}>
-      <Card className="group h-full cursor-pointer overflow-hidden rounded-[24px] border border-border/50 bg-card shadow-sm transition-all duration-300 hover:-translate-y-1 hover:shadow-lg" data-testid={`card-category-promo-${queryCategory}`}>
-        <div className="relative h-[220px] overflow-hidden bg-muted">
+    <Link href={cat.link}>
+      <Card className="hover-elevate cursor-pointer h-full overflow-hidden group" data-testid={`card-category-promo-${cat.id}`}>
+        <div className="relative h-[180px] bg-muted overflow-hidden">
           <img
             src={resolveMediaUrl(heroImage) ?? heroImage}
-            alt={name}
-            className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
-            onError={(e) => {
-              (e.target as HTMLImageElement).src = fallbackImage;
-            }}
+            alt={cat.name}
+            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+            onError={(e) => { (e.target as HTMLImageElement).src = cat.fallbackImage; }}
           />
-          <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent" />
-          <div className="absolute left-4 top-4">
-            <Badge className="bg-white text-slate-900 shadow">
-              {discountPct ? `Hasta ${discountPct}% OFF` : discountLabel}
-            </Badge>
-          </div>
-          <div className="absolute bottom-4 left-4 right-4">
-            <h3 className="text-lg font-bold text-white">{name}</h3>
-            <p className="mt-1 text-sm text-white/80">
-              {isLoading ? "Cargando oportunidades..." : `${discounted?.length ?? 0} productos con descuento`}
-            </p>
-          </div>
-        </div>
-      </Card>
-    </Link>
-  );
-}
-
-function PromoCategoryCard({
-  promo,
-  image,
-}: {
-  promo: { id: string; title: string; description?: string | null; discount?: string | null; link?: string | null };
-  image: string;
-}) {
-  return (
-    <Link href={promo.link || "/explore"}>
-      <Card className="group h-full cursor-pointer overflow-hidden rounded-[24px] border border-border/50 bg-card shadow-sm transition-all duration-300 hover:-translate-y-1 hover:shadow-lg" data-testid={`card-promo-category-${promo.id}`}>
-        <div className="relative h-48 overflow-hidden">
-          <img src={resolveMediaUrl(image) ?? image} alt={promo.title} className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105" />
-          <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/30 to-transparent" />
-          <div className="absolute inset-x-4 bottom-4">
-            {promo.discount && (
-              <Badge className="mb-2 bg-white/90 text-slate-900">{promo.discount}</Badge>
+          <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent" />
+          {productImages.length > 1 && (
+            <div className="absolute bottom-2 right-2 flex gap-1">
+              {productImages.slice(1, 4).map((img, i) => (
+                <div key={i} className="w-10 h-10 rounded border-2 border-white/70 overflow-hidden bg-muted">
+                  <img src={resolveMediaUrl(img) ?? img} alt="" className="w-full h-full object-cover" onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }} />
+                </div>
+              ))}
+            </div>
+          )}
+          <div className="absolute top-2 left-2">
+            {isLoading ? (
+              <Skeleton className="h-5 w-20" />
+            ) : (
+              <Badge className="bg-primary text-white font-bold text-xs shadow">
+                {discountPct ? `Hasta ${discountPct}% OFF` : cat.discountLabel}
+              </Badge>
             )}
-            <h3 className="text-lg font-bold text-white">{promo.title}</h3>
-            {promo.description && <p className="mt-1 text-sm text-white/80 line-clamp-2">{promo.description}</p>}
           </div>
         </div>
+        <CardContent className="p-3">
+          <h3 className="font-semibold text-foreground text-sm">{cat.name}</h3>
+          {firstProduct && (
+            <p className="text-xs text-muted-foreground line-clamp-1 mt-0.5">{firstProduct.name}</p>
+          )}
+          <div className="flex items-center gap-1 mt-1">
+            <Tag className="h-3 w-3 text-primary" />
+            <span className="text-xs text-primary font-medium">
+              {isLoading ? "Cargando..." : `${discounted?.length ?? 0} productos en oferta`}
+            </span>
+          </div>
+        </CardContent>
       </Card>
     </Link>
   );
@@ -224,19 +209,17 @@ function PromoCategoryCard({
 
 export default function Home() {
   const [travelModal, setTravelModal] = useState<{ open: boolean; tab: "bus" | "flights" }>({ open: false, tab: "bus" });
-  const { user, isAuthenticated } = useAuth();
   const { provinciaId, ciudadId, locationName, useGps, lat, lng, radiusKm } = useUserLocation();
-
   const locationFilter = useGps && lat && lng
     ? { useGps: true, lat, lng, radiusKm }
     : provinciaId
-      ? { provinciaId, ciudadId }
-      : undefined;
+    ? { provinciaId, ciudadId }
+    : undefined;
   const bannerLocationFilter = useGps && lat && lng
     ? { lat, lng, provinciaId, ciudadId }
     : provinciaId
-      ? { provinciaId, ciudadId }
-      : undefined;
+    ? { provinciaId, ciudadId }
+    : undefined;
 
   const { data: products, isLoading: productsLoading } = useFeaturedProducts(locationFilter);
   const { data: featuredStores, isLoading: featuredStoresLoading } = useFeaturedStores(locationFilter);
@@ -247,47 +230,69 @@ export default function Home() {
   const { data: promoCategories } = usePromoCategories();
   const { data: homeSettings } = useHomeSettings();
 
-  const canAccessProfessionalChannel = canAccessWholesaleChannel(user);
-
-  const officialNovedades = useMemo(
-    () => (novedadesData ?? []).filter((novedad) => novedad.isOfficial),
-    [novedadesData],
-  );
-  const marketNovedades = useMemo(
-    () => (novedadesData ?? []).filter((novedad) => !novedad.isOfficial),
-    [novedadesData],
-  );
-
-  const professionalRequestHref = isAuthenticated ? "/account/kyc" : "/vender";
-
   return (
-    <div className="min-h-screen bg-[linear-gradient(180deg,rgba(248,250,252,0.95)_0%,rgba(248,250,252,0.62)_24%,rgba(248,250,252,1)_100%)]">
-      <section className="px-4 pb-4 pt-5 max-w-7xl mx-auto">
+    <div className="min-h-screen bg-muted/30">
+      <section className="px-4 py-4 max-w-7xl mx-auto">
         {bannersLoading ? (
-          <Skeleton className="w-full h-[460px] rounded-[28px]" />
+          <Skeleton className="w-full aspect-[21/9] md:aspect-[21/6] rounded-md" />
         ) : (
           <PromoBanner promos={banners ?? []} />
         )}
       </section>
 
       <section className="px-4 py-3 max-w-7xl mx-auto">
-        <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           {benefitCards.map((card, index) => {
-            const content = (
+            const inner = (
               <div
-                key={card.title}
-                className={`relative overflow-hidden rounded-[24px] bg-gradient-to-r ${card.gradient} p-5 text-white shadow-[0_18px_50px_rgba(15,23,42,0.16)] transition-transform duration-300 hover:-translate-y-1`}
+                key={index}
                 data-testid={`card-benefit-${index}`}
+                className={`
+                  relative overflow-hidden rounded-xl cursor-pointer
+                  bg-gradient-to-r ${card.gradient}
+                  transition-all duration-300 ease-out
+                  hover:scale-[1.02] hover:brightness-110
+                  group
+                `}
+                style={{ boxShadow: `0 2px 16px 0 ${card.glowColor}` }}
               >
-                <div className="absolute -right-8 -top-8 h-28 w-28 rounded-full bg-white/10 blur-2xl" />
-                <div className="relative flex items-start gap-4">
-                  <div className="rounded-2xl bg-white/18 p-3">
-                    <card.icon className="h-6 w-6" />
+                {/* Decorative orb right side */}
+                <div className={`absolute -top-6 -right-6 w-28 h-28 rounded-full blur-2xl ${card.orb1}`} />
+                {/* Gloss shine */}
+                <div className="absolute top-0 left-0 right-0 h-1/2 bg-gradient-to-b from-white/10 to-transparent pointer-events-none" />
+
+                <div className="relative z-10 px-4 py-3 flex items-center gap-3">
+                  {/* Icon area — single or dual animated */}
+                  {card.accentIcon ? (
+                    <div className="shrink-0 flex gap-1.5">
+                      <div className="w-10 h-10 rounded-xl bg-white/20 backdrop-blur-sm border border-white/25 flex items-center justify-center shadow-inner overflow-hidden">
+                        <card.icon className={`h-5 w-5 text-white drop-shadow ${card.iconAnim}`} />
+                      </div>
+                      <div className="w-10 h-10 rounded-xl bg-white/15 backdrop-blur-sm border border-white/20 flex items-center justify-center shadow-inner overflow-hidden">
+                        <card.accentIcon className={`h-5 w-5 text-white/90 drop-shadow ${card.accentIconAnim}`} />
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="shrink-0 w-11 h-11 rounded-xl bg-white/20 backdrop-blur-sm border border-white/25 flex items-center justify-center shadow-inner">
+                      <card.icon className="h-5 w-5 text-white drop-shadow" />
+                    </div>
+                  )}
+
+                  {/* Text block */}
+                  <div className="flex-1 min-w-0">
+                    <p className="text-[10px] font-bold tracking-widest text-white/60 uppercase leading-none mb-0.5">
+                      {card.badge}
+                    </p>
+                    <div className="flex items-baseline gap-1">
+                      <span className="text-2xl font-black text-white leading-none">{card.stat}</span>
+                      <span className="text-sm font-bold text-white/75 leading-none">{card.statSuffix}</span>
+                    </div>
+                    <p className="text-xs font-semibold text-white leading-tight">{card.title}</p>
                   </div>
-                  <div>
-                    <p className="text-xs font-semibold uppercase tracking-[0.18em] text-white/70">Beneficio plataforma</p>
-                    <h3 className="mt-2 text-lg font-black">{card.title}</h3>
-                    <p className="mt-1 text-sm leading-6 text-white/82">{card.description}</p>
+
+                  {/* Arrow */}
+                  <div className="shrink-0 w-7 h-7 rounded-full bg-white/15 border border-white/20 flex items-center justify-center transition-transform duration-200 group-hover:translate-x-1">
+                    <ArrowRight className="h-3.5 w-3.5 text-white" />
                   </div>
                 </div>
               </div>
@@ -295,18 +300,15 @@ export default function Home() {
 
             if (card.travelTab) {
               return (
-                <button
-                  type="button"
-                  key={card.title}
-                  onClick={() => setTravelModal({ open: true, tab: card.travelTab })}
-                  className="text-left"
-                >
-                  {content}
-                </button>
+                <div key={index} onClick={() => setTravelModal({ open: true, tab: card.travelTab as "bus" | "flights" })}>
+                  {inner}
+                </div>
               );
             }
-
-            return content;
+            if (card.link) {
+              return <Link key={index} href={card.link}>{inner}</Link>;
+            }
+            return <div key={index}>{inner}</div>;
           })}
         </div>
       </section>
@@ -320,58 +322,58 @@ export default function Home() {
         </section>
       )}
 
-      <section className="px-4 py-5 max-w-7xl mx-auto">
-        <div className="mb-4 flex items-end justify-between gap-4">
-          <div>
-            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-primary">Categorías clave</p>
-            <h2 className="mt-1 text-2xl font-black">Entradas rápidas al catálogo</h2>
-            <p className="mt-1 text-sm text-muted-foreground">Cada acceso te lleva al sector correcto del marketplace, con filtros alineados y navegación coherente.</p>
-          </div>
+      <section className="px-4 py-4 max-w-7xl mx-auto">
+        <div className="flex items-center justify-between mb-3">
+          <h2 className="text-lg font-bold">Categorías en oferta</h2>
           <Link href="/explore">
-            <Button variant="ghost" size="sm">
-              Ver todo
-              <ArrowRight className="ml-1 h-4 w-4" />
-            </Button>
+            <Button variant="ghost" size="sm">Ver todo <ArrowRight className="h-4 w-4 ml-1" /></Button>
           </Link>
         </div>
-
-        <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
-          {LARGE_CATEGORIES.map((category) => (
-            <LargeCategoryCard key={category.id} {...category} />
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          {LARGE_CATEGORIES.map((cat) => (
+            <LargeCategoryCard key={cat.id} cat={cat} />
           ))}
         </div>
       </section>
+      
+      <ReelMarkSection />
 
-      <section className="px-4 py-5 max-w-7xl mx-auto">
-        <div className="mb-4 flex items-end justify-between gap-4">
-          <div>
-            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-primary">Navegación inteligente</p>
-            <h2 className="mt-1 text-2xl font-black">Rubros para explorar sin fricción</h2>
-          </div>
-        </div>
-
-        <div className="grid grid-cols-2 gap-3 md:grid-cols-4 xl:grid-cols-8">
-          {CATALOG_CATEGORIES.map((category) => {
-            const CategoryIcon = categoryIcons[category.id];
-            const image = homeSettings?.[`cat_img_${category.id}`] || DEFAULT_CATEGORY_IMAGES[category.id];
+      <section className="px-4 py-4 max-w-7xl mx-auto">
+        <div className="grid grid-cols-4 md:grid-cols-8 gap-3">
+          {SMALL_CATEGORIES.map((category) => {
+            const img = homeSettings?.[`cat_img_${category.id}`] || DEFAULT_CATEGORY_IMAGES[category.id];
             return (
-              <Link key={category.id} href={category.href}>
-                <Card className="group cursor-pointer overflow-hidden rounded-[22px] border border-border/50 shadow-sm transition-all duration-300 hover:-translate-y-1 hover:shadow-lg" data-testid={`card-category-${category.id}`}>
+              <Link key={category.id} href={`/explore?category=${category.id}`}>
+                <Card
+                  className="hover-elevate active-elevate-2 cursor-pointer overflow-hidden"
+                  data-testid={`card-category-${category.id}`}
+                >
                   <CardContent className="p-0">
-                    <div className="relative aspect-square">
-                      <img
-                        src={resolveMediaUrl(image) ?? image}
-                        alt={category.name}
-                        className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
-                        onError={(e) => {
-                          (e.target as HTMLImageElement).style.display = "none";
-                        }}
-                      />
-                      <div className="absolute inset-0 bg-black/45" />
-                      <div className="absolute inset-0 flex flex-col items-center justify-center px-3 text-center">
-                        <CategoryIcon className="h-6 w-6 text-white drop-shadow-md" />
-                        <span className="mt-2 text-xs font-semibold text-white md:text-sm">{category.name}</span>
-                      </div>
+                    <div className="relative w-full aspect-square">
+                      {img ? (
+                        <>
+                          <img
+                            src={resolveMediaUrl(img) ?? img}
+                            alt={category.name}
+                            className="w-full h-full object-cover"
+                            onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }}
+                          />
+                          <div className="absolute inset-0 bg-black/40" />
+                          <div className="absolute inset-0 flex flex-col items-center justify-center">
+                            <category.icon className="h-5 w-5 md:h-6 md:w-6 text-white drop-shadow-md" />
+                            <span className="text-[10px] md:text-xs font-semibold text-white drop-shadow-md mt-1 text-center px-1 line-clamp-1">
+                              {category.name}
+                            </span>
+                          </div>
+                        </>
+                      ) : (
+                        <div className="flex flex-col items-center justify-center h-full p-3">
+                          <div className="w-8 h-8 md:w-10 md:h-10 mx-auto mb-1 rounded-full bg-primary/10 flex items-center justify-center">
+                            <category.icon className="h-4 w-4 md:h-5 md:w-5 text-primary" />
+                          </div>
+                          <span className="text-xs font-medium line-clamp-1">{category.name}</span>
+                        </div>
+                      )}
                     </div>
                   </CardContent>
                 </Card>
@@ -381,130 +383,25 @@ export default function Home() {
         </div>
       </section>
 
-      {(promoCategories ?? []).length > 0 && (
-        <section className="px-4 py-5 max-w-7xl mx-auto">
-          <div className="mb-4 flex items-end justify-between gap-4">
-            <div>
-              <p className="text-xs font-semibold uppercase tracking-[0.18em] text-primary">Promociones dirigidas</p>
-              <h2 className="mt-1 text-2xl font-black">Colecciones y campañas con destino correcto</h2>
-            </div>
-          </div>
-          <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
-            {promoCategories.slice(0, 4).map((promo) => {
-              const guessedCategory = normalizeCatalogCategory(promo.title) || normalizeCatalogCategory(promo.description);
-              const fallbackImage = guessedCategory ? DEFAULT_CATEGORY_IMAGES[guessedCategory] : DEFAULT_CATEGORY_IMAGES.electronics;
-              return <PromoCategoryCard key={promo.id} promo={promo} image={fallbackImage} />;
-            })}
-          </div>
-        </section>
-      )}
-
-      <section id="sector-publico" className="px-4 py-6 max-w-7xl mx-auto">
-        <div className="rounded-[28px] border border-sky-200/60 bg-[linear-gradient(135deg,rgba(239,246,255,0.92)_0%,rgba(250,250,255,1)_100%)] p-6 shadow-sm md:p-8">
-          <div className="mb-5 flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
-            <div>
-              <p className="text-xs font-semibold uppercase tracking-[0.18em] text-sky-700">Sector público y municipal</p>
-              <h2 className="mt-1 flex items-center gap-2 text-2xl font-black text-slate-900">
-                <Building2 className="h-6 w-6 text-sky-600" />
-                Información oficial separada del circuito comercial
-              </h2>
-              <p className="mt-1 text-sm text-slate-600">
-                Municipios, organismos y cuentas verificadas con una identidad visual y lógica propia.
-              </p>
-            </div>
-            <Badge className="w-fit bg-sky-600 text-white">
-              <BadgeCheck className="mr-1 h-3.5 w-3.5" />
-              Cuentas oficiales
-            </Badge>
-          </div>
-
-          {!novedadesLoading && officialNovedades.length > 0 ? (
-            <div className="flex gap-3 overflow-x-auto pb-2">
-              {officialNovedades.map((novedad) => (
-                <NovedadCard key={novedad.id} novedad={novedad} size="md" />
-              ))}
-            </div>
-          ) : (
-            <p className="text-sm text-slate-500">
-              Este espacio está preparado para comunicar campañas públicas, novedades municipales y contenido institucional verificado.
-            </p>
-          )}
-        </div>
-      </section>
-
-      <section id="canal-profesional" className="px-4 py-2 max-w-7xl mx-auto">
-        <div className="rounded-[28px] border border-amber-200/70 bg-[linear-gradient(135deg,rgba(255,251,235,0.96)_0%,rgba(255,255,255,1)_100%)] p-6 shadow-sm md:p-8">
-          <div className="mb-5 flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
-            <div>
-              <p className="text-xs font-semibold uppercase tracking-[0.18em] text-amber-700">Canal profesional y distribuidoras</p>
-              <h2 className="mt-1 flex items-center gap-2 text-2xl font-black text-slate-900">
-                <Lock className="h-6 w-6 text-amber-600" />
-                Mercado mayorista separado del público general
-              </h2>
-              <p className="mt-1 text-sm text-slate-600">
-                Este bloque queda reservado para cuentas verificadas y no mezcla oportunidades profesionales con la experiencia minorista.
-              </p>
-            </div>
-            {!canAccessProfessionalChannel && (
-              <Link href={professionalRequestHref}>
-                <Button className="w-fit rounded-full bg-amber-500 text-slate-950 hover:bg-amber-400">
-                  Solicitar verificación
-                </Button>
-              </Link>
-            )}
-          </div>
-
-          {canAccessProfessionalChannel ? (
-            marketNovedades.length > 0 ? (
-              <div className="flex gap-3 overflow-x-auto pb-2">
-                {marketNovedades.map((novedad) => (
-                  <NovedadCard key={novedad.id} novedad={novedad} size="md" />
-                ))}
-              </div>
-            ) : (
-              <p className="text-sm text-slate-500">
-                La arquitectura visual ya quedó lista; falta sumar publicaciones específicas del canal profesional.
-              </p>
-            )
-          ) : (
-            <div className="grid gap-4 md:grid-cols-3">
-              <div className="rounded-2xl border border-amber-200 bg-white/80 p-4">
-                <p className="text-sm font-semibold text-slate-900">Quiénes pueden entrar</p>
-                <p className="mt-2 text-sm leading-6 text-slate-600">Tiendas verificadas, negocios validados, cuentas institucionales y perfiles con verificación aprobada.</p>
-              </div>
-              <div className="rounded-2xl border border-amber-200 bg-white/80 p-4">
-                <p className="text-sm font-semibold text-slate-900">Qué protege este bloqueo</p>
-                <p className="mt-2 text-sm leading-6 text-slate-600">Evita mostrar publicaciones o señales del canal mayorista al comprador común.</p>
-              </div>
-              <div className="rounded-2xl border border-amber-200 bg-white/80 p-4">
-                <p className="text-sm font-semibold text-slate-900">Próximo paso</p>
-                <p className="mt-2 text-sm leading-6 text-slate-600">Completar backend con un flag/rol específico para enforcement real en rutas y pricing.</p>
-              </div>
-            </div>
-          )}
-        </div>
-      </section>
-
       <section className="px-4 py-6 max-w-7xl mx-auto">
-        <div className="mb-4 flex items-end justify-between gap-4">
-          <div>
-            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-primary">Mercado minorista</p>
-            <h2 className="mt-1 text-2xl font-black">Lo mejor del catálogo para compra inmediata</h2>
-          </div>
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="text-xl font-bold" data-testid="text-section-featured">
+            Productos Destacados
+          </h2>
           <Link href="/explore">
-            <Button variant="ghost" size="sm">
-              Ver todo
-              <ArrowRight className="ml-1 h-4 w-4" />
+            <Button variant="ghost" size="sm" data-testid="button-see-all-products">
+              Ver todos
+              <ArrowRight className="h-4 w-4 ml-1" />
             </Button>
           </Link>
         </div>
 
         {productsLoading ? (
-          <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5">
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
             {Array.from({ length: 5 }).map((_, i) => (
               <Card key={i}>
                 <Skeleton className="aspect-square" />
-                <CardContent className="space-y-2 p-3">
+                <CardContent className="p-3 space-y-2">
                   <Skeleton className="h-4 w-full" />
                   <Skeleton className="h-6 w-24" />
                   <Skeleton className="h-9 w-full" />
@@ -513,8 +410,8 @@ export default function Home() {
             ))}
           </div>
         ) : (
-          <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5">
-            {(products ?? []).slice(0, 10).map((product) => (
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
+            {(products ?? []).slice(0, 5).map((product) => (
               <ProductCard key={product.id} product={product} />
             ))}
           </div>
@@ -522,26 +419,26 @@ export default function Home() {
       </section>
 
       {((featuredStores ?? []).length > 0 || featuredStoresLoading) && (
-        <section className="px-4 py-3 max-w-7xl mx-auto" data-testid="section-featured-stores">
-          <div className="mb-4 flex items-center justify-between">
-            <h2 className="flex items-center gap-2 text-xl font-black" data-testid="text-section-featured-stores">
+        <section className="px-4 py-6 max-w-7xl mx-auto" data-testid="section-featured-stores">
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-xl font-bold flex items-center gap-2" data-testid="text-section-featured-stores">
               <Sparkles className="h-5 w-5 text-primary" />
-              Tiendas destacadas
+              Tiendas Destacadas
             </h2>
-            <Link href="/explore?tab=stores&featured=true">
+            <Link href="/explore">
               <Button variant="ghost" size="sm" data-testid="button-see-all-featured-stores">
                 Ver todas
-                <ArrowRight className="ml-1 h-4 w-4" />
+                <ArrowRight className="h-4 w-4 ml-1" />
               </Button>
             </Link>
           </div>
 
           {featuredStoresLoading ? (
-            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
               {Array.from({ length: 3 }).map((_, i) => (
                 <Card key={i}>
                   <Skeleton className="aspect-[16/9]" />
-                  <CardContent className="space-y-2 p-4">
+                  <CardContent className="p-4 space-y-2">
                     <Skeleton className="h-5 w-32" />
                     <Skeleton className="h-4 w-20" />
                     <Skeleton className="h-4 w-full" />
@@ -550,7 +447,7 @@ export default function Home() {
               ))}
             </div>
           ) : (
-            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
               {(featuredStores ?? []).map((store) => (
                 <StoreCard key={store.id} store={store} />
               ))}
@@ -559,46 +456,60 @@ export default function Home() {
         </section>
       )}
 
-      <section className="border-y bg-card py-8">
+      <section className="bg-card py-8 border-y">
         <div className="max-w-7xl mx-auto px-4">
-          <div className="grid grid-cols-2 gap-6 md:grid-cols-4">
-            {[
-              { icon: Truck, title: "Entrega ágil", description: "Operación lista para compra local" },
-              { icon: Shield, title: "Compra segura", description: "Más claridad en promos y navegación" },
-              { icon: CreditCard, title: "Pagos flexibles", description: "Experiencia lista para campañas y financiación" },
-              { icon: Store, title: "Comercio verificado", description: "Preparado para separar canales y niveles de acceso" },
-            ].map((item) => (
-              <div key={item.title} className="flex flex-col items-center text-center">
-                <div className="mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-primary/10">
-                  <item.icon className="h-6 w-6 text-primary" />
-                </div>
-                <h3 className="text-sm font-semibold">{item.title}</h3>
-                <p className="mt-1 text-xs text-muted-foreground">{item.description}</p>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
+            <div className="flex flex-col items-center text-center">
+              <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center mb-3">
+                <Truck className="h-6 w-6 text-primary" />
               </div>
-            ))}
+              <h3 className="font-semibold text-sm mb-1">Envío Rápido</h3>
+              <p className="text-xs text-muted-foreground">Recibe tu pedido en minutos</p>
+            </div>
+            <div className="flex flex-col items-center text-center">
+              <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center mb-3">
+                <Shield className="h-6 w-6 text-primary" />
+              </div>
+              <h3 className="font-semibold text-sm mb-1">Compra Segura</h3>
+              <p className="text-xs text-muted-foreground">Tus datos siempre protegidos</p>
+            </div>
+            <div className="flex flex-col items-center text-center">
+              <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center mb-3">
+                <Clock className="h-6 w-6 text-primary" />
+              </div>
+              <h3 className="font-semibold text-sm mb-1">24/7 Disponible</h3>
+              <p className="text-xs text-muted-foreground">Compra cuando quieras</p>
+            </div>
+            <div className="flex flex-col items-center text-center">
+              <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center mb-3">
+                <CreditCard className="h-6 w-6 text-primary" />
+              </div>
+              <h3 className="font-semibold text-sm mb-1">Cuotas Sin Interés</h3>
+              <p className="text-xs text-muted-foreground">Pagá como quieras</p>
+            </div>
           </div>
         </div>
       </section>
 
       <section className="px-4 py-6 max-w-7xl mx-auto">
-        <div className="mb-4 flex items-center justify-between">
-          <h2 className="text-xl font-black" data-testid="text-section-stores">
-            Tiendas populares
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="text-xl font-bold" data-testid="text-section-stores">
+            Tiendas Populares
           </h2>
-          <Link href="/explore?tab=stores">
+          <Link href="/explore">
             <Button variant="ghost" size="sm" data-testid="button-see-all-stores">
               Ver todas
-              <ArrowRight className="ml-1 h-4 w-4" />
+              <ArrowRight className="h-4 w-4 ml-1" />
             </Button>
           </Link>
         </div>
 
         {storesLoading ? (
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
             {Array.from({ length: 3 }).map((_, i) => (
               <Card key={i}>
                 <Skeleton className="aspect-[16/9]" />
-                <CardContent className="space-y-2 p-4">
+                <CardContent className="p-4 space-y-2">
                   <Skeleton className="h-5 w-32" />
                   <Skeleton className="h-4 w-20" />
                   <Skeleton className="h-4 w-full" />
@@ -607,20 +518,99 @@ export default function Home() {
             ))}
           </div>
         ) : (
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            {(stores ?? []).slice(0, 6).map((store) => (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            {(stores ?? []).filter(s => !!s.banner).slice(0, 3).map((store) => (
               <StoreCard key={store.id} store={store} />
             ))}
           </div>
         )}
       </section>
 
+      {/* ─── ACCESOS DIRECTOS: GOBIERNO & MAYORISTAS ──────────────── */}
+      <section className="px-4 py-6 max-w-7xl mx-auto">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+
+          {/* Tarjeta: Instituciones y Gobierno */}
+          <Link href="/novedades?type=official">
+            <div
+              className="relative overflow-hidden rounded-2xl cursor-pointer group transition-all duration-300 hover:scale-[1.02] hover:brightness-105"
+              style={{ background: "linear-gradient(135deg, #1e3a8a 0%, #1d4ed8 50%, #2563eb 100%)", boxShadow: "0 4px 24px 0 rgba(37,99,235,0.35)" }}
+            >
+              {/* Fondo decorativo */}
+              <div className="absolute -top-10 -right-10 w-48 h-48 rounded-full bg-white/5 blur-2xl" />
+              <div className="absolute -bottom-8 -left-6 w-36 h-36 rounded-full bg-blue-300/10 blur-2xl" />
+              <div className="absolute top-0 left-0 right-0 h-1/2 bg-gradient-to-b from-white/5 to-transparent pointer-events-none" />
+
+              {/* Imagen de fondo semitransparente */}
+              <div
+                className="absolute inset-0 opacity-10 bg-cover bg-center"
+                style={{ backgroundImage: "url('https://images.unsplash.com/photo-1568992688065-536aad8a12f6?w=800&h=400&fit=crop&auto=format&q=60')" }}
+              />
+
+              <div className="relative z-10 p-6 flex items-start gap-4">
+                <div className="shrink-0 w-14 h-14 rounded-2xl bg-white/15 backdrop-blur-sm border border-white/20 flex items-center justify-center shadow-inner">
+                  <BadgeCheck className="h-7 w-7 text-white drop-shadow" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-[10px] font-bold tracking-widest text-blue-200 uppercase mb-1">Sector Público</p>
+                  <h3 className="text-xl font-black text-white leading-tight mb-1">Municipalidades y Gobiernos</h3>
+                  <p className="text-sm text-blue-100/80 leading-snug line-clamp-2">
+                    Novedades oficiales, campañas y comunicados verificados de organismos públicos y municipios.
+                  </p>
+                  <div className="mt-3 inline-flex items-center gap-1.5 text-xs font-bold text-white bg-white/15 border border-white/20 rounded-full px-3 py-1">
+                    Ver novedades oficiales <ArrowRight className="h-3 w-3" />
+                  </div>
+                </div>
+              </div>
+            </div>
+          </Link>
+
+          {/* Tarjeta: Canal Mayorista */}
+          <Link href="/explore?mode=wholesale">
+            <div
+              className="relative overflow-hidden rounded-2xl cursor-pointer group transition-all duration-300 hover:scale-[1.02] hover:brightness-105"
+              style={{ background: "linear-gradient(135deg, #92400e 0%, #d97706 50%, #f59e0b 100%)", boxShadow: "0 4px 24px 0 rgba(217,119,6,0.35)" }}
+            >
+              {/* Fondo decorativo */}
+              <div className="absolute -top-10 -right-10 w-48 h-48 rounded-full bg-white/5 blur-2xl" />
+              <div className="absolute -bottom-8 -left-6 w-36 h-36 rounded-full bg-amber-300/10 blur-2xl" />
+              <div className="absolute top-0 left-0 right-0 h-1/2 bg-gradient-to-b from-white/5 to-transparent pointer-events-none" />
+
+              {/* Imagen de fondo semitransparente */}
+              <div
+                className="absolute inset-0 opacity-10 bg-cover bg-center"
+                style={{ backgroundImage: "url('https://images.unsplash.com/photo-1558769132-cb1aea458c5e?w=800&h=400&fit=crop&auto=format&q=60')" }}
+              />
+
+              <div className="relative z-10 p-6 flex items-start gap-4">
+                <div className="shrink-0 w-14 h-14 rounded-2xl bg-white/15 backdrop-blur-sm border border-white/20 flex items-center justify-center shadow-inner">
+                  <Package className="h-7 w-7 text-white drop-shadow" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-[10px] font-bold tracking-widest text-amber-200 uppercase mb-1">Canal Mayorista</p>
+                  <h3 className="text-xl font-black text-white leading-tight mb-1">Mayoristas y Distribuidores</h3>
+                  <p className="text-sm text-amber-100/80 leading-snug line-clamp-2">
+                    Ropa, indumentaria, textiles y productos al por mayor. Precios especiales para revendedores.
+                  </p>
+                  <div className="mt-3 inline-flex items-center gap-1.5 text-xs font-bold text-white bg-white/15 border border-white/20 rounded-full px-3 py-1">
+                    Explorar mayoristas <ArrowRight className="h-3 w-3" />
+                  </div>
+                </div>
+              </div>
+            </div>
+          </Link>
+
+        </div>
+      </section>
+
+
+      {/* NOVEDADES LEGACY (keeps existing notices system) */}
       {!noticesLoading && notices && notices.length > 0 && (novedadesData?.length ?? 0) === 0 && (
         <section className="px-4 py-6 max-w-7xl mx-auto">
-          <h2 className="mb-4 text-xl font-black" data-testid="text-section-notices">
+          <h2 className="text-xl font-bold mb-4" data-testid="text-section-notices">
             Novedades
           </h2>
-          <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {notices.slice(0, 4).map((notice) => (
               <NoticeCard key={notice.id} notice={notice} />
             ))}
@@ -629,23 +619,33 @@ export default function Home() {
       )}
 
       <section className="px-4 py-8 max-w-7xl mx-auto">
-        <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <Link href="/vender">
             <div
               data-testid="card-become-seller"
-              className="group relative cursor-pointer overflow-hidden rounded-[26px] bg-gradient-to-r from-[#ea580c] via-[#dc2626] to-[#b91c1c] px-5 py-6 text-white shadow-[0_22px_60px_rgba(234,88,12,0.2)] transition-transform duration-300 hover:-translate-y-1"
+              className="relative overflow-hidden rounded-xl cursor-pointer bg-gradient-to-r from-[#ea580c] via-[#dc2626] to-[#b91c1c] transition-all duration-300 ease-out hover:scale-[1.02] hover:brightness-110 group"
+              style={{ boxShadow: "0 2px 20px 0 rgba(234,88,12,0.45)" }}
             >
-              <div className="absolute -right-10 -top-10 h-36 w-36 rounded-full bg-orange-300/20 blur-3xl" />
-              <div className="relative flex items-center gap-4">
-                <div className="rounded-2xl bg-white/18 p-3">
-                  <Store className="h-6 w-6" />
+              <div className="absolute -top-8 -right-8 w-36 h-36 rounded-full blur-2xl bg-orange-300/25" />
+              <div className="absolute -bottom-6 -left-4 w-24 h-24 rounded-full blur-2xl bg-red-200/15" />
+              <div className="absolute top-0 left-0 right-0 h-1/2 bg-gradient-to-b from-white/10 to-transparent pointer-events-none" />
+              <div className="relative z-10 px-5 py-5 flex items-center gap-4">
+                <div className="shrink-0 flex gap-2">
+                  <div className="w-12 h-12 rounded-xl bg-white/20 backdrop-blur-sm border border-white/25 flex items-center justify-center shadow-inner overflow-hidden">
+                    <Store className="h-6 w-6 text-white drop-shadow animate-store-open" />
+                  </div>
                 </div>
-                <div className="flex-1">
-                  <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-white/70">Comercios</p>
-                  <h3 className="mt-1 text-xl font-black">Vendé en PachaPay</h3>
-                  <p className="mt-1 text-sm text-white/80">Registrá tu negocio y accedé a un catálogo que ya separa minorista, profesional e institucional.</p>
+                <div className="flex-1 min-w-0">
+                  <p className="text-[10px] font-bold tracking-widest text-white/60 uppercase leading-none mb-1">COMERCIOS</p>
+                  <h3 className="text-lg font-black text-white leading-tight">Vendé en PachaPay</h3>
+                  <p className="text-xs text-white/80 mt-0.5 leading-snug">Registrá tu comercio y empezá a vender a miles de clientes en tu zona</p>
                 </div>
-                <ArrowRight className="h-5 w-5 transition-transform duration-300 group-hover:translate-x-1" />
+                <div className="shrink-0 flex flex-col items-center gap-2">
+                  <div className="w-8 h-8 rounded-full bg-white/15 border border-white/20 flex items-center justify-center transition-transform duration-200 group-hover:translate-x-1">
+                    <ArrowRight className="h-4 w-4 text-white" />
+                  </div>
+                  <span className="text-[10px] text-white/60 font-semibold whitespace-nowrap">Registrarme</span>
+                </div>
               </div>
             </div>
           </Link>
@@ -653,19 +653,29 @@ export default function Home() {
           <Link href="/repartidor">
             <div
               data-testid="card-become-rider"
-              className="group relative cursor-pointer overflow-hidden rounded-[26px] bg-gradient-to-r from-[#2563eb] via-[#1d4ed8] to-[#1e3a8a] px-5 py-6 text-white shadow-[0_22px_60px_rgba(37,99,235,0.2)] transition-transform duration-300 hover:-translate-y-1"
+              className="relative overflow-hidden rounded-xl cursor-pointer bg-gradient-to-r from-[#2563eb] via-[#1d4ed8] to-[#1e3a8a] transition-all duration-300 ease-out hover:scale-[1.02] hover:brightness-110 group"
+              style={{ boxShadow: "0 2px 20px 0 rgba(37,99,235,0.45)" }}
             >
-              <div className="absolute -right-10 -top-10 h-36 w-36 rounded-full bg-blue-300/20 blur-3xl" />
-              <div className="relative flex items-center gap-4">
-                <div className="rounded-2xl bg-white/18 p-3">
-                  <Bike className="h-6 w-6" />
+              <div className="absolute -top-8 -right-8 w-36 h-36 rounded-full blur-2xl bg-blue-300/25" />
+              <div className="absolute -bottom-6 -left-4 w-24 h-24 rounded-full blur-2xl bg-sky-200/15" />
+              <div className="absolute top-0 left-0 right-0 h-1/2 bg-gradient-to-b from-white/10 to-transparent pointer-events-none" />
+              <div className="relative z-10 px-5 py-5 flex items-center gap-4">
+                <div className="shrink-0 flex gap-2">
+                  <div className="w-12 h-12 rounded-xl bg-white/20 backdrop-blur-sm border border-white/25 flex items-center justify-center shadow-inner overflow-hidden">
+                    <Bike className="h-6 w-6 text-white drop-shadow animate-bike-zip" />
+                  </div>
                 </div>
-                <div className="flex-1">
-                  <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-white/70">Delivery</p>
-                  <h3 className="mt-1 text-xl font-black">Trabajá como repartidor</h3>
-                  <p className="mt-1 text-sm text-white/80">Sumate a la operación logística con una plataforma lista para escalar en cobertura y volumen.</p>
+                <div className="flex-1 min-w-0">
+                  <p className="text-[10px] font-bold tracking-widest text-white/60 uppercase leading-none mb-1">DELIVERY</p>
+                  <h3 className="text-lg font-black text-white leading-tight">Trabajá como repartidor</h3>
+                  <p className="text-xs text-white/80 mt-0.5 leading-snug">Unite al equipo de delivery y ganá dinero haciendo entregas</p>
                 </div>
-                <ArrowRight className="h-5 w-5 transition-transform duration-300 group-hover:translate-x-1" />
+                <div className="shrink-0 flex flex-col items-center gap-2">
+                  <div className="w-8 h-8 rounded-full bg-white/15 border border-white/20 flex items-center justify-center transition-transform duration-200 group-hover:translate-x-1">
+                    <ArrowRight className="h-4 w-4 text-white" />
+                  </div>
+                  <span className="text-[10px] text-white/60 font-semibold whitespace-nowrap">Registrarme</span>
+                </div>
               </div>
             </div>
           </Link>
@@ -674,7 +684,7 @@ export default function Home() {
 
       <TravelModal
         open={travelModal.open}
-        onClose={() => setTravelModal((state) => ({ ...state, open: false }))}
+        onClose={() => setTravelModal((s) => ({ ...s, open: false }))}
         defaultTab={travelModal.tab}
       />
     </div>

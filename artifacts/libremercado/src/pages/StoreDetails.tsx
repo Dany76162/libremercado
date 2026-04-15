@@ -1,6 +1,7 @@
-import { Link, useLocation, useRoute } from "wouter";
+import { useRoute } from "wouter";
 import { Star, MapPin, Clock, Phone, ArrowLeft, MessageSquare, Images, Send, Loader2 } from "lucide-react";
-import { useEffect, useState } from "react";
+import { Link } from "wouter";
+import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -18,7 +19,6 @@ import { apiUrl, resolveMediaUrl } from "@/lib/apiBase";
 
 export default function StoreDetails() {
   const [match, params] = useRoute("/store/:id");
-  const [, navigate] = useLocation();
   const storeId = params?.id || "";
   const [lightboxImg, setLightboxImg] = useState<string | null>(null);
   const [reviewRating, setReviewRating] = useState(0);
@@ -32,10 +32,6 @@ export default function StoreDetails() {
 
   const { data: store, isLoading: storeLoading } = useStore(storeId);
   const { data: products, isLoading: productsLoading } = useStoreProducts(storeId);
-
-  useEffect(() => {
-    window.scrollTo({ top: 0, left: 0, behavior: "auto" });
-  }, [storeId]);
 
   const { data: reviewsData } = useQuery<{ reviews: Review[]; avgRating: number; total: number }>({
     queryKey: ["/api/stores", storeId, "reviews"],
@@ -75,15 +71,6 @@ export default function StoreDetails() {
   const alreadyReviewed = user
     ? reviewsData?.reviews.some((r) => r.userId === user.id)
     : false;
-
-  const handleBackNavigation = () => {
-    if (window.history.length > 1) {
-      window.history.back();
-      return;
-    }
-
-    navigate("/");
-  };
 
   if (storeLoading) {
     return (
@@ -154,47 +141,16 @@ export default function StoreDetails() {
         )}
         <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
 
-        <div className="absolute inset-x-0 top-0 z-10">
-          <div className="mx-auto flex max-w-7xl flex-wrap items-center justify-between gap-3 px-4 py-4">
-            <div className="flex flex-wrap items-center gap-2">
-              <Button
-                variant="ghost"
-                onClick={handleBackNavigation}
-                className="bg-black/35 text-white hover:bg-black/55 hover:text-white"
-                data-testid="button-back"
-              >
-                <ArrowLeft className="mr-2 h-4 w-4" />
-                Volver
-              </Button>
-              <div className="rounded-full bg-black/35 px-3 py-1 text-sm text-white/90 backdrop-blur">
-                <Link href="/">Inicio</Link>
-                <span className="mx-2 text-white/60">/</span>
-                <Link href="/explore?tab=stores">Tiendas</Link>
-                <span className="mx-2 text-white/60">/</span>
-                <span className="font-medium text-white">{store.name}</span>
-              </div>
-            </div>
-
-            <div className="flex flex-wrap items-center gap-2">
-              <Link href="/explore?tab=stores">
-                <Button
-                  variant="secondary"
-                  className="border-white/20 bg-white/90 text-slate-900 hover:bg-white"
-                >
-                  Ver más tiendas
-                </Button>
-              </Link>
-              <Link href="/">
-                <Button
-                  variant="ghost"
-                  className="bg-black/35 text-white hover:bg-black/55 hover:text-white"
-                >
-                  Ir al inicio
-                </Button>
-              </Link>
-            </div>
-          </div>
-        </div>
+        <Link href="/explore">
+          <Button
+            variant="ghost"
+            size="icon"
+            className="absolute top-4 left-4 bg-black/30 text-white hover:bg-black/50"
+            data-testid="button-back"
+          >
+            <ArrowLeft className="h-5 w-5" />
+          </Button>
+        </Link>
       </div>
 
       <div className="max-w-7xl mx-auto px-4">

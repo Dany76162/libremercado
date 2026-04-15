@@ -1459,15 +1459,15 @@ export async function updateDemoData() {
       name: "Gaseosa Cola 1.5L",
       description: "Bebida cola refrescante, versión retornable. Ideal para compartir.",
       price: "1850", originalPrice: "2200",
-      image: uImg("1624557957-2d60f5afb36c", 500, 500),
-      images: JSON.stringify([uImg("1624557957-2d60f5afb36c",800,800),uImg("1527960669566-c7f07c47d2da",800,800),uImg("1550583724-b2692b85b150",800,800)]),
+      image: uImg("1622483767028-3f66f32aef97", 500, 500),
+      images: JSON.stringify([uImg("1622483767028-3f66f32aef97",800,800),uImg("1527960669566-c7f07c47d2da",800,800),uImg("1550583724-b2692b85b150",800,800)]),
       category: "Bebidas", stock: 100, isActive: true, isSponsored: false, sponsoredPriority: 0,
     },
   ]).onConflictDoNothing();
   // Update multi-images for store-1 inserted products (idempotent)
   await db.update(products).set({ images: JSON.stringify([uImg("1576092768241-dec231879fc3",800,800),uImg("1544787219-7f47ccb76574",800,800),uImg("1589365278-7da5de724b51",800,800)]) }).where(eq(products.id, "prod-1b"));
   await db.update(products).set({ images: JSON.stringify([uImg("1586201375761-83865001e31c",800,800),uImg("1567306301408-9b74779a11af",800,800),uImg("1542838132-92c53300491e",800,800)]) }).where(eq(products.id, "prod-1c"));
-  await db.update(products).set({ images: JSON.stringify([uImg("1624557957-2d60f5afb36c",800,800),uImg("1527960669566-c7f07c47d2da",800,800),uImg("1550583724-b2692b85b150",800,800)]) }).where(eq(products.id, "prod-1d"));
+  await db.update(products).set({ images: JSON.stringify([uImg("1622483767028-3f66f32aef97",800,800),uImg("1527960669566-c7f07c47d2da",800,800),uImg("1550583724-b2692b85b150",800,800)]) }).where(eq(products.id, "prod-1d"));
 
   // --- Store 3: Electro Tech ---
   await db.update(products).set({
@@ -1579,8 +1579,8 @@ export async function updateDemoData() {
       name: "Docena de Empanadas Criolla",
       description: "Empanadas caseras de carne cortada a cuchillo, cebolla, pimiento y huevo. Cocidas al horno.",
       price: "9500", originalPrice: "11000",
-      image: uImg("1567620905-ef5e69ea9e9c", 500, 500),
-      images: JSON.stringify([uImg("1567620905-ef5e69ea9e9c",800,800),uImg("1565299624946-b28f40a0ae38",800,800),uImg("1513104890138-7c749659a591",800,800)]),
+      image: uImg("1604908176997-125f25cc6f3d", 500, 500),
+      images: JSON.stringify([uImg("1604908176997-125f25cc6f3d",800,800),uImg("1565299624946-b28f40a0ae38",800,800),uImg("1513104890138-7c749659a591",800,800)]),
       category: "Empanadas", stock: 50, isActive: true, isSponsored: false, sponsoredPriority: 0,
     },
     {
@@ -1595,7 +1595,7 @@ export async function updateDemoData() {
   ]).onConflictDoNothing();
   // Update multi-images for store-4 inserted products
   await db.update(products).set({ images: JSON.stringify([uImg("1571407970349-bc81e7e96d47",800,800),uImg("1604382354936-07c5d9983bd3",800,800),uImg("1565299624946-b28f40a0ae38",800,800)]) }).where(eq(products.id, "prod-4b"));
-  await db.update(products).set({ image: uImg("1567620905-ef5e69ea9e9c",500,500), images: JSON.stringify([uImg("1567620905-ef5e69ea9e9c",800,800),uImg("1565299624946-b28f40a0ae38",800,800),uImg("1513104890138-7c749659a591",800,800)]) }).where(eq(products.id, "prod-4c"));
+  await db.update(products).set({ image: uImg("1604908176997-125f25cc6f3d",500,500), images: JSON.stringify([uImg("1604908176997-125f25cc6f3d",800,800),uImg("1565299624946-b28f40a0ae38",800,800),uImg("1513104890138-7c749659a591",800,800)]) }).where(eq(products.id, "prod-4c"));
   await db.update(products).set({ images: JSON.stringify([uImg("1604382354936-07c5d9983bd3",800,800),uImg("1513104890138-7c749659a591",800,800),uImg("1571407970349-bc81e7e96d47",800,800)]) }).where(eq(products.id, "prod-4d"));
 
   // --- Store 5: Moda Express ---
@@ -1664,9 +1664,9 @@ export async function updateDemoData() {
     description: "Alimento balanceado premium formulado con proteínas de pollo y arroz. Sin colorantes artificiales. Para razas medianas y grandes.",
     price: "24500",
     originalPrice: "28000",
-    image: uImg("1589924691701-c85e27f9f2d8", 500, 500),
+    image: uImg("1583337130417-3346a1be7dee", 500, 500),
     images: JSON.stringify([
-      uImg("1589924691701-c85e27f9f2d8", 800, 800),
+      uImg("1583337130417-3346a1be7dee", 800, 800),
       uImg("1587300003388-59208cc962cb", 800, 800),
       uImg("1548199973-03cce0bbc87b", 800, 800),
     ]),
@@ -1692,8 +1692,8 @@ export async function updateDemoData() {
       name: "Correa y Arnés Regulable",
       description: "Set de correa y arnés acolchado para perros. Cierre de seguridad doble. Talle S al XL.",
       price: "5200", originalPrice: "6500",
-      image: uImg("1591758369239-ac2b76e23eac", 500, 500),
-      images: JSON.stringify([uImg("1591758369239-ac2b76e23eac",800,800),uImg("1548199973-03cce0bbc87b",800,800),uImg("1587300003388-59208cc962cb",800,800)]),
+      image: uImg("1601614457193-455bda62babe", 500, 500),
+      images: JSON.stringify([uImg("1601614457193-455bda62babe",800,800),uImg("1548199973-03cce0bbc87b",800,800),uImg("1587300003388-59208cc962cb",800,800)]),
       category: "Accesorios", stock: 35, isActive: true, isSponsored: false, sponsoredPriority: 0,
     },
     {
@@ -1716,7 +1716,7 @@ export async function updateDemoData() {
     },
   ]).onConflictDoNothing();
   // Update multi-images for store-6 inserted products
-  await db.update(products).set({ images: JSON.stringify([uImg("1591758369239-ac2b76e23eac",800,800),uImg("1548199973-03cce0bbc87b",800,800),uImg("1587300003388-59208cc962cb",800,800)]) }).where(eq(products.id, "prod-6b"));
+  await db.update(products).set({ images: JSON.stringify([uImg("1601614457193-455bda62babe",800,800),uImg("1548199973-03cce0bbc87b",800,800),uImg("1587300003388-59208cc962cb",800,800)]) }).where(eq(products.id, "prod-6b"));
   await db.update(products).set({ images: JSON.stringify([uImg("1590031905406-f18a426d772d",800,800),uImg("1561037404-61cd46aa615b",800,800),uImg("1583511655857-d19b40a7a54e",800,800)]) }).where(eq(products.id, "prod-6c"));
   await db.update(products).set({ images: JSON.stringify([uImg("1572635148818-ef6fd45eb394",800,800),uImg("1574158622682-e40e69881006",800,800),uImg("1561037404-61cd46aa615b",800,800)]) }).where(eq(products.id, "prod-6d"));
 

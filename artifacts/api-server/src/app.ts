@@ -96,7 +96,7 @@ app.use(
 
 export const loginLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
-  max: 10,
+  max: 1000, // Aumentado para desarrollo
   standardHeaders: true,
   legacyHeaders: false,
   message: { error: "Demasiados intentos. Esperá 15 minutos." },

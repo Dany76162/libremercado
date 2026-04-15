@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { useLocation } from "wouter";
-import { Filter, Grid, List, SlidersHorizontal, Search, Tag, Ticket, Heart, X, MapPin, Sparkles } from "lucide-react";
+import { Filter, Grid, List, SlidersHorizontal, Search, Tag, Ticket, Heart, X, MapPin } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
@@ -13,12 +13,18 @@ import { ProductCard } from "@/components/marketplace/ProductCard";
 import { StoreCard } from "@/components/marketplace/StoreCard";
 import { useProducts, useStores } from "@/hooks/use-marketplace";
 import { useLocation as useUserLocation } from "@/hooks/use-location";
-import {
-  EXPLORE_CATEGORY_OPTIONS,
-  type CatalogCategoryId,
-  productMatchesCategory,
-  storeMatchesCategory,
-} from "@/lib/catalog";
+
+const categories = [
+  { id: "all", name: "Todos" },
+  { id: "food", name: "Comida" },
+  { id: "grocery", name: "Supermercado" },
+  { id: "pharmacy", name: "Farmacia" },
+  { id: "electronics", name: "Electrónica" },
+  { id: "fashion", name: "Moda" },
+  { id: "home", name: "Hogar" },
+  { id: "beauty", name: "Belleza" },
+  { id: "pets", name: "Mascotas" },
+];
 
 export default function Explore() {
   const [location] = useLocation();
@@ -30,26 +36,24 @@ export default function Explore() {
     return new URLSearchParams(location.split("?")[1] || "");
   }, [location]);
 
-  const initialCategory = (urlParams.get("category") as CatalogCategoryId) || "all";
+  const initialCategory = urlParams.get("category") || "all";
   const initialQuery = urlParams.get("q") || "";
   const initialFilter = urlParams.get("filter") || "";
-  const initialTab = urlParams.get("tab") === "stores" ? "stores" : "products";
-  const initialFeatured = urlParams.get("featured") === "true";
 
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
-  const [selectedCategory, setSelectedCategory] = useState<CatalogCategoryId>(initialCategory);
+  const [selectedCategory, setSelectedCategory] = useState(initialCategory);
   const [sortBy, setSortBy] = useState("featured");
-  const [activeTab, setActiveTab] = useState<"products" | "stores">(initialTab);
+  const [activeTab, setActiveTab] = useState<"products" | "stores">("products");
   const [activeFilter, setActiveFilter] = useState(initialFilter);
-  const [featuredOnly, setFeaturedOnly] = useState(initialFeatured);
+
   const [searchQuery, setSearchQuery] = useState(initialQuery);
 
   const { provinciaId, ciudadId, locationName, useGps, lat, lng, radiusKm } = useUserLocation();
   const locationFilter = useGps && lat && lng
     ? { useGps: true, lat, lng, radiusKm }
     : provinciaId
-      ? { provinciaId, ciudadId }
-      : undefined;
+    ? { provinciaId, ciudadId }
+    : undefined;
 
   const { data: products, isLoading: productsLoading } = useProducts(locationFilter);
   const { data: stores, isLoading: storesLoading } = useStores(locationFilter);
@@ -58,9 +62,7 @@ export default function Explore() {
     setSelectedCategory(initialCategory);
     setSearchQuery(initialQuery);
     setActiveFilter(initialFilter);
-    setActiveTab(initialTab);
-    setFeaturedOnly(initialFeatured);
-  }, [initialCategory, initialFilter, initialQuery, initialTab, initialFeatured]);
+  }, [initialCategory, initialQuery, initialFilter]);
 
   const getFilterTitle = () => {
     switch (activeFilter) {
@@ -77,32 +79,45 @@ export default function Explore() {
 
   const q = searchQuery.trim().toLowerCase();
 
-  const filteredProducts = (products ?? []).filter((product) => {
-    const matchCategory = productMatchesCategory(product.category, selectedCategory);
-    const matchQuery = !q
-      ? true
-      : (product.name?.toLowerCase() ?? "").includes(q) ||
-        (product.description?.toLowerCase() ?? "").includes(q);
+  const selectedCatObj = categories.find(c => c.id === selectedCategory);
+
+  const filteredProducts = (products ?? []).filter((p) => {
+    const matchCategory =
+      selectedCategory === "all"
+        ? true
+        : (p.category?.toLowerCase() ?? "") === selectedCategory.toLowerCase() ||
+          (selectedCatObj && (p.category?.toLowerCase() ?? "").includes(selectedCatObj.name.toLowerCase()));
+
+    const matchQuery =
+      !q
+        ? true
+        : (p.name?.toLowerCase() ?? "").includes(q) ||
+          (p.description?.toLowerCase() ?? "").includes(q);
 
     let matchFilter = true;
     if (activeFilter === "ofertas") {
-      matchFilter = product.originalPrice !== null && product.originalPrice !== undefined;
+      matchFilter = p.originalPrice !== null && p.originalPrice !== undefined;
     } else if (activeFilter === "cupones") {
-      matchFilter = parseFloat(product.price) < 5000;
+      matchFilter = parseFloat(p.price) < 5000;
     }
 
-    const matchFeatured = featuredOnly ? product.isSponsored : true;
-    return matchCategory && matchQuery && matchFilter && matchFeatured;
+    return matchCategory && matchQuery && matchFilter;
   });
 
-  const filteredStores = (stores ?? []).filter((store) => {
-    const matchCategory = storeMatchesCategory(store.category, selectedCategory);
-    const matchQuery = !q
-      ? true
-      : (store.name?.toLowerCase() ?? "").includes(q) ||
-        (store.description?.toLowerCase() ?? "").includes(q);
-    const matchFeatured = featuredOnly ? store.isFeatured : true;
-    return matchCategory && matchQuery && matchFeatured;
+  const filteredStores = (stores ?? []).filter((s) => {
+    const matchCategory =
+      selectedCategory === "all"
+        ? true
+        : (s.category?.toLowerCase() ?? "") === selectedCategory.toLowerCase() ||
+          (selectedCatObj && (s.category?.toLowerCase() ?? "").includes(selectedCatObj.name.toLowerCase()));
+
+    const matchQuery =
+      !q
+        ? true
+        : (s.name?.toLowerCase() ?? "").includes(q) ||
+          (s.description?.toLowerCase() ?? "").includes(q);
+
+    return matchCategory && matchQuery;
   });
 
   const sortedProducts = [...filteredProducts].sort((a, b) => {
@@ -119,19 +134,16 @@ export default function Explore() {
   });
 
   return (
-    <div className="min-h-screen bg-muted/20">
-      <div className="bg-card border-b sticky top-16 z-40 backdrop-blur supports-[backdrop-filter]:bg-card/95">
+    <div className="min-h-screen">
+      <div className="bg-card border-b sticky top-16 z-40">
         <div className="max-w-7xl mx-auto px-4 py-3">
           <div className="flex flex-col gap-3">
             {provinciaId && (
               <div className="flex items-center gap-2 text-sm text-muted-foreground">
                 <MapPin className="h-4 w-4 text-primary" />
-                <span>
-                  Mostrando resultados en <span className="font-medium text-foreground">{locationName}</span>
-                </span>
+                <span>Mostrando resultados en <span className="font-medium text-foreground">{locationName}</span></span>
               </div>
             )}
-
             <div className="relative w-full">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <Input
@@ -143,32 +155,22 @@ export default function Explore() {
               />
             </div>
 
-            <div className="flex flex-col xl:flex-row gap-3">
-              <div className="flex gap-2 overflow-x-auto pb-2 xl:pb-0 flex-1">
-                {EXPLORE_CATEGORY_OPTIONS.map((category) => (
+            <div className="flex flex-col sm:flex-row gap-3">
+              <div className="flex gap-2 overflow-x-auto pb-2 sm:pb-0 flex-1">
+                {categories.map((cat) => (
                   <Badge
-                    key={category.id}
-                    variant={selectedCategory === category.id ? "default" : "secondary"}
+                    key={cat.id}
+                    variant={selectedCategory === cat.id ? "default" : "secondary"}
                     className="cursor-pointer whitespace-nowrap px-3 py-1.5"
-                    onClick={() => setSelectedCategory(category.id)}
-                    data-testid={`badge-category-${category.id}`}
+                    onClick={() => setSelectedCategory(cat.id)}
+                    data-testid={`badge-category-${cat.id}`}
                   >
-                    {category.name}
+                    {cat.name}
                   </Badge>
                 ))}
               </div>
 
               <div className="flex items-center gap-2 shrink-0">
-                <Button
-                  variant={featuredOnly ? "default" : "outline"}
-                  size="sm"
-                  onClick={() => setFeaturedOnly((current) => !current)}
-                  data-testid="button-featured-filter"
-                >
-                  <Sparkles className="h-4 w-4 mr-2" />
-                  Destacados
-                </Button>
-
                 <Sheet>
                   <SheetTrigger asChild>
                     <Button variant="outline" size="sm" className="sm:hidden">
@@ -182,7 +184,9 @@ export default function Explore() {
                     </SheetHeader>
                     <div className="py-4 space-y-4">
                       <div>
-                        <label className="text-sm font-medium mb-2 block">Ordenar por</label>
+                        <label className="text-sm font-medium mb-2 block">
+                          Ordenar por
+                        </label>
                         <Select value={sortBy} onValueChange={setSortBy}>
                           <SelectTrigger data-testid="select-sort-mobile">
                             <SelectValue />
@@ -253,9 +257,9 @@ export default function Explore() {
                 </p>
               </div>
             </div>
-            <Button
-              variant="ghost"
-              size="sm"
+            <Button 
+              variant="ghost" 
+              size="sm" 
               onClick={() => setActiveFilter("")}
               data-testid="button-clear-filter"
             >
@@ -267,7 +271,7 @@ export default function Explore() {
 
         <Tabs
           value={activeTab}
-          onValueChange={(value) => setActiveTab(value as "products" | "stores")}
+          onValueChange={(v) => setActiveTab(v as "products" | "stores")}
           className="mb-6"
         >
           <TabsList>
@@ -304,9 +308,11 @@ export default function Explore() {
             ) : sortedProducts.length === 0 ? (
               <div className="text-center py-12">
                 <Filter className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-                <h3 className="text-lg font-semibold mb-2">No se encontraron productos</h3>
+                <h3 className="text-lg font-semibold mb-2">
+                  No se encontraron productos
+                </h3>
                 <p className="text-muted-foreground">
-                  Probá cambiando los filtros, la categoría o el texto de búsqueda.
+                  Prueba cambiando los filtros, la categoría o el texto de búsqueda
                 </p>
               </div>
             ) : (
@@ -343,9 +349,11 @@ export default function Explore() {
             ) : filteredStores.length === 0 ? (
               <div className="text-center py-12">
                 <Filter className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-                <h3 className="text-lg font-semibold mb-2">No se encontraron tiendas</h3>
+                <h3 className="text-lg font-semibold mb-2">
+                  No se encontraron tiendas
+                </h3>
                 <p className="text-muted-foreground">
-                  Probá cambiando los filtros, la categoría o el texto de búsqueda.
+                  Prueba cambiando los filtros, la categoría o el texto de búsqueda
                 </p>
               </div>
             ) : (

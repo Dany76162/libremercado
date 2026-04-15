@@ -1,5 +1,4 @@
-import { Switch, Route, useLocation, useRoute } from "wouter";
-import { useEffect } from "react";
+import { Switch, Route, useRoute } from "wouter";
 import { queryClient } from "./lib/queryClient";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
@@ -31,7 +30,7 @@ import Videos from "@/pages/Videos";
 import ProductDetail from "@/pages/ProductDetail";
 import Help from "@/pages/Help";
 import PanelInstitucional from "@/pages/PanelInstitucional";
-import WholesaleHub from "@/pages/WholesaleHub";
+import NovedadesPortal from "@/pages/NovedadesPortal";
 import NotFound from "@/pages/not-found";
 
 function Router() {
@@ -43,8 +42,6 @@ function Router() {
       <Route path="/panel/admin" component={PanelRouter} />
       <Route path="/explore" component={Explore} />
       <Route path="/videos" component={Videos} />
-      <Route path="/wholesale" component={WholesaleHub} />
-      <Route path="/distributors" component={WholesaleHub} />
       <Route path="/store/:id" component={StoreDetails} />
       <Route path="/product/:id" component={ProductDetail} />
       <Route path="/cart" component={Cart} />
@@ -68,37 +65,20 @@ function Router() {
       <Route path="/panel-institucional" component={PanelInstitucional} />
       <Route path="/vender" component={MerchantOnboarding} />
       <Route path="/repartidor" component={RiderOnboarding} />
+      <Route path="/novedades" component={NovedadesPortal} />
       <Route path="/help" component={Help} />
       <Route component={NotFound} />
     </Switch>
   );
 }
 
-function ScrollRestoration() {
-  const [location] = useLocation();
-
-  useEffect(() => {
-    window.scrollTo({ top: 0, left: 0, behavior: "auto" });
-  }, [location]);
-
-  return null;
-}
-
 function AppLayout() {
   const [isVideos] = useRoute("/videos");
   const [isInstitucional] = useRoute("/institucional");
   const [isInstitucionalAlias] = useRoute("/panel-institucional");
-  if (isInstitucional || isInstitucionalAlias) {
-    return (
-      <>
-        <ScrollRestoration />
-        <Router />
-      </>
-    );
-  }
+  if (isInstitucional || isInstitucionalAlias) return <Router />;
   return (
     <div className={`min-h-screen flex flex-col${isVideos ? " h-screen overflow-hidden" : ""}`}>
-      <ScrollRestoration />
       <Navbar />
       <main className={isVideos ? "flex-1 overflow-hidden" : "flex-1"}>
         <Router />

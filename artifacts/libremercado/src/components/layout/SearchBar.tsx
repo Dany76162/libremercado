@@ -129,9 +129,9 @@ export function SearchBar({ className = "", inputClassName = "", onSearch }: Sea
                       onClick={() => navigateTo(`/store/${store.id}`)}
                       data-testid={`search-result-store-${store.id}`}
                     >
-                      {store.logo ? (
+                      {store.logoUrl ? (
                         <img
-                          src={resolveMediaUrl(store.logo) ?? store.logo}
+                          src={resolveMediaUrl(store.logoUrl) ?? store.logoUrl}
                           alt={store.name}
                           className="h-8 w-8 rounded-full object-cover flex-shrink-0"
                         />
@@ -161,12 +161,12 @@ export function SearchBar({ className = "", inputClassName = "", onSearch }: Sea
                       key={product.id}
                       type="button"
                       className="w-full flex items-center gap-3 px-3 py-2.5 hover:bg-muted/70 transition-colors text-left"
-                      onClick={() => navigateTo(`/product/${product.id}`)}
+                      onClick={() => navigateTo(`/explore?q=${encodeURIComponent(product.name)}`)}
                       data-testid={`search-result-product-${product.id}`}
                     >
-                      {product.image ? (
+                      {product.imageUrl ? (
                         <img
-                          src={resolveMediaUrl(product.image) ?? product.image}
+                          src={resolveMediaUrl(product.imageUrl) ?? product.imageUrl}
                           alt={product.name}
                           className="h-8 w-8 rounded object-cover flex-shrink-0"
                         />

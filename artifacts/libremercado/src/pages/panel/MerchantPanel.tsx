@@ -11,11 +11,13 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter, DialogClose } from "@/components/ui/dialog";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/use-auth";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import type { Order, Product, Store as StoreType } from "@shared/schema";
 import { MerchantVideosTab } from "./tabs/MerchantVideosTab";
+import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar, Cell } from 'recharts';
 
 const statusLabels: Record<Order["status"], string> = {
   pending: "Pendiente",
@@ -57,10 +59,13 @@ export default function MerchantPanel() {
     category: "",
     stock: 0,
     imageUrl: "",
-    marketType: "retail" as "retail" | "wholesale",
+    salesMode: "retail",
   });
   const [extraImages, setExtraImages] = useState<string[]>([]);
   const [attrs, setAttrs] = useState<{ key: string; value: string }[]>([]);
+  
+  const [showBulkPriceDialog, setShowBulkPriceDialog] = useState(false);
+  const [bulkPercentage, setBulkPercentage] = useState<string>("");
 
   const { data: stores, isLoading: storesLoading } = useQuery<StoreType[]>({
     queryKey: ["/api/merchant/stores"],
@@ -137,7 +142,6 @@ export default function MerchantPanel() {
       images: allImages.length > 0 ? JSON.stringify(allImages) : null,
       attributes: Object.keys(attrsObj).length > 0 ? JSON.stringify(attrsObj) : null,
       originalPrice: data.originalPrice || null,
-      marketType: data.marketType,
     };
   };
 
@@ -190,8 +194,34 @@ export default function MerchantPanel() {
     },
   });
 
+  const bulkPriceMutation = useMutation({
+    mutationFn: async (percentage: number) => {
+      const response = await apiRequest("POST", "/api/merchant/products/bulk/price", { percentage });
+      return response.json();
+    },
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ["/api/merchant/products"] });
+      setShowBulkPriceDialog(false);
+      setBulkPercentage("");
+      toast({ title: "Gestión Masiva Exitosa", description: `Se actualizaron ${data.count} productos.` });
+    },
+    onError: () => {
+      toast({ title: "Error en actualización masiva", variant: "destructive" });
+    },
+  });
+
+  const handleBulkSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    const val = parseFloat(bulkPercentage);
+    if (isNaN(val) || val === 0) {
+      toast({ title: "Porcentaje inválido", variant: "destructive" });
+      return;
+    }
+    bulkPriceMutation.mutate(val);
+  };
+
   const resetProductForm = () => {
-    setProductForm({ name: "", description: "", price: "", originalPrice: "", category: "", stock: 0, imageUrl: "", marketType: "retail" });
+    setProductForm({ name: "", description: "", price: "", originalPrice: "", category: "", stock: 0, imageUrl: "", salesMode: "retail" });
     setExtraImages([]);
     setAttrs([]);
   };
@@ -218,7 +248,7 @@ export default function MerchantPanel() {
       category: product.category || "",
       stock: product.stock ?? 0,
       imageUrl: primaryImg,
-      marketType: product.marketType === "wholesale" ? "wholesale" : "retail",
+      salesMode: (product as any).salesMode || "retail",
     });
     setExtraImages(rest);
     setAttrs(existingAttrs);
@@ -418,22 +448,23 @@ export default function MerchantPanel() {
                     />
                   </div>
                 </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="product-market-type">Canal de venta</Label>
-                  <select
-                    id="product-market-type"
-                    value={productForm.marketType}
-                    onChange={(e) => setProductForm({ ...productForm, marketType: e.target.value as "retail" | "wholesale" })}
-                    className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
-                    data-testid="select-product-market-type"
-                  >
-                    <option value="retail">Minorista</option>
-                    <option value="wholesale">Mayorista</option>
-                  </select>
-                  <p className="text-xs text-muted-foreground">
-                    Los productos mayoristas se ocultan del catálogo público y requieren acceso aprobado.
-                  </p>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label>Modo de venta</Label>
+                    <Select
+                      value={productForm.salesMode}
+                      onValueChange={(val) => setProductForm({ ...productForm, salesMode: val })}
+                    >
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="retail">Solo por menor</SelectItem>
+                        <SelectItem value="wholesale">Solo por mayor</SelectItem>
+                        <SelectItem value="both">Ambos (Mayorista y Minorista)</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
                 </div>
 
                 {/* Attributes section */}
@@ -683,27 +714,54 @@ export default function MerchantPanel() {
                 <p className="text-muted-foreground mb-4">
                   Agregá tu primer producto para empezar a vender
                 </p>
-                <Button onClick={() => setShowProductDialog(true)} data-testid="button-add-first-product">
-                  <Plus className="h-4 w-4 mr-2" />
-                  Agregar Producto
-                </Button>
+                <div className="flex justify-center gap-2">
+                  <Button onClick={() => setShowProductDialog(true)} data-testid="button-add-first-product">
+                    <Plus className="h-4 w-4 mr-2" />
+                    Agregar Producto
+                  </Button>
+                </div>
               </CardContent>
             </Card>
           ) : (
-            <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
-              {(products ?? []).map((product) => (
+            <div className="space-y-4">
+              <div className="flex justify-end gap-2">
+                <Dialog open={showBulkPriceDialog} onOpenChange={setShowBulkPriceDialog}>
+                  <DialogTrigger asChild>
+                    <Button variant="outline"><Settings className="h-4 w-4 mr-2" /> Gestión Masiva</Button>
+                  </DialogTrigger>
+                  <DialogContent>
+                    <DialogHeader>
+                      <DialogTitle>Aumento Masivo de Precios</DialogTitle>
+                    </DialogHeader>
+                    <form onSubmit={handleBulkSubmit} className="space-y-4">
+                      <div className="space-y-2">
+                        <Label>Porcentaje de aumento (%)</Label>
+                        <Input 
+                          type="number" 
+                          step="0.1" 
+                          placeholder="Ej: 10 para aumentar un 10%" 
+                          value={bulkPercentage}
+                          onChange={(e) => setBulkPercentage(e.target.value)}
+                          required
+                        />
+                      </div>
+                      <DialogFooter>
+                        <Button type="button" variant="outline" onClick={() => setShowBulkPriceDialog(false)}>Cancelar</Button>
+                        <Button type="submit" disabled={bulkPriceMutation.isPending}>Aplicar Cambios</Button>
+                      </DialogFooter>
+                    </form>
+                  </DialogContent>
+                </Dialog>
+              </div>
+              <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                {(products ?? []).map((product) => (
                 <Card key={product.id} data-testid={`card-product-${product.id}`}>
                   <CardContent className="p-4">
                     <div className="flex justify-between items-start mb-2">
                       <h3 className="font-semibold">{product.name}</h3>
-                      <div className="flex flex-col items-end gap-1">
-                        <Badge variant={product.isActive ? "default" : "secondary"}>
-                          {product.isActive ? "Activo" : "Inactivo"}
-                        </Badge>
-                        <Badge variant={product.marketType === "wholesale" ? "outline" : "secondary"}>
-                          {product.marketType === "wholesale" ? "Mayorista" : "Minorista"}
-                        </Badge>
-                      </div>
+                      <Badge variant={product.isActive ? "default" : "secondary"}>
+                        {product.isActive ? "Activo" : "Inactivo"}
+                      </Badge>
                     </div>
                     {product.description && (
                       <p className="text-sm text-muted-foreground line-clamp-2 mb-2">{product.description}</p>
@@ -736,6 +794,7 @@ export default function MerchantPanel() {
                   </CardContent>
                 </Card>
               ))}
+              </div>
             </div>
           )}
         </TabsContent>
@@ -790,31 +849,162 @@ export default function MerchantPanel() {
           </div>
 
           <div className="grid md:grid-cols-2 gap-6">
+            <Card className="md:col-span-2">
+              <CardHeader>
+                <CardTitle className="text-base">Análisis Financiero y Liquidación</CardTitle>
+                <CardDescription>Resumen de cobros y comisiones de plataforma</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-4">
+                  <div className="flex justify-between items-center py-2 border-b">
+                    <span className="text-muted-foreground">Ingresos Brutos Topes</span>
+                    <span className="font-semibold">${stats?.totalRevenue?.toLocaleString("es-AR") ?? 0}</span>
+                  </div>
+                  <div className="flex justify-between items-center py-2 border-b">
+                    <span className="text-muted-foreground">Comisión LibreMercado ({((stats?.commissionRate ?? 0) * 100).toFixed(0)}%)</span>
+                    <span className="text-red-500 font-semibold">-${stats?.platformCommission?.toLocaleString("es-AR") ?? 0}</span>
+                  </div>
+                  <div className="flex justify-between items-center py-2 bg-muted/20 rounded-md px-2">
+                    <span className="font-bold">A Liquidar / Tu Ganancia Neta</span>
+                    <span className="font-bold text-green-600">${stats?.netRevenue?.toLocaleString("es-AR") ?? 0}</span>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Performance Chart */}
+            <Card className="md:col-span-2">
+              <CardHeader>
+                <CardTitle className="text-base">Rendimiento de Ventas (7 días)</CardTitle>
+                <CardDescription>Ingresos brutos diarios en ARS</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="h-[300px] w-full">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <AreaChart data={stats?.dailyRevenue ?? []}>
+                      <defs>
+                        <linearGradient id="colorRevenue" x1="0" y1="0" x2="0" y2="1">
+                          <stop offset="5%" stopColor="hsl(var(--primary))" stopOpacity={0.3}/>
+                          <stop offset="95%" stopColor="hsl(var(--primary))" stopOpacity={0}/>
+                        </linearGradient>
+                      </defs>
+                      <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="hsl(var(--muted))" />
+                      <XAxis 
+                        dataKey="date" 
+                        axisLine={false}
+                        tickLine={false}
+                        tick={{ fontSize: 12, fill: 'hsl(var(--muted-foreground))' }}
+                      />
+                      <YAxis 
+                        axisLine={false}
+                        tickLine={false}
+                        tick={{ fontSize: 12, fill: 'hsl(var(--muted-foreground))' }}
+                        tickFormatter={(value) => `$${value}`}
+                      />
+                      <Tooltip 
+                        contentStyle={{ 
+                          backgroundColor: 'hsl(var(--background))', 
+                          borderColor: 'hsl(var(--border))',
+                          borderRadius: '8px',
+                          fontSize: '12px'
+                        }}
+                      />
+                      <Area 
+                        type="monotone" 
+                        dataKey="revenue" 
+                        stroke="hsl(var(--primary))" 
+                        strokeWidth={2}
+                        fillOpacity={1} 
+                        fill="url(#colorRevenue)" 
+                      />
+                    </AreaChart>
+                  </ResponsiveContainer>
+                </div>
+              </CardContent>
+            </Card>
+
             {/* Revenue breakdown */}
             <Card>
               <CardHeader>
                 <CardTitle className="text-base">Ingresos y Comisiones</CardTitle>
               </CardHeader>
-              <CardContent className="space-y-3">
-                <div className="flex justify-between">
-                  <span className="text-muted-foreground">Ingresos brutos</span>
-                  <span className="font-semibold">${(stats?.totalRevenue ?? 0).toLocaleString("es-AR")}</span>
+              <CardContent className="space-y-4">
+                <div className="flex justify-between items-center bg-muted/30 p-3 rounded-lg border border-border/50">
+                  <span className="text-sm font-medium">Ingresos brutos</span>
+                  <span className="font-bold text-lg">${(stats?.totalRevenue ?? 0).toLocaleString("es-AR")}</span>
                 </div>
-                <div className="flex justify-between text-destructive">
-                  <span>Comisión PachaPay ({((stats?.commissionRate ?? 0.07) * 100).toFixed(0)}%)</span>
-                  <span>-${(stats?.platformCommission ?? 0).toLocaleString("es-AR")}</span>
+                
+                <div className="space-y-2">
+                  <div className="flex justify-between text-sm">
+                    <span className="text-muted-foreground flex items-center gap-1">
+                      Comisión PachaPay ({((stats?.commissionRate ?? 0.07) * 100).toFixed(0)}%)
+                      <AlertTriangle className="h-3 w-3 text-yellow-500" />
+                    </span>
+                    <span className="font-medium text-destructive">-${(stats?.platformCommission ?? 0).toLocaleString("es-AR")}</span>
+                  </div>
+                  <div className="h-2 w-full bg-muted rounded-full overflow-hidden">
+                    <div 
+                      className="h-full bg-destructive transition-all duration-1000" 
+                      style={{ width: `${(stats?.platformCommission ?? 0) / (stats?.totalRevenue || 1) * 100}%` }}
+                    />
+                  </div>
                 </div>
-                <div className="flex justify-between border-t pt-3 font-bold text-green-600 dark:text-green-400">
-                  <span>Ingresos netos</span>
-                  <span>${(stats?.netRevenue ?? 0).toLocaleString("es-AR")}</span>
+
+                <div className="flex justify-between items-center py-4 border-t border-b border-dashed">
+                  <span className="font-bold text-lg">Ingresos netos</span>
+                  <span className="font-black text-2xl text-green-600 dark:text-green-400">
+                    ${(stats?.netRevenue ?? 0).toLocaleString("es-AR")}
+                  </span>
                 </div>
-                <div className="flex justify-between text-sm text-muted-foreground pt-2 border-t">
-                  <span>Pedidos cancelados</span>
-                  <span>{stats?.cancelledOrders ?? 0}</span>
+                
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="p-2 rounded-md bg-muted/20 border">
+                    <p className="text-[10px] uppercase tracking-wider text-muted-foreground mb-1">Entregados</p>
+                    <p className="font-bold">{stats?.deliveredOrders ?? 0}</p>
+                  </div>
+                  <div className="p-2 rounded-md bg-muted/20 border">
+                    <p className="text-[10px] uppercase tracking-wider text-muted-foreground mb-1">Cancelados</p>
+                    <p className="font-bold text-destructive">{stats?.cancelledOrders ?? 0}</p>
+                  </div>
                 </div>
-                <div className="flex justify-between text-sm text-muted-foreground">
-                  <span>Pedidos entregados</span>
-                  <span>{stats?.deliveredOrders ?? 0}</span>
+              </CardContent>
+            </Card>
+
+            {/* Top Products Chart */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-base">Productos más vendidos</CardTitle>
+                <CardDescription>Por cantidad de unidades</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="h-[300px] w-full">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <BarChart layout="vertical" data={stats?.topProducts ?? []} margin={{ left: 20 }}>
+                      <CartesianGrid strokeDasharray="3 3" horizontal={true} vertical={false} stroke="hsl(var(--muted))" />
+                      <XAxis type="number" hide />
+                      <YAxis 
+                        dataKey="name" 
+                        type="category" 
+                        width={100}
+                        axisLine={false}
+                        tickLine={false}
+                        tick={{ fontSize: 10, fill: 'hsl(var(--muted-foreground))' }}
+                      />
+                      <Tooltip 
+                        cursor={{ fill: 'hsl(var(--muted))', opacity: 0.4 }}
+                        contentStyle={{ 
+                          backgroundColor: 'hsl(var(--background))', 
+                          borderColor: 'hsl(var(--border))',
+                          borderRadius: '8px'
+                        }}
+                      />
+                      <Bar dataKey="count" radius={[0, 4, 4, 0]}>
+                        {(stats?.topProducts ?? []).map((entry, index) => (
+                          <Cell key={`cell-${index}`} fill={`hsl(var(--primary) / ${1 - index * 0.15})`} />
+                        ))}
+                      </Bar>
+                    </BarChart>
+                  </ResponsiveContainer>
                 </div>
               </CardContent>
             </Card>

@@ -8,6 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
+import { OrderTrackingMap } from "@/components/maps/OrderTrackingMap";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/use-auth";
 import { apiRequest, queryClient } from "@/lib/queryClient";
@@ -28,6 +29,11 @@ export default function RiderPanel() {
   const { user } = useAuth();
   const { toast } = useToast();
   const [activeTab, setActiveTab] = useState("available");
+  const [visibleMaps, setVisibleMaps] = useState<Record<string, boolean>>({});
+
+  const toggleMap = (orderId: string) => {
+    setVisibleMaps(prev => ({ ...prev, [orderId]: !prev[orderId] }));
+  };
 
   const { data: profile, isLoading: profileLoading } = useQuery<RiderProfile | null>({
     queryKey: ["/api/rider/profile"],
@@ -432,6 +438,28 @@ export default function RiderPanel() {
                         Entregado
                       </Button>
                     </div>
+
+                    {visibleMaps[order.id] && (
+                      <div className="mt-4 animate-in fade-in slide-in-from-top-2 duration-300">
+                        <OrderTrackingMap
+                          storeLat={order.storeLat ? parseFloat(order.storeLat) : undefined}
+                          storeLng={order.storeLng ? parseFloat(order.storeLng) : undefined}
+                          deliveryLat={order.deliveryLat ? parseFloat(order.deliveryLat) : undefined}
+                          deliveryLng={order.deliveryLng ? parseFloat(order.deliveryLng) : undefined}
+                          status={order.status}
+                          deliveryAddress={order.address ?? undefined}
+                        />
+                      </div>
+                    )}
+                    
+                    <Button 
+                      variant="ghost" 
+                      size="sm" 
+                      className="w-full mt-2 text-xs text-muted-foreground"
+                      onClick={() => toggleMap(order.id)}
+                    >
+                      {visibleMaps[order.id] ? "Ocultar Mapa" : "Ver Mapa de Entrega"}
+                    </Button>
                   </CardContent>
                 </Card>
               ))}
