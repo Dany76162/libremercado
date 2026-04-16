@@ -336,7 +336,7 @@ export default function Home() {
       <ReelMarkSection />
 
       <section className="px-4 md:px-6 py-4 max-w-[1400px] mx-auto">
-        <div className="grid grid-cols-4 sm:grid-cols-4 md:grid-cols-8 gap-3">
+        <div className="grid grid-cols-4 md:grid-cols-8 gap-3">
           {SMALL_CATEGORIES.map((category) => {
             const img = homeSettings?.[`cat_img_${category.id}`] || DEFAULT_CATEGORY_IMAGES[category.id];
             return (
@@ -516,7 +516,7 @@ export default function Home() {
           </div>
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-            {(stores ?? []).filter(s => !!s.banner).slice(0, 3).map((store) => (
+            {(stores ?? []).filter(s => !!s.banner).slice(0, 4).map((store) => (
               <StoreCard key={store.id} store={store} />
             ))}
           </div>

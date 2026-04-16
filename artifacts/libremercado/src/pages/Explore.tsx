@@ -59,6 +59,7 @@ export default function Explore() {
   const { data: stores, isLoading: storesLoading } = useStores(locationFilter);
 
   useEffect(() => {
+    window.scrollTo({ top: 0, behavior: 'smooth' });
     setSelectedCategory(initialCategory);
     setSearchQuery(initialQuery);
     setActiveFilter(initialFilter);
