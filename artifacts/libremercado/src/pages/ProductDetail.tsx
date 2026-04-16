@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRoute, Link, useLocation } from "wouter";
 import { useQuery } from "@tanstack/react-query";
 import { ArrowLeft, ShoppingCart, Star, Truck, Shield, Heart, Zap, ChevronLeft, ChevronRight, Play } from "lucide-react";
@@ -28,6 +28,10 @@ export default function ProductDetail() {
   const [mainIdx, setMainIdx] = useState(0);
   const [lightbox, setLightbox] = useState(false);
   const [, navigate] = useLocation();
+
+  useEffect(() => {
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }, [productId]);
 
   const addItem = useCart((s) => s.addItem);
   const { toast } = useToast();

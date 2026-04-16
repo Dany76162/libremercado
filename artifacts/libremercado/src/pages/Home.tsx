@@ -336,7 +336,7 @@ export default function Home() {
       <ReelMarkSection />
 
       <section className="px-4 md:px-6 py-4 max-w-[1400px] mx-auto">
-        <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-8 gap-3">
+        <div className="grid grid-cols-4 sm:grid-cols-4 md:grid-cols-8 gap-3">
           {SMALL_CATEGORIES.map((category) => {
             const img = homeSettings?.[`cat_img_${category.id}`] || DEFAULT_CATEGORY_IMAGES[category.id];
             return (
@@ -394,8 +394,8 @@ export default function Home() {
         </div>
 
         {productsLoading ? (
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
-            {Array.from({ length: 5 }).map((_, i) => (
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4">
+            {Array.from({ length: 6 }).map((_, i) => (
               <Card key={i}>
                 <Skeleton className="aspect-square" />
                 <CardContent className="p-3 space-y-2">
@@ -407,8 +407,8 @@ export default function Home() {
             ))}
           </div>
         ) : (
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
-            {(products ?? []).slice(0, 5).map((product) => (
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4">
+            {(products ?? []).slice(0, 6).map((product) => (
               <ProductCard key={product.id} product={product} />
             ))}
           </div>
