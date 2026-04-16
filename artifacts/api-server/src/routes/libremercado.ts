@@ -16,6 +16,7 @@ import {
   uploadVideo,
   uploadThumbnail,
   uploadInstitucional,
+  uploadBranding,
   processUpload,
 } from "../upload";
 import rateLimit from "express-rate-limit";

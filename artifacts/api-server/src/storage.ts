@@ -218,6 +218,8 @@ export class MemStorage implements IStorage {
   private platformCommissions: Map<string, PlatformCommission>;
   private adBillings: Map<string, AdBilling>;
 
+  private siteSettings: Map<string, string>;
+
   constructor() {
     this.users = new Map();
     this.stores = new Map();
@@ -233,6 +235,7 @@ export class MemStorage implements IStorage {
     this.riderEarnings = new Map();
     this.platformCommissions = new Map();
     this.adBillings = new Map();
+    this.siteSettings = new Map();
 
     this.seedData();
   }
@@ -1505,9 +1508,15 @@ export class MemStorage implements IStorage {
   async getStoreFollowersCount(_storeId: string): Promise<number> { return 0; }
   async getFollowedStoreIds(_userId: string): Promise<string[]> { return []; }
 
-  async getSiteSetting(_key: string): Promise<string | null> { return null; }
-  async getAllSiteSettings(): Promise<Record<string, string>> { return {}; }
-  async setSiteSetting(_key: string, _value: string): Promise<void> {}
+  async getSiteSetting(key: string): Promise<string | null> {
+    return this.siteSettings.get(key) ?? null;
+  }
+  async getAllSiteSettings(): Promise<Record<string, string>> {
+    return Object.fromEntries(this.siteSettings.entries());
+  }
+  async setSiteSetting(key: string, value: string): Promise<void> {
+    this.siteSettings.set(key, value);
+  }
   async getDiscountedProducts(_category?: string, _limit?: number): Promise<Product[]> { return []; }
 
   async getAllVideosForAdmin(_status?: VideoStatus): Promise<ShoppableVideo[]> { return []; }
