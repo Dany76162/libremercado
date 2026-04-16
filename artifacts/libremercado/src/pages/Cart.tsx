@@ -341,12 +341,12 @@ export default function Cart() {
                         {formatPrice(price)} c/u
                       </p>
 
-                      <div className="flex items-center justify-between gap-4">
+                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4">
                         <div className="flex items-center gap-2">
                           <Button
                             variant="outline"
                             size="icon"
-                            className="h-8 w-8"
+                            className="h-7 w-7 sm:h-8 sm:w-8"
                             onClick={() =>
                               updateQuantity(item.product.id, item.quantity - 1)
                             }
@@ -363,14 +363,14 @@ export default function Cart() {
                                 parseInt(e.target.value) || 1
                               )
                             }
-                            className="w-16 h-8 text-center"
+                            className="w-12 sm:w-16 h-7 sm:h-8 text-center text-sm"
                             min={1}
                             data-testid={`input-quantity-${item.product.id}`}
                           />
                           <Button
                             variant="outline"
                             size="icon"
-                            className="h-8 w-8"
+                            className="h-7 w-7 sm:h-8 sm:w-8"
                             onClick={() =>
                               updateQuantity(item.product.id, item.quantity + 1)
                             }
@@ -380,9 +380,9 @@ export default function Cart() {
                           </Button>
                         </div>
 
-                        <div className="flex items-center gap-4">
+                        <div className="flex items-center justify-between sm:justify-end gap-4 mt-1 sm:mt-0">
                           <p
-                            className="font-bold"
+                            className="font-bold text-base sm:text-lg"
                             data-testid={`text-cart-item-total-${item.product.id}`}
                           >
                             {formatPrice(itemTotal)}

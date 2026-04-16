@@ -121,22 +121,22 @@ export function ProductCard({ product, showStore = false }: ProductCardProps) {
         )}
       </div>
 
-      <CardContent className="p-3 flex-1 flex flex-col">
+      <CardContent className="p-2 sm:p-3 flex-1 flex flex-col">
         <h3
-          className="text-sm font-medium line-clamp-2 mb-2 flex-1"
+          className="text-xs sm:text-sm font-medium line-clamp-2 mb-1 sm:mb-2 flex-1"
           data-testid={`text-product-name-${product.id}`}
         >
           {product.name}
         </h3>
 
-        <div className="space-y-1">
+        <div className="space-y-0.5 sm:space-y-1">
           {hasDiscount && (
-            <p className="text-xs text-muted-foreground line-through">
+            <p className="text-[10px] sm:text-xs text-muted-foreground line-through leading-tight">
               {formatPrice(originalPrice)}
             </p>
           )}
           <p
-            className="text-lg font-bold text-foreground"
+            className="text-base sm:text-lg font-bold text-foreground leading-tight"
             data-testid={`text-product-price-${product.id}`}
           >
             {formatPrice(price)}

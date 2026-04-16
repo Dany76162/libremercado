@@ -104,18 +104,31 @@ export function LocationSelector() {
   return (
     <Dialog open={open} onOpenChange={(o) => { if (!o) handleClose(); else setOpen(true); }}>
       <DialogTrigger asChild>
-        <Button
-          variant="ghost"
-          size="sm"
-          className="hidden lg:flex items-center gap-2 text-primary-foreground/90 hover:text-primary-foreground hover:bg-primary-foreground/10"
-          data-testid="button-location"
-        >
-          {useGps ? <Navigation className="h-4 w-4" /> : <MapPin className="h-4 w-4" />}
-          <span className="text-sm max-w-[160px] truncate">
-            {hasLocation ? locationName : "Elegir ubicación"}
-          </span>
-          <ChevronDown className="h-3 w-3" />
-        </Button>
+        <div className="flex items-center">
+          {/* Desktop version */}
+          <Button
+            variant="ghost"
+            size="sm"
+            className="hidden lg:flex items-center gap-2 text-primary-foreground/90 hover:text-primary-foreground hover:bg-primary-foreground/10"
+            data-testid="button-location-desktop"
+          >
+            {useGps ? <Navigation className="h-4 w-4" /> : <MapPin className="h-4 w-4" />}
+            <span className="text-sm max-w-[160px] truncate">
+              {hasLocation ? locationName : "Elegir ubicación"}
+            </span>
+            <ChevronDown className="h-3 w-3" />
+          </Button>
+          
+          {/* Mobile version */}
+          <Button
+            variant="ghost"
+            size="icon"
+            className="lg:hidden text-primary-foreground hover:bg-primary-foreground/10"
+            data-testid="button-location-mobile"
+          >
+            {useGps ? <Navigation className="h-5 w-5" /> : <MapPin className="h-5 w-5" />}
+          </Button>
+        </div>
       </DialogTrigger>
 
       <DialogContent className="sm:max-w-md">

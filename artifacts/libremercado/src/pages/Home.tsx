@@ -336,7 +336,7 @@ export default function Home() {
       <ReelMarkSection />
 
       <section className="px-4 md:px-6 py-4 max-w-[1400px] mx-auto">
-        <div className="grid grid-cols-4 md:grid-cols-8 gap-3">
+        <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-8 gap-3">
           {SMALL_CATEGORIES.map((category) => {
             const img = homeSettings?.[`cat_img_${category.id}`] || DEFAULT_CATEGORY_IMAGES[category.id];
             return (
