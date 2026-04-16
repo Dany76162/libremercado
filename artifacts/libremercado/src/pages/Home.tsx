@@ -13,6 +13,7 @@ import { StoreCard } from "@/components/marketplace/StoreCard";
 import { TravelModal } from "@/components/travel/TravelModal";
 import { ReelMarkSection } from "@/components/feed/ReelMarkSection";
 import { useFeaturedProducts, useFeaturedStores, useStores, usePromoBanners, usePromoNotices, usePromoCategories, useDiscountedProducts, useHomeSettings, useNovedades } from "@/hooks/use-marketplace";
+import { HeroBanner } from "@/components/layout/HeroBanner";
 import { useLocation as useUserLocation } from "@/hooks/use-location";
 import { resolveMediaUrl } from "@/lib/apiBase";
 
@@ -232,15 +233,11 @@ export default function Home() {
 
   return (
     <div className="min-h-screen bg-muted/30">
-      <section className="px-4 py-4 max-w-7xl mx-auto">
-        {bannersLoading ? (
-          <Skeleton className="w-full aspect-[21/9] md:aspect-[21/6] rounded-md" />
-        ) : (
-          <PromoBanner promos={banners ?? []} />
-        )}
-      </section>
+      <header className="w-full">
+        <HeroBanner promos={banners ?? []} />
+      </header>
 
-      <section className="px-4 py-3 max-w-7xl mx-auto">
+      <section className="px-4 md:px-6 py-3 max-w-[1400px] mx-auto">
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           {benefitCards.map((card, index) => {
             const inner = (
@@ -314,7 +311,7 @@ export default function Home() {
       </section>
 
       {provinciaId && locationName && (
-        <section className="px-4 py-2 max-w-7xl mx-auto">
+        <section className="px-4 md:px-6 py-12 max-w-[1400px] mx-auto">
           <div className="flex items-center gap-2 text-sm text-muted-foreground">
             <MapPin className="h-4 w-4 text-primary" />
             <span>Mostrando resultados en <span className="font-medium text-foreground">{locationName}</span></span>
@@ -322,7 +319,7 @@ export default function Home() {
         </section>
       )}
 
-      <section className="px-4 py-4 max-w-7xl mx-auto">
+      <section className="px-4 md:px-6 py-4 max-w-[1400px] mx-auto">
         <div className="flex items-center justify-between mb-3">
           <h2 className="text-lg font-bold">Categorías en oferta</h2>
           <Link href="/explore">
@@ -338,7 +335,7 @@ export default function Home() {
       
       <ReelMarkSection />
 
-      <section className="px-4 py-4 max-w-7xl mx-auto">
+      <section className="px-4 md:px-6 py-4 max-w-[1400px] mx-auto">
         <div className="grid grid-cols-4 md:grid-cols-8 gap-3">
           {SMALL_CATEGORIES.map((category) => {
             const img = homeSettings?.[`cat_img_${category.id}`] || DEFAULT_CATEGORY_IMAGES[category.id];
@@ -383,7 +380,7 @@ export default function Home() {
         </div>
       </section>
 
-      <section className="px-4 py-6 max-w-7xl mx-auto">
+      <section className="px-4 md:px-6 py-6 max-w-[1400px] mx-auto">
         <div className="flex items-center justify-between mb-4">
           <h2 className="text-xl font-bold" data-testid="text-section-featured">
             Productos Destacados
@@ -419,7 +416,7 @@ export default function Home() {
       </section>
 
       {((featuredStores ?? []).length > 0 || featuredStoresLoading) && (
-        <section className="px-4 py-6 max-w-7xl mx-auto" data-testid="section-featured-stores">
+        <section className="px-4 md:px-6 py-6 max-w-[1400px] mx-auto" data-testid="section-featured-stores">
           <div className="flex items-center justify-between mb-4">
             <h2 className="text-xl font-bold flex items-center gap-2" data-testid="text-section-featured-stores">
               <Sparkles className="h-5 w-5 text-primary" />
@@ -457,7 +454,7 @@ export default function Home() {
       )}
 
       <section className="bg-card py-8 border-y">
-        <div className="max-w-7xl mx-auto px-4">
+        <div className="px-4 md:px-6 max-w-[1400px] mx-auto">
           <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
             <div className="flex flex-col items-center text-center">
               <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center mb-3">
@@ -491,7 +488,7 @@ export default function Home() {
         </div>
       </section>
 
-      <section className="px-4 py-6 max-w-7xl mx-auto">
+      <section className="px-4 md:px-6 py-6 max-w-[1400px] mx-auto">
         <div className="flex items-center justify-between mb-4">
           <h2 className="text-xl font-bold" data-testid="text-section-stores">
             Tiendas Populares
@@ -527,7 +524,7 @@ export default function Home() {
       </section>
 
       {/* ─── ACCESOS DIRECTOS: GOBIERNO & MAYORISTAS ──────────────── */}
-      <section className="px-4 py-6 max-w-7xl mx-auto">
+      <section className="px-4 md:px-6 py-6 max-w-[1400px] mx-auto">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
 
           {/* Tarjeta: Instituciones y Gobierno */}
@@ -606,7 +603,7 @@ export default function Home() {
 
       {/* NOVEDADES LEGACY (keeps existing notices system) */}
       {!noticesLoading && notices && notices.length > 0 && (novedadesData?.length ?? 0) === 0 && (
-        <section className="px-4 py-6 max-w-7xl mx-auto">
+        <section className="px-4 md:px-6 py-6 max-w-[1400px] mx-auto">
           <h2 className="text-xl font-bold mb-4" data-testid="text-section-notices">
             Novedades
           </h2>
@@ -618,7 +615,7 @@ export default function Home() {
         </section>
       )}
 
-      <section className="px-4 py-8 max-w-7xl mx-auto">
+      <section className="px-4 md:px-6 py-8 max-w-[1400px] mx-auto">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <Link href="/vender">
             <div

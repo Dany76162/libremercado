@@ -12,6 +12,7 @@ const ALLOWED_MIME = new Set([
   "image/png",
   "image/webp",
   "image/gif",
+  "image/svg+xml",
 ]);
 
 const MAX_SIZE_BYTES = 5 * 1024 * 1024; // 5 MB
@@ -53,6 +54,7 @@ export const uploadStore = buildUploader("stores");
 export const uploadAvatar = buildUploader("avatars");
 export const uploadKyc = buildUploader("kyc");
 export const uploadPromo = buildUploader("promos");
+export const uploadBranding = buildUploader("branding", "file");
 
 const VIDEO_MIME = new Set([
   "video/mp4",

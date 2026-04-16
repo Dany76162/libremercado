@@ -5,6 +5,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { Navbar } from "@/components/layout/Navbar";
 import { Footer } from "@/components/layout/Footer";
+import { ThemeInjector } from "@/components/layout/ThemeInjector";
 import Home from "@/pages/Home";
 import Explore from "@/pages/Explore";
 import StoreDetails from "@/pages/StoreDetails";
@@ -92,6 +93,7 @@ function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <TooltipProvider>
+        <ThemeInjector />
         <AppLayout />
         <Toaster />
       </TooltipProvider>

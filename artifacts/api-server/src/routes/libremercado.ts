@@ -3528,5 +3528,60 @@ Responde en formato JSON con la siguiente estructura:
     }
   });
 
+  // ─── CONFIGURACIÓN DEL SITIO (FOOTER, BRANDING, etc) ───────────────────────
+
+  // Público: Obtener configuración por clave
+  app.get("/api/config/:key", async (req, res) => {
+    try {
+      const value = await storage.getSiteSetting(req.params.key);
+      if (value === null) {
+        return res.json(null);
+      }
+      // Si parece JSON, parsear. Si no, retornar como string.
+      try {
+        if (value.startsWith("{") || value.startsWith("[")) {
+          return res.json(JSON.parse(value));
+        }
+        res.json(value);
+      } catch {
+        res.json(value);
+      }
+    } catch (err) {
+      res.status(500).json({ error: "Error al obtener configuración" });
+    }
+  });
+
+  // Admin: Guardar configuración por clave
+  app.post("/api/config/:key", requireRole("admin"), async (req, res) => {
+    try {
+      const value = typeof req.body === "string" ? req.body : JSON.stringify(req.body);
+      await storage.setSiteSetting(req.params.key, value);
+      res.json({ success: true, key: req.params.key });
+    } catch (err) {
+      res.status(500).json({ error: "Error al guardar configuración" });
+    }
+  });
+
+  // Admin: Subir archivo de branding (logo, etc)
+  app.post("/api/config/upload/:key", requireRole("admin"), uploadBranding, async (req, res) => {
+    try {
+      if (!req.file) return res.status(400).json({ error: "No se subió ningún archivo" });
+      
+      // Procesar archivo (validar que sea imagen/svg)
+      const url = await processUpload(req.file, "branding", true, false);
+      
+      // Guardar URL en settings (si es logo_config lo guardamos estructurado)
+      if (req.params.key === "logo_config") {
+        await storage.setSiteSetting("logo_config", JSON.stringify({ url }));
+      } else {
+        await storage.setSiteSetting(req.params.key, url);
+      }
+      
+      res.json({ success: true, url });
+    } catch (err: any) {
+      res.status(500).json({ error: err.message || "Error al subir branding" });
+    }
+  });
+
   return httpServer;
 }

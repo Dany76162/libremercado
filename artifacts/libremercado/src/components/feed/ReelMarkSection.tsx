@@ -69,7 +69,7 @@ export function ReelMarkSection() {
 
   return (
     <section className="py-6 sm:py-8 bg-zinc-50/50">
-      <div className="max-w-7xl mx-auto px-4">
+      <div className="px-4 md:px-6 max-w-[1400px] mx-auto">
         <div className="flex items-center justify-between mb-5">
           <div className="flex items-center gap-2">
             <div className="bg-primary/10 p-2 rounded-xl">
@@ -87,14 +87,14 @@ export function ReelMarkSection() {
           </Link>
         </div>
 
-        <div className="flex gap-4 overflow-x-auto pb-4 scrollbar-hide snap-x snap-mandatory md:justify-center">
+        <div className="grid grid-cols-4 md:grid-cols-6 lg:grid-cols-8 gap-4">
           {isLoading ? (
-            Array(5).fill(0).map((_, i) => (
-              <Skeleton key={i} className="flex-none w-32 md:w-40 aspect-[9/16] rounded-2xl bg-zinc-200" />
+            Array(8).fill(0).map((_, i) => (
+              <Skeleton key={i} className="w-full aspect-[9/16] rounded-2xl bg-zinc-200" />
             ))
           ) : (
-            videos?.map((video) => (
-              <div key={video.id} className="snap-start">
+            videos?.slice(0, 8).map((video) => (
+              <div key={video.id} className="w-full">
                 <ReelMarkCard
                   id={video.id}
                   title={video.title}

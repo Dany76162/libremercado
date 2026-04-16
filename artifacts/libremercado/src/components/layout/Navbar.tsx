@@ -18,21 +18,31 @@ import { LocationSelector } from "@/components/layout/LocationSelector";
 import { NotificationBell } from "@/components/NotificationBell";
 import { SearchBar } from "@/components/layout/SearchBar";
 
-const categories: { id: string; name: string; icon: LucideIcon }[] = [
-  { id: "electronics", name: "Electrónica", icon: Smartphone },
-  { id: "fashion", name: "Moda", icon: Shirt },
-  { id: "home", name: "Hogar", icon: HomeIcon },
-  { id: "grocery", name: "Supermercado", icon: ShoppingBag },
-  { id: "pharmacy", name: "Farmacia", icon: Pill },
-  { id: "food", name: "Comida", icon: UtensilsCrossed },
-  { id: "beauty", name: "Belleza", icon: Sparkles },
-  { id: "pets", name: "Mascotas", icon: PawPrint },
+import { useQuery } from "@tanstack/react-query";
+import { getCategoryIcon } from "@/lib/icons";
+
+const DEFAULT_CATEGORIES = [
+  { id: "electronics", name: "Electrónica", icon: "Smartphone" },
+  { id: "fashion", name: "Moda", icon: "Shirt" },
+  { id: "home", name: "Hogar", icon: "Home" },
+  { id: "grocery", name: "Supermercado", icon: "ShoppingBag" },
+  { id: "pharmacy", name: "Farmacia", icon: "Pill" },
+  { id: "food", name: "Comida", icon: "UtensilsCrossed" },
+  { id: "beauty", name: "Belleza", icon: "Sparkles" },
+  { id: "pets", name: "Mascotas", icon: "PawPrint" },
 ];
 
 export function Navbar() {
   const [location, setLocation] = useLocation();
   const { user, isAuthenticated, logout, isLoggingOut } = useAuth();
   const { toast } = useToast();
+
+  // Cargar categorías dinámicas
+  const { data: dbCategories } = useQuery<{ id: string, name: string, icon: string }[]>({
+    queryKey: ["/api/config/site_categories"]
+  });
+
+  const categories = dbCategories && dbCategories.length > 0 ? dbCategories : DEFAULT_CATEGORIES;
 
   const itemCount = useCart((state) =>
     state.items.reduce((acc, item) => acc + item.quantity, 0),
@@ -62,8 +72,8 @@ export function Navbar() {
   };
 
   return (
-    <header className={`sticky top-0 z-50 w-full${isVideosRoute ? " max-md:hidden" : ""}`}>
-      <div className="bg-primary">
+    <header data-testid="main-header" className={`sticky top-0 z-50 w-full${isVideosRoute ? " max-md:hidden" : ""}`}>
+      <div className="main-navbar-container bg-primary">
         <div className="mx-auto max-w-7xl px-4">
           <div className="flex h-16 items-center gap-4">
             <Sheet>
@@ -130,14 +140,17 @@ export function Navbar() {
                   <div className="px-4 py-2 text-sm font-semibold text-muted-foreground mt-2">
                     Categorías
                   </div>
-                  {categories.map((cat) => (
-                    <Link key={cat.id} href={`/explore?category=${cat.id}`}>
-                      <span className="flex items-center gap-2 px-4 py-2 rounded-md hover-elevate" data-testid={`link-mobile-cat-${cat.id}`}>
-                        <cat.icon className="h-4 w-4" />
-                        {cat.name}
-                      </span>
-                    </Link>
-                  ))}
+                  {categories.map((cat) => {
+                    const Icon = getCategoryIcon(cat.icon);
+                    return (
+                      <Link key={cat.id} href={`/explore?category=${cat.id}`}>
+                        <span className="flex items-center gap-2 px-4 py-2 rounded-md hover-elevate" data-testid={`link-mobile-cat-${cat.id}`}>
+                          <Icon className="h-4 w-4" />
+                          {cat.name}
+                        </span>
+                      </Link>
+                    );
+                  })}
 
                   {isOfficial && (
                     <>
@@ -295,7 +308,7 @@ export function Navbar() {
         </div>
       </div>
 
-      {!isVideosRoute && <nav className="hidden md:block bg-primary/95 border-t border-primary-foreground/10">
+      {!isVideosRoute && <nav className="hidden md:block main-navbar-container bg-primary/95 border-t border-primary-foreground/10">
         <div className="mx-auto max-w-7xl px-4">
           <div className="flex items-center h-10 gap-1">
             <DropdownMenu>
@@ -311,16 +324,19 @@ export function Navbar() {
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="start" className="w-56">
-                {categories.map((cat) => (
-                  <DropdownMenuItem key={cat.id} asChild>
-                    <Link href={`/explore?category=${cat.id}`}>
-                      <span className="flex items-center gap-2" data-testid={`link-cat-${cat.id}`}>
-                        <cat.icon className="h-4 w-4" />
-                        {cat.name}
-                      </span>
-                    </Link>
-                  </DropdownMenuItem>
-                ))}
+                {categories.map((cat) => {
+                  const Icon = getCategoryIcon(cat.icon);
+                  return (
+                    <DropdownMenuItem key={cat.id} asChild>
+                      <Link href={`/explore?category=${cat.id}`}>
+                        <span className="flex items-center gap-2" data-testid={`link-cat-${cat.id}`}>
+                          <Icon className="h-4 w-4" />
+                          {cat.name}
+                        </span>
+                      </Link>
+                    </DropdownMenuItem>
+                  );
+                })}
                 <DropdownMenuSeparator />
                 <DropdownMenuItem asChild>
                   <Link href="/explore">
