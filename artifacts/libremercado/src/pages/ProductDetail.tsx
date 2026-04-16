@@ -356,7 +356,8 @@ export default function ProductDetail() {
             <div className="flex gap-3">
               <Button
                 size="lg"
-                className="flex-1 text-base"
+                variant="outline"
+                className="flex-1 text-base border-primary text-primary hover:bg-primary/5 font-semibold"
                 onClick={handleAddToCart}
                 disabled={(product.stock ?? 1) === 0}
                 data-testid="btn-add-cart"

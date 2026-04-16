@@ -151,7 +151,8 @@ export function ProductCard({ product, showStore = false }: ProductCardProps) {
 
         <Button
           size="sm"
-          className="w-full mt-3"
+          variant="outline"
+          className="w-full mt-3 border-primary text-primary hover:bg-primary/5 transition-colors font-semibold"
           onClick={handleAddToCart}
           disabled={(product.stock ?? 0) === 0}
           data-testid={`button-add-cart-${product.id}`}
