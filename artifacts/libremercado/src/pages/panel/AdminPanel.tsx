@@ -78,63 +78,65 @@ export default function AdminPanel() {
         )}
       </div>
 
-      <Tabs value={activeTab} onValueChange={setActiveTab}>
-        <TabsList className="flex-wrap mb-6">
-          <TabsTrigger value="dashboard" data-testid="tab-dashboard">
-            <Activity className="h-4 w-4 mr-2" />Dashboard
-          </TabsTrigger>
-          <TabsTrigger value="merchants" data-testid="tab-merchants">
-            <Building2 className="h-4 w-4 mr-2" />Comerciantes
-            {totalPendingMerchants > 0 && <Badge variant="destructive" className="ml-2">{totalPendingMerchants}</Badge>}
-          </TabsTrigger>
-          <TabsTrigger value="riders" data-testid="tab-riders">
-            <Bike className="h-4 w-4 mr-2" />Repartidores
-            {totalPendingRiders > 0 && <Badge variant="destructive" className="ml-2">{totalPendingRiders}</Badge>}
-          </TabsTrigger>
-          <TabsTrigger value="kyc" data-testid="tab-kyc">
-            <Shield className="h-4 w-4 mr-2" />KYC
-            {totalPendingKyc > 0 && <Badge variant="destructive" className="ml-2">{totalPendingKyc}</Badge>}
-          </TabsTrigger>
-          <TabsTrigger value="stores" data-testid="tab-stores">
-            <Store className="h-4 w-4 mr-2" />Tiendas
-          </TabsTrigger>
-          <TabsTrigger value="orders" data-testid="tab-orders">
-            <Package className="h-4 w-4 mr-2" />Pedidos
-          </TabsTrigger>
-          <TabsTrigger value="users" data-testid="tab-users">
-            <Users className="h-4 w-4 mr-2" />Usuarios
-          </TabsTrigger>
-          <TabsTrigger value="promos" data-testid="tab-promos">
-            <Megaphone className="h-4 w-4 mr-2" />Publicidad
-          </TabsTrigger>
-          <TabsTrigger value="campaigns" data-testid="tab-campaigns">
-            <BarChart3 className="h-4 w-4 mr-2" />Campañas
-          </TabsTrigger>
-          <TabsTrigger value="commissions" data-testid="tab-commissions">
-            <Percent className="h-4 w-4 mr-2" />Comisiones
-          </TabsTrigger>
-          <TabsTrigger value="disputes" data-testid="tab-disputes">
-            <ShieldAlert className="h-4 w-4 mr-2" />Disputas
-          </TabsTrigger>
-          <TabsTrigger value="support" data-testid="tab-support">
-            <Headphones className="h-4 w-4 mr-2" />Soporte
-          </TabsTrigger>
-          <TabsTrigger value="videos" data-testid="tab-videos">
-            <Play className="h-4 w-4 mr-2" />Reelmark
-          </TabsTrigger>
-          <TabsTrigger value="novedades" data-testid="tab-novedades">
-            <BadgeCheck className="h-4 w-4 mr-2" />Novedades
-          </TabsTrigger>
-          <TabsTrigger value="home-settings" data-testid="tab-home-settings">
-            <LayoutGrid className="h-4 w-4 mr-2" />Inicio
-          </TabsTrigger>
-          <TabsTrigger value="health" data-testid="tab-health">
-            <Activity className="h-4 w-4 mr-2" />Salud del Sistema
-          </TabsTrigger>
-          <TabsTrigger value="settings" data-testid="tab-settings">
-            <Settings className="h-4 w-4 mr-2" />Configuracion
-          </TabsTrigger>
-        </TabsList>
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full max-w-full">
+        <div className="w-full overflow-x-auto mb-6 pb-2 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:'none'] [scrollbar-width:'none'] border-b">
+          <TabsList className="flex w-max min-w-full justify-start h-auto p-1 bg-transparent space-x-1">
+            <TabsTrigger value="dashboard" data-testid="tab-dashboard" className="data-[state=active]:bg-muted">
+              <Activity className="h-4 w-4 mr-2" />Dashboard
+            </TabsTrigger>
+            <TabsTrigger value="merchants" data-testid="tab-merchants" className="data-[state=active]:bg-muted">
+              <Building2 className="h-4 w-4 mr-2" />Comerciantes
+              {totalPendingMerchants > 0 && <Badge variant="destructive" className="ml-2">{totalPendingMerchants}</Badge>}
+            </TabsTrigger>
+            <TabsTrigger value="riders" data-testid="tab-riders" className="data-[state=active]:bg-muted">
+              <Bike className="h-4 w-4 mr-2" />Repartidores
+              {totalPendingRiders > 0 && <Badge variant="destructive" className="ml-2">{totalPendingRiders}</Badge>}
+            </TabsTrigger>
+            <TabsTrigger value="kyc" data-testid="tab-kyc" className="data-[state=active]:bg-muted">
+              <Shield className="h-4 w-4 mr-2" />KYC
+              {totalPendingKyc > 0 && <Badge variant="destructive" className="ml-2">{totalPendingKyc}</Badge>}
+            </TabsTrigger>
+            <TabsTrigger value="stores" data-testid="tab-stores" className="data-[state=active]:bg-muted">
+              <Store className="h-4 w-4 mr-2" />Tiendas
+            </TabsTrigger>
+            <TabsTrigger value="orders" data-testid="tab-orders" className="data-[state=active]:bg-muted">
+              <Package className="h-4 w-4 mr-2" />Pedidos
+            </TabsTrigger>
+            <TabsTrigger value="users" data-testid="tab-users" className="data-[state=active]:bg-muted">
+              <Users className="h-4 w-4 mr-2" />Usuarios
+            </TabsTrigger>
+            <TabsTrigger value="promos" data-testid="tab-promos" className="data-[state=active]:bg-muted">
+              <Megaphone className="h-4 w-4 mr-2" />Publicidad
+            </TabsTrigger>
+            <TabsTrigger value="campaigns" data-testid="tab-campaigns" className="data-[state=active]:bg-muted">
+              <BarChart3 className="h-4 w-4 mr-2" />Campañas
+            </TabsTrigger>
+            <TabsTrigger value="commissions" data-testid="tab-commissions" className="data-[state=active]:bg-muted">
+              <Percent className="h-4 w-4 mr-2" />Comisiones
+            </TabsTrigger>
+            <TabsTrigger value="disputes" data-testid="tab-disputes" className="data-[state=active]:bg-muted">
+              <ShieldAlert className="h-4 w-4 mr-2" />Disputas
+            </TabsTrigger>
+            <TabsTrigger value="support" data-testid="tab-support" className="data-[state=active]:bg-muted">
+              <Headphones className="h-4 w-4 mr-2" />Soporte
+            </TabsTrigger>
+            <TabsTrigger value="videos" data-testid="tab-videos" className="data-[state=active]:bg-muted">
+              <Play className="h-4 w-4 mr-2" />Reelmark
+            </TabsTrigger>
+            <TabsTrigger value="novedades" data-testid="tab-novedades" className="data-[state=active]:bg-muted">
+              <BadgeCheck className="h-4 w-4 mr-2" />Novedades
+            </TabsTrigger>
+            <TabsTrigger value="home-settings" data-testid="tab-home-settings" className="data-[state=active]:bg-muted">
+              <LayoutGrid className="h-4 w-4 mr-2" />Inicio
+            </TabsTrigger>
+            <TabsTrigger value="health" data-testid="tab-health" className="data-[state=active]:bg-muted">
+              <Activity className="h-4 w-4 mr-2" />Salud
+            </TabsTrigger>
+            <TabsTrigger value="settings" data-testid="tab-settings" className="data-[state=active]:bg-muted">
+              <Settings className="h-4 w-4 mr-2" />Configuración
+            </TabsTrigger>
+          </TabsList>
+        </div>
 
         <TabsContent value="dashboard" className="mt-0">
           <AdminDashboardTab
