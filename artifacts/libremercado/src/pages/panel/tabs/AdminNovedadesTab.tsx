@@ -118,7 +118,7 @@ function NovedadesSection() {
     onError: () => toast({ title: "Error", variant: "destructive" }),
   });
 
-  const filtered = (novedades ?? []).filter((n) => {
+  const filtered = (Array.isArray(novedades) ? novedades : []).filter((n) => {
     if (statusFilter !== "all" && n.status !== statusFilter) return false;
     if (officialFilter === "official" && !n.isOfficial) return false;
     if (officialFilter === "commercial" && n.isOfficial) return false;
@@ -408,11 +408,11 @@ function PublicEntitiesSection() {
         <div className="space-y-3">
           {[1,2,3].map((i) => <Skeleton key={i} className="h-20 w-full rounded-xl" />)}
         </div>
-      ) : (entities?.length ?? 0) === 0 ? (
+      ) : (Array.isArray(entities) ? entities : []).length === 0 ? (
         <EmptyState msg="No hay entidades registradas" />
       ) : (
         <div className="space-y-3">
-          {(entities ?? []).map((entity) => {
+          {(Array.isArray(entities) ? entities : []).map((entity) => {
             const vCfg = VERIFICATION_CONFIG[entity.verificationStatus] ?? VERIFICATION_CONFIG.pending;
             return (
               <Card key={entity.id}>

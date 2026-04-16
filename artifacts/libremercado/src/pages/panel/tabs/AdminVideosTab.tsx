@@ -78,8 +78,8 @@ export function AdminVideosTab() {
     onError: () => toast({ title: "Error", variant: "destructive" }),
   });
 
-  const filteredVideos = videos ?? [];
-  const pendingCount = videos?.filter((v) => v.status === "pending").length ?? 0;
+  const filteredVideos = Array.isArray(videos) ? videos : [];
+  const pendingCount = Array.isArray(videos) ? videos.filter((v) => v.status === "pending").length : 0;
 
   return (
     <div className="space-y-6">
@@ -114,7 +114,7 @@ export function AdminVideosTab() {
       </div>
 
       {/* Summary stats */}
-      {videos && (
+      {Array.isArray(videos) && (
         <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
           {[
             { label: "Total", value: videos.length },
