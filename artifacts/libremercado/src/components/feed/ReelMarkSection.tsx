@@ -87,14 +87,14 @@ export function ReelMarkSection() {
           </Link>
         </div>
 
-        <div className="grid grid-cols-4 md:grid-cols-6 lg:grid-cols-8 gap-4">
+        <div className="flex lg:grid lg:grid-cols-8 gap-3 md:gap-4 overflow-x-auto lg:overflow-visible scrollbar-hide snap-x snap-mandatory">
           {isLoading ? (
             Array(8).fill(0).map((_, i) => (
-              <Skeleton key={i} className="w-full aspect-[9/16] rounded-2xl bg-zinc-200" />
+              <Skeleton key={i} className="flex-none w-[140px] md:w-[180px] lg:w-full aspect-[9/16] rounded-2xl bg-zinc-200" />
             ))
           ) : (
             videos?.slice(0, 8).map((video) => (
-              <div key={video.id} className="w-full">
+              <div key={video.id} className="flex-none w-[140px] md:w-[180px] lg:w-full snap-start px-0.5">
                 <ReelMarkCard
                   id={video.id}
                   title={video.title}
