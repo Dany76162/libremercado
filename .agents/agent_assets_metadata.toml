@@ -1,0 +1,26 @@
+uploads = []
+generated = []
+
+[[outputs]]
+id = "9Q6UIQDr0StgcSdokSZwH"
+uri = "file://.local/AUDITORIA_LIBREMERCADO.md"
+type = "text"
+title = "Auditoría Global — LibreMercado / PachaPay"
+
+[[outputs]]
+id = "3aKAwJ46fjth8x_LDIdYk"
+uri = "file://.local/AUDITORIA_FASE2_LIBREMERCADO.md"
+type = "text"
+title = "Auditoría Técnica Fase 2 — LibreMercado / PachaPay"
+
+[[outputs]]
+id = "_geaI82dOg7INjpLFYAje"
+uri = "file://.local/AUDITORIA_FASE3_LIBREMERCADO.md"
+type = "text"
+title = "Auditoría Técnica Fase 3 — LibreMercado / PachaPay"
+
+[[outputs]]
+id = "gedVlTbCTuJJqVSwAelaa"
+uri = "file://.local/INFORME_PREPRODUCCION.md"
+type = "text"
+title = "Informe Final de Preproducción — LibreMercado / PachaPay"
