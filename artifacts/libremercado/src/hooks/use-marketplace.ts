@@ -327,3 +327,26 @@ export function useVideoFeed(filters?: {
     queryFn: () => fetch(apiUrl(`/api/videos/feed${qs ? `?${qs}` : ""}`)).then((r) => r.json()),
   });
 }
+
+// ==================== WHOLESALE ====================
+
+export function useWholesaleAccess() {
+  return useQuery<{ hasAccess: boolean; reason: string }>({
+    queryKey: ["/api/wholesale/access"],
+    queryFn: () =>
+      fetch(apiUrl("/api/wholesale/access"), { credentials: "include" }).then((r) => r.json()),
+    retry: false,
+  });
+}
+
+export function useWholesaleStores() {
+  return useQuery<Store[]>({
+    queryKey: ["/api/wholesale/stores"],
+    queryFn: async () => {
+      const res = await fetch(apiUrl("/api/wholesale/stores"), { credentials: "include" });
+      if (!res.ok) throw new Error("No autorizado");
+      return res.json();
+    },
+    retry: false,
+  });
+}

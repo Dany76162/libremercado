@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { useLocation } from "wouter";
-import { Filter, Grid, List, SlidersHorizontal, Search, Tag, Ticket, Heart, X, MapPin } from "lucide-react";
+import { Filter, Grid, List, SlidersHorizontal, Search, Tag, Ticket, Heart, X, MapPin, Package, Lock } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
@@ -11,7 +11,7 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/co
 import { Badge } from "@/components/ui/badge";
 import { ProductCard } from "@/components/marketplace/ProductCard";
 import { StoreCard } from "@/components/marketplace/StoreCard";
-import { useProducts, useStores } from "@/hooks/use-marketplace";
+import { useProducts, useStores, useWholesaleAccess, useWholesaleStores } from "@/hooks/use-marketplace";
 import { useLocation as useUserLocation } from "@/hooks/use-location";
 
 const categories = [
@@ -36,6 +36,9 @@ export default function Explore() {
     return new URLSearchParams(location.split("?")[1] || "");
   }, [location]);
 
+  const channelParam = urlParams.get("channel") || urlParams.get("mode") || "";
+  const isWholesaleMode = channelParam === "wholesale";
+
   const initialCategory = urlParams.get("category") || "all";
   const initialQuery = urlParams.get("q") || "";
   const initialFilter = urlParams.get("filter") || "";
@@ -43,9 +46,9 @@ export default function Explore() {
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
   const [selectedCategory, setSelectedCategory] = useState(initialCategory);
   const [sortBy, setSortBy] = useState("featured");
-  const [activeTab, setActiveTab] = useState<"products" | "stores">("products");
+  // In wholesale mode, default to "stores" tab
+  const [activeTab, setActiveTab] = useState<"products" | "stores">(isWholesaleMode ? "stores" : "products");
   const [activeFilter, setActiveFilter] = useState(initialFilter);
-
   const [searchQuery, setSearchQuery] = useState(initialQuery);
 
   const { provinciaId, ciudadId, locationName, useGps, lat, lng, radiusKm } = useUserLocation();
@@ -55,31 +58,40 @@ export default function Explore() {
     ? { provinciaId, ciudadId }
     : undefined;
 
-  const { data: products, isLoading: productsLoading } = useProducts(locationFilter);
-  const { data: stores, isLoading: storesLoading } = useStores(locationFilter);
+  // Wholesale-specific hooks
+  const { data: accessData, isLoading: accessLoading } = useWholesaleAccess();
+  const { data: wholesaleStores, isLoading: wholesaleStoresLoading } = useWholesaleStores();
+
+  // Retail hooks (used in non-wholesale mode)
+  const { data: products, isLoading: productsLoading } = useProducts(
+    isWholesaleMode ? undefined : locationFilter
+  );
+  const { data: stores, isLoading: storesLoading } = useStores(
+    isWholesaleMode ? undefined : locationFilter
+  );
 
   useEffect(() => {
-    window.scrollTo({ top: 0, behavior: 'smooth' });
+    window.scrollTo({ top: 0, behavior: "smooth" });
     setSelectedCategory(initialCategory);
     setSearchQuery(initialQuery);
     setActiveFilter(initialFilter);
   }, [initialCategory, initialQuery, initialFilter]);
 
+  // When channel param changes, reset tab
+  useEffect(() => {
+    setActiveTab(isWholesaleMode ? "stores" : "products");
+  }, [isWholesaleMode]);
+
   const getFilterTitle = () => {
     switch (activeFilter) {
-      case "ofertas":
-        return "Ofertas del día";
-      case "cupones":
-        return "Productos con cupones";
-      case "favoritos":
-        return "Tus favoritos";
-      default:
-        return null;
+      case "ofertas": return "Ofertas del día";
+      case "cupones": return "Productos con cupones";
+      case "favoritos": return "Tus favoritos";
+      default: return null;
     }
   };
 
   const q = searchQuery.trim().toLowerCase();
-
   const selectedCatObj = categories.find(c => c.id === selectedCategory);
 
   const filteredProducts = (products ?? []).filter((p) => {
@@ -88,69 +100,93 @@ export default function Explore() {
         ? true
         : (p.category?.toLowerCase() ?? "") === selectedCategory.toLowerCase() ||
           (selectedCatObj && (p.category?.toLowerCase() ?? "").includes(selectedCatObj.name.toLowerCase()));
-
-    const matchQuery =
-      !q
-        ? true
-        : (p.name?.toLowerCase() ?? "").includes(q) ||
-          (p.description?.toLowerCase() ?? "").includes(q);
-
+    const matchQuery = !q ? true : (p.name?.toLowerCase() ?? "").includes(q) || (p.description?.toLowerCase() ?? "").includes(q);
     let matchFilter = true;
-    if (activeFilter === "ofertas") {
-      matchFilter = p.originalPrice !== null && p.originalPrice !== undefined;
-    } else if (activeFilter === "cupones") {
-      matchFilter = parseFloat(p.price) < 5000;
-    }
-
+    if (activeFilter === "ofertas") matchFilter = p.originalPrice !== null && p.originalPrice !== undefined;
+    else if (activeFilter === "cupones") matchFilter = parseFloat(p.price) < 5000;
     return matchCategory && matchQuery && matchFilter;
   });
 
-  const filteredStores = (stores ?? []).filter((s) => {
+  const filteredStores = (isWholesaleMode ? (wholesaleStores ?? []) : (stores ?? [])).filter((s) => {
     const matchCategory =
       selectedCategory === "all"
         ? true
         : (s.category?.toLowerCase() ?? "") === selectedCategory.toLowerCase() ||
           (selectedCatObj && (s.category?.toLowerCase() ?? "").includes(selectedCatObj.name.toLowerCase()));
-
-    const matchQuery =
-      !q
-        ? true
-        : (s.name?.toLowerCase() ?? "").includes(q) ||
-          (s.description?.toLowerCase() ?? "").includes(q);
-
+    const matchQuery = !q ? true : (s.name?.toLowerCase() ?? "").includes(q) || (s.description?.toLowerCase() ?? "").includes(q);
     return matchCategory && matchQuery;
   });
 
   const sortedProducts = [...filteredProducts].sort((a, b) => {
     switch (sortBy) {
-      case "price-low":
-        return parseFloat(a.price) - parseFloat(b.price);
-      case "price-high":
-        return parseFloat(b.price) - parseFloat(a.price);
-      case "name":
-        return a.name.localeCompare(b.name);
-      default:
-        return 0;
+      case "price-low": return parseFloat(a.price) - parseFloat(b.price);
+      case "price-high": return parseFloat(b.price) - parseFloat(a.price);
+      case "name": return a.name.localeCompare(b.name);
+      default: return 0;
     }
   });
 
+  // ── WHOLESALE: Access Gate ─────────────────────────────────────────
+  if (isWholesaleMode && !accessLoading && accessData && !accessData.hasAccess) {
+    return (
+      <div className="min-h-screen flex items-center justify-center px-4">
+        <div className="max-w-md w-full text-center space-y-6">
+          <div className="w-20 h-20 rounded-2xl bg-amber-100 dark:bg-amber-900/30 flex items-center justify-center mx-auto">
+            <Lock className="h-10 w-10 text-amber-600" />
+          </div>
+          <div>
+            <h1 className="text-2xl font-bold mb-2">Canal Mayorista</h1>
+            <p className="text-muted-foreground">
+              El acceso al portal mayorista está disponible únicamente para comerciantes registrados o usuarios con KYC verificado.
+            </p>
+          </div>
+          <div className="flex flex-col sm:flex-row gap-3 justify-center">
+            <Button onClick={() => window.location.href = "/vender"} className="bg-amber-600 hover:bg-amber-700 text-white">
+              Registrar mi comercio
+            </Button>
+            <Button variant="outline" onClick={() => window.location.href = "/"}>
+              Volver al inicio
+            </Button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  const storesIsLoading = isWholesaleMode ? wholesaleStoresLoading : storesLoading;
+
   return (
     <div className="min-h-screen">
+      {/* ── Sticky Header ── */}
       <div className="bg-card border-b sticky top-16 z-40">
         <div className="max-w-7xl mx-auto px-4 py-3">
           <div className="flex flex-col gap-3">
-            {provinciaId && (
+            {/* Wholesale badge */}
+            {isWholesaleMode && (
+              <div className="flex items-center gap-2">
+                <Badge className="bg-amber-600 text-white gap-1.5">
+                  <Package className="h-3.5 w-3.5" />
+                  Canal Mayorista
+                </Badge>
+                <span className="text-sm text-muted-foreground">
+                  Portal exclusivo para comercios y distribuidores
+                </span>
+              </div>
+            )}
+
+            {!isWholesaleMode && provinciaId && (
               <div className="flex items-center gap-2 text-sm text-muted-foreground">
                 <MapPin className="h-4 w-4 text-primary" />
                 <span>Mostrando resultados en <span className="font-medium text-foreground">{locationName}</span></span>
               </div>
             )}
+
             <div className="relative w-full">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <Input
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="Buscar productos, tiendas y más..."
+                placeholder={isWholesaleMode ? "Buscar tiendas mayoristas..." : "Buscar productos, tiendas y más..."}
                 className="pl-9"
                 data-testid="input-explore-search"
               />
@@ -172,49 +208,51 @@ export default function Explore() {
               </div>
 
               <div className="flex items-center gap-2 shrink-0">
-                <Sheet>
-                  <SheetTrigger asChild>
-                    <Button variant="outline" size="sm" className="sm:hidden">
-                      <SlidersHorizontal className="h-4 w-4 mr-2" />
-                      Filtros
-                    </Button>
-                  </SheetTrigger>
-                  <SheetContent side="bottom" className="h-auto">
-                    <SheetHeader>
-                      <SheetTitle>Filtros</SheetTitle>
-                    </SheetHeader>
-                    <div className="py-4 space-y-4">
-                      <div>
-                        <label className="text-sm font-medium mb-2 block">
-                          Ordenar por
-                        </label>
-                        <Select value={sortBy} onValueChange={setSortBy}>
-                          <SelectTrigger data-testid="select-sort-mobile">
-                            <SelectValue />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="featured">Destacados</SelectItem>
-                            <SelectItem value="price-low">Precio: menor a mayor</SelectItem>
-                            <SelectItem value="price-high">Precio: mayor a menor</SelectItem>
-                            <SelectItem value="name">Nombre</SelectItem>
-                          </SelectContent>
-                        </Select>
-                      </div>
-                    </div>
-                  </SheetContent>
-                </Sheet>
+                {!isWholesaleMode && (
+                  <>
+                    <Sheet>
+                      <SheetTrigger asChild>
+                        <Button variant="outline" size="sm" className="sm:hidden">
+                          <SlidersHorizontal className="h-4 w-4 mr-2" />
+                          Filtros
+                        </Button>
+                      </SheetTrigger>
+                      <SheetContent side="bottom" className="h-auto">
+                        <SheetHeader>
+                          <SheetTitle>Filtros</SheetTitle>
+                        </SheetHeader>
+                        <div className="py-4 space-y-4">
+                          <div>
+                            <label className="text-sm font-medium mb-2 block">Ordenar por</label>
+                            <Select value={sortBy} onValueChange={setSortBy}>
+                              <SelectTrigger data-testid="select-sort-mobile">
+                                <SelectValue />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="featured">Destacados</SelectItem>
+                                <SelectItem value="price-low">Precio: menor a mayor</SelectItem>
+                                <SelectItem value="price-high">Precio: mayor a menor</SelectItem>
+                                <SelectItem value="name">Nombre</SelectItem>
+                              </SelectContent>
+                            </Select>
+                          </div>
+                        </div>
+                      </SheetContent>
+                    </Sheet>
 
-                <Select value={sortBy} onValueChange={setSortBy}>
-                  <SelectTrigger className="w-44 hidden sm:flex" data-testid="select-sort">
-                    <SelectValue placeholder="Ordenar por" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="featured">Destacados</SelectItem>
-                    <SelectItem value="price-low">Precio: menor a mayor</SelectItem>
-                    <SelectItem value="price-high">Precio: mayor a menor</SelectItem>
-                    <SelectItem value="name">Nombre</SelectItem>
-                  </SelectContent>
-                </Select>
+                    <Select value={sortBy} onValueChange={setSortBy}>
+                      <SelectTrigger className="w-44 hidden sm:flex" data-testid="select-sort">
+                        <SelectValue placeholder="Ordenar por" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="featured">Destacados</SelectItem>
+                        <SelectItem value="price-low">Precio: menor a mayor</SelectItem>
+                        <SelectItem value="price-high">Precio: mayor a menor</SelectItem>
+                        <SelectItem value="name">Nombre</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </>
+                )}
 
                 <div className="hidden sm:flex border rounded-md">
                   <Button
@@ -243,7 +281,8 @@ export default function Explore() {
       </div>
 
       <div className="max-w-7xl mx-auto px-4 py-6">
-        {activeFilter && (
+        {/* Active filter chip (retail only) */}
+        {!isWholesaleMode && activeFilter && (
           <div className="flex items-center justify-between mb-4 p-4 bg-card rounded-lg border">
             <div className="flex items-center gap-3">
               {activeFilter === "ofertas" && <Tag className="h-5 w-5 text-primary" />}
@@ -258,43 +297,36 @@ export default function Explore() {
                 </p>
               </div>
             </div>
-            <Button 
-              variant="ghost" 
-              size="sm" 
-              onClick={() => setActiveFilter("")}
-              data-testid="button-clear-filter"
-            >
+            <Button variant="ghost" size="sm" onClick={() => setActiveFilter("")} data-testid="button-clear-filter">
               <X className="h-4 w-4 mr-1" />
               Quitar filtro
             </Button>
           </div>
         )}
 
+        {/* ── Tabs ── */}
         <Tabs
           value={activeTab}
           onValueChange={(v) => setActiveTab(v as "products" | "stores")}
           className="mb-6"
         >
           <TabsList>
-            <TabsTrigger value="products" data-testid="tab-products">
-              Productos ({filteredProducts.length})
-            </TabsTrigger>
+            {!isWholesaleMode && (
+              <TabsTrigger value="products" data-testid="tab-products">
+                Productos ({filteredProducts.length})
+              </TabsTrigger>
+            )}
             <TabsTrigger value="stores" data-testid="tab-stores">
-              Tiendas ({filteredStores.length})
+              {isWholesaleMode ? `Mayoristas (${filteredStores.length})` : `Tiendas (${filteredStores.length})`}
             </TabsTrigger>
           </TabsList>
         </Tabs>
 
-        {activeTab === "products" && (
+        {/* ── Products Tab (retail only) ── */}
+        {!isWholesaleMode && activeTab === "products" && (
           <>
             {productsLoading ? (
-              <div
-                className={
-                  viewMode === "grid"
-                    ? "grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4"
-                    : "space-y-4"
-                }
-              >
+              <div className={viewMode === "grid" ? "grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4" : "space-y-4"}>
                 {Array.from({ length: 10 }).map((_, i) => (
                   <Card key={i}>
                     <Skeleton className="aspect-square" />
@@ -309,21 +341,11 @@ export default function Explore() {
             ) : sortedProducts.length === 0 ? (
               <div className="text-center py-12">
                 <Filter className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-                <h3 className="text-lg font-semibold mb-2">
-                  No se encontraron productos
-                </h3>
-                <p className="text-muted-foreground">
-                  Prueba cambiando los filtros, la categoría o el texto de búsqueda
-                </p>
+                <h3 className="text-lg font-semibold mb-2">No se encontraron productos</h3>
+                <p className="text-muted-foreground">Prueba cambiando los filtros, la categoría o el texto de búsqueda</p>
               </div>
             ) : (
-              <div
-                className={
-                  viewMode === "grid"
-                    ? "grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4"
-                    : "space-y-4"
-                }
-              >
+              <div className={viewMode === "grid" ? "grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4" : "space-y-4"}>
                 {sortedProducts.map((product) => (
                   <ProductCard key={product.id} product={product} />
                 ))}
@@ -332,9 +354,10 @@ export default function Explore() {
           </>
         )}
 
+        {/* ── Stores Tab ── */}
         {activeTab === "stores" && (
           <>
-            {storesLoading ? (
+            {storesIsLoading ? (
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                 {Array.from({ length: 6 }).map((_, i) => (
                   <Card key={i}>
@@ -349,13 +372,21 @@ export default function Explore() {
               </div>
             ) : filteredStores.length === 0 ? (
               <div className="text-center py-12">
-                <Filter className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-                <h3 className="text-lg font-semibold mb-2">
-                  No se encontraron tiendas
-                </h3>
-                <p className="text-muted-foreground">
-                  Prueba cambiando los filtros, la categoría o el texto de búsqueda
-                </p>
+                {isWholesaleMode ? (
+                  <>
+                    <Package className="h-12 w-12 text-amber-400 mx-auto mb-4" />
+                    <h3 className="text-lg font-semibold mb-2">No hay tiendas mayoristas disponibles por el momento</h3>
+                    <p className="text-muted-foreground">
+                      Próximamente se incorporarán distribuidores y mayoristas a la plataforma.
+                    </p>
+                  </>
+                ) : (
+                  <>
+                    <Filter className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+                    <h3 className="text-lg font-semibold mb-2">No se encontraron tiendas</h3>
+                    <p className="text-muted-foreground">Prueba cambiando los filtros, la categoría o el texto de búsqueda</p>
+                  </>
+                )}
               </div>
             ) : (
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">

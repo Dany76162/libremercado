@@ -980,6 +980,68 @@ export async function registerRoutes(
     res.status(204).send();
   });
 
+  // ==================== WHOLESALE CHANNEL ====================
+
+  // GET /api/wholesale/access — can the current user access the wholesale portal?
+  app.get("/api/wholesale/access", async (req, res) => {
+    const user = await getCurrentUser(req);
+    if (!user) {
+      return res.json({ hasAccess: false, reason: "unauthenticated" });
+    }
+    if (user.role === "admin" || user.role === "superadmin") {
+      return res.json({ hasAccess: true, reason: "admin" });
+    }
+    if (user.kycStatus === "approved") {
+      return res.json({ hasAccess: true, reason: "kyc_approved" });
+    }
+    const userStores = await storage.getStoresByOwner(user.id);
+    if (userStores.length > 0) {
+      return res.json({ hasAccess: true, reason: "merchant" });
+    }
+    return res.json({ hasAccess: false, reason: "not_verified" });
+  });
+
+  // GET /api/wholesale/stores — list stores that participate in the wholesale channel
+  app.get("/api/wholesale/stores", async (req, res) => {
+    const user = await getCurrentUser(req);
+    // Admins can always browse; others need to be verified
+    if (!user) {
+      return res.status(401).json({ error: "Debe iniciar sesión para acceder al canal mayorista" });
+    }
+    const isAllowed =
+      user.role === "admin" ||
+      user.kycStatus === "approved" ||
+      (await storage.getStoresByOwner(user.id)).length > 0;
+    if (!isAllowed) {
+      return res.status(403).json({ error: "Solo comercios verificados pueden acceder al canal mayorista" });
+    }
+    // Return stores that have isWholesale flag set, or have wholesale products
+    const allStores = await storage.getStores();
+    const wholesaleStores = allStores.filter((s: any) => s.isWholesale === true || s.isWholesale === "true");
+    res.json(wholesaleStores);
+  });
+
+  // GET /api/admin/stores — admin view of all stores with wholesale info
+  app.get("/api/admin/stores", requireRole("admin"), async (req, res) => {
+    const stores = await storage.getStores();
+    res.json(stores);
+  });
+
+  // GET /api/admin/wholesale/stores — admin list of wholesale stores
+  app.get("/api/admin/wholesale/stores", requireRole("admin"), async (req, res) => {
+    const allStores = await storage.getStores();
+    res.json(allStores); // admin sees all, with isWholesale flag visible
+  });
+
+  // PATCH /api/admin/wholesale/stores/:id — toggle wholesale status on a store
+  app.patch("/api/admin/wholesale/stores/:id", requireRole("admin"), async (req, res) => {
+    const { isWholesale } = req.body;
+    const store = await storage.getStore(req.params.id);
+    if (!store) return res.status(404).json({ error: "Tienda no encontrada" });
+    const updated = await storage.updateStore(req.params.id, { isWholesale: !!isWholesale } as any);
+    res.json(updated);
+  });
+
   app.get("/api/orders", requireAuth, async (req, res) => {
     const user = await getCurrentUser(req);
     if (!user) return res.status(401).json({ error: "No autenticado" });

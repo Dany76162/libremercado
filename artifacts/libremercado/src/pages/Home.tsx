@@ -571,7 +571,7 @@ export default function Home() {
           </Link>
 
           {/* Tarjeta: Canal Mayorista */}
-          <Link href="/explore?mode=wholesale">
+          <Link href="/explore?channel=wholesale">
             <div
               className="relative overflow-hidden rounded-2xl cursor-pointer group transition-all duration-300 hover:scale-[1.02] hover:brightness-105"
               style={{ background: "linear-gradient(135deg, #92400e 0%, #d97706 50%, #f59e0b 100%)", boxShadow: "0 4px 24px 0 rgba(217,119,6,0.35)" }}
