@@ -94,27 +94,133 @@ export default function Explore() {
   const q = searchQuery.trim().toLowerCase();
   const selectedCatObj = categories.find(c => c.id === selectedCategory);
 
+  // Build a map of storeId → store for quick lookup
+  const storeMap = useMemo(() => {
+    const m = new Map<string, { category: string }>();
+    for (const s of (stores ?? [])) {
+      m.set(s.id, { category: s.category ?? "" });
+    }
+    return m;
+  }, [stores]);
+
+  // Canonical mapping: store category string → filter id
+  // This bridges the gap between store-level broad categories and product subcategories
+  const STORE_CATEGORY_TO_FILTER_ID: Record<string, string> = {
+    // Food / Comida
+    "comida": "food",
+    "restaurante": "food",
+    "restaurant": "food",
+    "gastronomia": "food",
+    "gastronomía": "food",
+    "pizzeria": "food",
+    "pizzería": "food",
+    "panaderia": "food",
+    "panadería": "food",
+    "bar": "food",
+    "cafeteria": "food",
+    "cafetería": "food",
+    // Grocery / Supermercado
+    "supermercado": "grocery",
+    "almacen": "grocery",
+    "almacén": "grocery",
+    "market": "grocery",
+    "minimarket": "grocery",
+    // Pharmacy / Farmacia
+    "farmacia": "pharmacy",
+    "salud": "pharmacy",
+    "drogueria": "pharmacy",
+    "droguería": "pharmacy",
+    // Electronics / Electrónica
+    "electronica": "electronics",
+    "electrónica": "electronics",
+    "tecnologia": "electronics",
+    "tecnología": "electronics",
+    "electrodomesticos": "electronics",
+    "electrodomésticos": "electronics",
+    // Fashion / Moda
+    "moda": "fashion",
+    "ropa": "fashion",
+    "indumentaria": "fashion",
+    "fashion": "fashion",
+    "calzado": "fashion",
+    "zapateria": "fashion",
+    "zapatería": "fashion",
+    // Home / Hogar
+    "hogar": "home",
+    "muebles": "home",
+    "decoracion": "home",
+    "decoración": "home",
+    "ferreteria": "home",
+    "ferretería": "home",
+    // Beauty / Belleza
+    "belleza": "beauty",
+    "cosmetica": "beauty",
+    "cosméctica": "beauty",
+    "peluqueria": "beauty",
+    "peluquería": "beauty",
+    "estetica": "beauty",
+    "estética": "beauty",
+    // Pets / Mascotas
+    "mascotas": "pets",
+    "pet shop": "pets",
+    "petshop": "pets",
+    "veterinaria": "pets",
+  };
+
+  // Resolve the filter ID for a store category string
+  const resolveStoreCatToFilterId = (storeCat: string): string => {
+    const normalized = storeCat.toLowerCase().trim();
+    return STORE_CATEGORY_TO_FILTER_ID[normalized] ?? normalized;
+  };
+
   const filteredProducts = (products ?? []).filter((p) => {
-    const matchCategory =
-      selectedCategory === "all"
-        ? true
-        : (p.category?.toLowerCase() ?? "") === selectedCategory.toLowerCase() ||
-          (selectedCatObj && (p.category?.toLowerCase() ?? "").includes(selectedCatObj.name.toLowerCase()));
-    const matchQuery = !q ? true : (p.name?.toLowerCase() ?? "").includes(q) || (p.description?.toLowerCase() ?? "").includes(q);
+    if (selectedCategory !== "all") {
+      // 1. Try direct match on product.category (exact or contains)
+      const prodCat = p.category?.toLowerCase() ?? "";
+      const directMatch =
+        prodCat === selectedCategory.toLowerCase() ||
+        (selectedCatObj && prodCat.includes(selectedCatObj.name.toLowerCase()));
+
+      // 2. If no direct match, look up the store and check its category
+      let storeMatch = false;
+      if (!directMatch) {
+        const parentStore = storeMap.get(p.storeId);
+        if (parentStore) {
+          const storeCatFilterId = resolveStoreCatToFilterId(parentStore.category);
+          storeMatch = storeCatFilterId === selectedCategory;
+        }
+      }
+
+      if (!directMatch && !storeMatch) return false;
+    }
+
+    const matchQuery = !q
+      ? true
+      : (p.name?.toLowerCase() ?? "").includes(q) ||
+        (p.description?.toLowerCase() ?? "").includes(q);
+
     let matchFilter = true;
     if (activeFilter === "ofertas") matchFilter = p.originalPrice !== null && p.originalPrice !== undefined;
     else if (activeFilter === "cupones") matchFilter = parseFloat(p.price) < 5000;
-    return matchCategory && matchQuery && matchFilter;
+
+    return matchQuery && matchFilter;
   });
 
   const filteredStores = (isWholesaleMode ? (wholesaleStores ?? []) : (stores ?? [])).filter((s) => {
-    const matchCategory =
-      selectedCategory === "all"
-        ? true
-        : (s.category?.toLowerCase() ?? "") === selectedCategory.toLowerCase() ||
-          (selectedCatObj && (s.category?.toLowerCase() ?? "").includes(selectedCatObj.name.toLowerCase()));
-    const matchQuery = !q ? true : (s.name?.toLowerCase() ?? "").includes(q) || (s.description?.toLowerCase() ?? "").includes(q);
-    return matchCategory && matchQuery;
+    if (selectedCategory !== "all") {
+      const storeCatFilterId = resolveStoreCatToFilterId(s.category ?? "");
+      const storeCatName = (s.category ?? "").toLowerCase();
+      const matchById = storeCatFilterId === selectedCategory;
+      const matchByName = selectedCatObj ? storeCatName.includes(selectedCatObj.name.toLowerCase()) : false;
+      if (!matchById && !matchByName) return false;
+    }
+
+    const matchQuery = !q
+      ? true
+      : (s.name?.toLowerCase() ?? "").includes(q) ||
+        (s.description?.toLowerCase() ?? "").includes(q);
+
+    return matchQuery;
   });
 
   const sortedProducts = [...filteredProducts].sort((a, b) => {
