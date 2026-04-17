@@ -79,7 +79,7 @@ export default function AdminPanel() {
       </div>
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full max-w-full">
-        <div className="w-full overflow-x-auto mb-6 pb-2 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:'none'] [scrollbar-width:'none'] border-b">
+        <div className="w-full overflow-x-auto mb-6 pb-2 border-b">
           <TabsList className="flex w-max min-w-full justify-start h-auto p-1 bg-transparent space-x-1">
             <TabsTrigger value="dashboard" data-testid="tab-dashboard" className="data-[state=active]:bg-muted">
               <Activity className="h-4 w-4 mr-2" />Dashboard

@@ -598,28 +598,30 @@ export default function MerchantPanel() {
       </div>
 
       <Tabs value={activeTab} onValueChange={setActiveTab}>
-        <TabsList>
-          <TabsTrigger value="orders" data-testid="tab-orders">
-            <Package className="h-4 w-4 mr-2" />
-            Pedidos
-          </TabsTrigger>
-          <TabsTrigger value="products" data-testid="tab-products">
-            <ShoppingBag className="h-4 w-4 mr-2" />
-            Productos
-          </TabsTrigger>
-          <TabsTrigger value="stats" data-testid="tab-stats">
-            <BarChart3 className="h-4 w-4 mr-2" />
-            Estadísticas
-          </TabsTrigger>
-          <TabsTrigger value="videos" data-testid="tab-videos">
-            <Play className="h-4 w-4 mr-2" />
-            Reelmark
-          </TabsTrigger>
-          <TabsTrigger value="settings" data-testid="tab-settings">
-            <Settings className="h-4 w-4 mr-2" />
-            Tienda
-          </TabsTrigger>
-        </TabsList>
+        <div className="w-full overflow-x-auto mb-6 pb-2 border-b">
+          <TabsList className="flex w-max min-w-full justify-start h-auto p-1 bg-transparent space-x-1">
+            <TabsTrigger value="orders" data-testid="tab-orders" className="data-[state=active]:bg-muted">
+              <Package className="h-4 w-4 mr-2" />
+              Pedidos
+            </TabsTrigger>
+            <TabsTrigger value="products" data-testid="tab-products" className="data-[state=active]:bg-muted">
+              <ShoppingBag className="h-4 w-4 mr-2" />
+              Productos
+            </TabsTrigger>
+            <TabsTrigger value="stats" data-testid="tab-stats" className="data-[state=active]:bg-muted">
+              <BarChart3 className="h-4 w-4 mr-2" />
+              Estadísticas
+            </TabsTrigger>
+            <TabsTrigger value="videos" data-testid="tab-videos" className="data-[state=active]:bg-muted">
+              <Play className="h-4 w-4 mr-2" />
+              Reelmark
+            </TabsTrigger>
+            <TabsTrigger value="settings" data-testid="tab-settings" className="data-[state=active]:bg-muted">
+              <Settings className="h-4 w-4 mr-2" />
+              Tienda
+            </TabsTrigger>
+          </TabsList>
+        </div>
 
         <TabsContent value="orders" className="mt-6">
           {ordersLoading ? (

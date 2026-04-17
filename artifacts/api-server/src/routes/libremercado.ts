@@ -3531,24 +3531,32 @@ Responde en formato JSON con la siguiente estructura:
 
   // ─── CONFIGURACIÓN DEL SITIO (FOOTER, BRANDING, etc) ───────────────────────
 
-  // Público: Obtener configuración por clave
   app.get("/api/config/:key", async (req, res) => {
     try {
-      const value = await storage.getSiteSetting(req.params.key);
+      const { key } = req.params;
+      if (!key) return res.status(400).json({ error: "Missing config key" });
+
+      const value = await storage.getSiteSetting(key);
       if (value === null) {
-        return res.json(null);
+        // Return 404 with JSON instead of null for better frontend handling
+        return res.status(404).json({ error: `Config '${key}' not found` });
       }
-      // Si parece JSON, parsear. Si no, retornar como string.
-      try {
-        if (value.startsWith("{") || value.startsWith("[")) {
+
+      // If it's a string that looks like JSON, attempt to parse it
+      if (typeof value === "string" && (value.startsWith("{") || value.startsWith("["))) {
+        try {
           return res.json(JSON.parse(value));
+        } catch (e) {
+          // If parsing fails, return the raw value wrapped in an object
+          return res.json({ value, _warning: "invalid_json" });
         }
-        res.json(value);
-      } catch {
-        res.json(value);
       }
+
+      // Return raw value
+      return res.json(typeof value === "string" ? { value } : value);
     } catch (err) {
-      res.status(500).json({ error: "Error al obtener configuración" });
+      console.error(`Error in GET /api/config/${req.params.key}:`, err);
+      res.status(500).json({ error: "Internal server error", details: String(err) });
     }
   });
 

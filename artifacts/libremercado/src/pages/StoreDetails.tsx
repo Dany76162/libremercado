@@ -17,6 +17,12 @@ import { useToast } from "@/hooks/use-toast";
 import type { Review } from "@shared/schema";
 import { apiUrl, resolveMediaUrl } from "@/lib/apiBase";
 
+function formatNumber(num: number): string {
+  if (num >= 1000000) return (num / 1000000).toFixed(1) + "M";
+  if (num >= 1000) return (num / 1000).toFixed(1) + "k";
+  return num.toString();
+}
+
 export default function StoreDetails() {
   const [match, params] = useRoute("/store/:id");
   const storeId = params?.id || "";
@@ -187,6 +193,10 @@ export default function StoreDetails() {
                   </span>
                 </div>
               )}
+              <div className="flex items-center gap-1 text-muted-foreground text-sm font-medium">
+                <span>·</span>
+                <span>{formatNumber((store as any).followersCount || 0)} seguidores</span>
+              </div>
             </div>
             <Badge variant="secondary" className="mb-2">
               {store.category}

@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from "react";
+import { cn } from "@/lib/utils";
 import { 
   Settings, Save, Image, Phone, Mail, MapPin, Clock, 
   CreditCard, Globe, Info, CheckCircle2, Loader2,
@@ -66,10 +67,11 @@ const DEFAULT_CATEGORIES = [
 ];
 
 const PAYMENT_METHODS = [
-  { id: "visa", name: "Visa", icon: "https://vignette.wikia.nocookie.net/logopedia/images/d/d6/Visa_2014.svg" },
+  { id: "visa", name: "Visa", icon: "https://upload.wikimedia.org/wikipedia/commons/5/5e/Visa_Inc._logo.svg" },
   { id: "mastercard", name: "Mastercard", icon: "https://upload.wikimedia.org/wikipedia/commons/2/2a/Mastercard-logo.svg" },
   { id: "mercadopago", name: "Mercado Pago", icon: "https://logodownload.org/wp-content/uploads/2019/06/mercado-pago-logo-0.png" },
   { id: "amex", name: "American Express", icon: "https://upload.wikimedia.org/wikipedia/commons/f/fa/American_Express_logo_%282018%29.svg" },
+  { id: "pachapay_visa", name: "PachaPay Visa", icon: "https://cdn-icons-png.flaticon.com/512/349/349221.png", isNew: true },
   { id: "cash", name: "Efectivo", icon: "https://cdn-icons-png.flaticon.com/512/2331/2331717.png" }
 ];
 
@@ -153,12 +155,12 @@ export function AdminSettingsTab() {
       </div>
 
       <Tabs defaultValue="identity" className="w-full">
-        <TabsList className="grid w-full grid-cols-5 lg:w-[650px]">
-          <TabsTrigger value="identity">Identidad Dual</TabsTrigger>
-          <TabsTrigger value="categories">Categorías</TabsTrigger>
-          <TabsTrigger value="theme">Colores</TabsTrigger>
-          <TabsTrigger value="footer">Footer</TabsTrigger>
-          <TabsTrigger value="payments">Pagos</TabsTrigger>
+        <TabsList className="flex h-auto w-full justify-start gap-1 bg-slate-100/50 p-1 overflow-x-auto border rounded-xl mb-4">
+          <TabsTrigger value="identity" className="data-[state=active]:bg-white data-[state=active]:shadow-sm py-2 px-4 rounded-lg text-sm font-medium transition-all">Identidad Corporativa</TabsTrigger>
+          <TabsTrigger value="categories" className="data-[state=active]:bg-white data-[state=active]:shadow-sm py-2 px-4 rounded-lg text-sm font-medium transition-all">Categorías</TabsTrigger>
+          <TabsTrigger value="theme" className="data-[state=active]:bg-white data-[state=active]:shadow-sm py-2 px-4 rounded-lg text-sm font-medium transition-all">Colores</TabsTrigger>
+          <TabsTrigger value="footer" className="data-[state=active]:bg-white data-[state=active]:shadow-sm py-2 px-4 rounded-lg text-sm font-medium transition-all">Footer</TabsTrigger>
+          <TabsTrigger value="payments" className="data-[state=active]:bg-white data-[state=active]:shadow-sm py-2 px-4 rounded-lg text-sm font-medium transition-all">Pagos</TabsTrigger>
         </TabsList>
 
         <TabsContent value="identity" className="mt-6 space-y-6">
@@ -287,12 +289,46 @@ export function AdminSettingsTab() {
             <CardHeader><CardTitle>Métodos de Pago</CardTitle></CardHeader>
             <CardContent>
               <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-4">
-                {PAYMENT_METHODS.map(p => (
-                  <div key={p.id} className={`flex flex-col items-center p-4 border rounded-xl cursor-pointer transition-all ${selectedPayments.includes(p.id) ? "border-primary bg-primary/5 ring-1 ring-primary" : "hover:bg-slate-50"}`} onClick={() => togglePayment(p.id)}>
-                    <img src={p.icon} className="h-8 w-12 object-contain mb-2" />
-                    <span className="text-[10px] font-bold uppercase">{p.name}</span>
-                  </div>
-                ))}
+                {PAYMENT_METHODS.map(p => {
+                  const isPachaPay = p.id === 'pachapay_visa';
+                  const isSelected = selectedPayments.includes(p.id);
+                  const isNew = 'isNew' in p && p.isNew;
+                  
+                  return (
+                    <div 
+                      key={p.id} 
+                      className={cn(
+                        "flex flex-col items-center p-4 border rounded-xl cursor-pointer transition-all relative overflow-hidden group",
+                        isSelected ? "border-primary bg-primary/5 ring-1 ring-primary" : "hover:bg-slate-50",
+                        isPachaPay && "bg-gradient-to-br from-orange-400 to-orange-600 border-orange-400 shadow-sm"
+                      )} 
+                      onClick={() => togglePayment(p.id)}
+                    >
+                      {isNew && (
+                        <div className="absolute top-0 right-0 bg-white text-orange-600 text-[8px] font-black px-2 py-0.5 rounded-bl-lg animate-pulse uppercase shadow-sm">
+                          Próximamente
+                        </div>
+                      )}
+                      <div className={cn(
+                        "h-10 w-14 bg-white rounded-md p-1 flex items-center justify-center mb-2 shadow-sm",
+                        isPachaPay && "ring-2 ring-white/30"
+                      )}>
+                        <img src={p.icon} className="h-full w-full object-contain" />
+                      </div>
+                      <span className={cn(
+                        "text-[10px] font-bold uppercase text-center",
+                        isPachaPay ? "text-white" : "text-foreground"
+                      )}>
+                        {p.name}
+                      </span>
+                      {isPachaPay && (
+                        <div className="absolute -bottom-1 -right-1 opacity-10 group-hover:opacity-20 transition-opacity">
+                          <CreditCard className="h-12 w-12 text-white" />
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
               </div>
             </CardContent>
           </Card>

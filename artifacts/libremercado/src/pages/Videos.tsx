@@ -22,6 +22,12 @@ function formatPrice(price: string): string {
   return new Intl.NumberFormat("es-AR", { style: "currency", currency: "ARS", maximumFractionDigits: 0 }).format(Number(price));
 }
 
+function formatNumber(num: number): string {
+  if (num >= 1000000) return (num / 1000000).toFixed(1) + "M";
+  if (num >= 1000) return (num / 1000).toFixed(1) + "k";
+  return num.toString();
+}
+
 function haversineKm(lat1: number, lng1: number, lat2: number, lng2: number): number {
   const R = 6371;
   const dLat = ((lat2 - lat1) * Math.PI) / 180;
@@ -330,7 +336,11 @@ function VideoCard({
                     </button>
                   )}
                 </div>
-                <p className="text-white/55 text-xs">{video.store?.category}</p>
+                <div className="flex items-center gap-1.5 text-white/55 text-xs">
+                  <span>{video.store?.category}</span>
+                  <span>·</span>
+                  <span className="font-medium">{formatNumber(followersCount)} seguidores</span>
+                </div>
               </div>
               {video.store?.rating && (
                 <div className="flex items-center gap-1 bg-yellow-400/20 rounded-full px-2 py-0.5 border border-yellow-400/30">

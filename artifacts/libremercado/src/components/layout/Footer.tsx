@@ -12,14 +12,15 @@ const DEFAULT_FOOTER = {
   hours: "Lun - Dom: 8:00 - 22:00",
   copyright: "PachaPay. Todos los derechos reservados."
 };
-
 const PAYMENT_METHODS_ICONS: Record<string, string> = {
-  visa: "https://vignette.wikia.nocookie.net/logopedia/images/d/d6/Visa_2014.svg",
+  visa: "https://upload.wikimedia.org/wikipedia/commons/5/5e/Visa_Inc._logo.svg",
   mastercard: "https://upload.wikimedia.org/wikipedia/commons/2/2a/Mastercard-logo.svg",
   mercadopago: "https://logodownload.org/wp-content/uploads/2019/06/mercado-pago-logo-0.png",
   amex: "https://upload.wikimedia.org/wikipedia/commons/f/fa/American_Express_logo_%282018%29.svg",
+  pachapay_visa: "https://cdn-icons-png.flaticon.com/512/349/349221.png",
   cash: "https://cdn-icons-png.flaticon.com/512/2331/2331717.png"
 };
+
 
 export function Footer() {
   // Cargar configuraciones

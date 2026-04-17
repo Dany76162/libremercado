@@ -431,22 +431,26 @@ export default function Home() {
           </div>
 
           {featuredStoresLoading ? (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-              {Array.from({ length: 3 }).map((_, i) => (
-                <Card key={i}>
-                  <Skeleton className="aspect-[16/9]" />
-                  <CardContent className="p-4 space-y-2">
-                    <Skeleton className="h-5 w-32" />
-                    <Skeleton className="h-4 w-20" />
-                    <Skeleton className="h-4 w-full" />
-                  </CardContent>
-                </Card>
+            <div className="flex gap-4 overflow-x-auto pb-4 hide-scrollbar">
+              {Array.from({ length: 4 }).map((_, i) => (
+                <div key={i} className="w-[300px] shrink-0">
+                  <Card>
+                    <Skeleton className="aspect-[16/9]" />
+                    <CardContent className="p-4 space-y-2">
+                      <Skeleton className="h-5 w-32" />
+                      <Skeleton className="h-4 w-20" />
+                      <Skeleton className="h-4 w-full" />
+                    </CardContent>
+                  </Card>
+                </div>
               ))}
             </div>
           ) : (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-              {(featuredStores ?? []).slice(0, 4).map((store) => (
-                <StoreCard key={store.id} store={store} />
+            <div className="flex gap-4 overflow-x-auto pb-4 hide-scrollbar snap-x snap-mandatory">
+              {(featuredStores ?? []).slice(0, 8).map((store) => (
+                <div key={store.id} className="w-[300px] md:w-[320px] shrink-0 snap-start">
+                  <StoreCard store={store} />
+                </div>
               ))}
             </div>
           )}
@@ -502,22 +506,26 @@ export default function Home() {
         </div>
 
         {storesLoading ? (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-            {Array.from({ length: 3 }).map((_, i) => (
-              <Card key={i}>
-                <Skeleton className="aspect-[16/9]" />
-                <CardContent className="p-4 space-y-2">
-                  <Skeleton className="h-5 w-32" />
-                  <Skeleton className="h-4 w-20" />
-                  <Skeleton className="h-4 w-full" />
-                </CardContent>
-              </Card>
+          <div className="flex gap-4 overflow-x-auto pb-4 hide-scrollbar">
+            {Array.from({ length: 4 }).map((_, i) => (
+              <div key={i} className="w-[300px] shrink-0">
+                <Card>
+                  <Skeleton className="aspect-[16/9]" />
+                  <CardContent className="p-4 space-y-2">
+                    <Skeleton className="h-5 w-32" />
+                    <Skeleton className="h-4 w-20" />
+                    <Skeleton className="h-4 w-full" />
+                  </CardContent>
+                </Card>
+              </div>
             ))}
           </div>
         ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-            {(stores ?? []).filter(s => !!s.banner).slice(0, 4).map((store) => (
-              <StoreCard key={store.id} store={store} />
+          <div className="flex gap-4 overflow-x-auto pb-4 hide-scrollbar snap-x snap-mandatory">
+            {(stores ?? []).filter(s => !!s.banner).slice(0, 8).map((store) => (
+              <div key={store.id} className="w-[300px] md:w-[320px] shrink-0 snap-start">
+                <StoreCard store={store} />
+              </div>
             ))}
           </div>
         )}
