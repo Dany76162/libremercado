@@ -434,7 +434,7 @@ export class TravelBookingService {
         .insert(travelBookings)
         .values({
           userId: req.userId,
-          type: trip.provider.type,
+          type: trip.provider.type === "airline" ? "flight" : "bus",
           companyId: trip.provider.id,
           companyName: trip.provider.name,
           origin: trip.origin,

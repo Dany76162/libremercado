@@ -30,9 +30,6 @@ export default function ProductDetail() {
   const [lightbox, setLightbox] = useState(false);
   const [, navigate] = useLocation();
 
-  useEffect(() => {
-    window.scrollTo({ top: 0, behavior: 'smooth' });
-  }, [productId]);
 
   const addItem = useCart((s) => s.addItem);
   const { toast } = useToast();
@@ -239,7 +236,7 @@ export default function ProductDetail() {
                   )}
                   <span className="text-muted-foreground/60">por</span>
                   <Link href={`/store/${product.storeId}`}>
-                    <span className="font-extrabold text-primary hover:underline cursor-pointer animate-[glow_3s_ease-in-out_infinite] block">{storeData?.name || product.store?.name}</span>
+                    <span className="font-extrabold text-primary hover:underline cursor-pointer animate-[glow_3s_ease-in-out_infinite] block">{storeData?.name}</span>
                   </Link>
                 </div>
               )}

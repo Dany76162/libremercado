@@ -243,7 +243,7 @@ export class MemStorage implements IStorage {
   private seedData() {
     // Create admin users for platform management
     // User 1: admin | Password: admin123
-    const adminUser: User = {
+    const adminUser: any = {
       id: "admin-principal",
       username: "admin",
       email: "admin@pachapay.com",
@@ -266,7 +266,7 @@ export class MemStorage implements IStorage {
     this.users.set(adminUser.id, adminUser);
 
     // User 2: dany76162@gmail.com | Password: catalina0112192122
-    const adminUserDany: User = {
+    const adminUserDany: any = {
       id: "admin-dany",
       username: "dany76162",
       email: "dany76162@gmail.com",
@@ -323,7 +323,7 @@ export class MemStorage implements IStorage {
     ];
     subscriptionPlans.forEach((p) => this.subscriptionPlans.set(p.id, p));
 
-    const stores: Store[] = [
+    const stores: any[] = [
       {
         id: "store-1",
         ownerId: "merchant-user",
@@ -447,7 +447,7 @@ export class MemStorage implements IStorage {
     ];
     stores.forEach((s) => this.stores.set(s.id, s));
 
-    const products: Product[] = [
+    const products: any[] = [
       {
         id: "prod-1",
         storeId: "store-1",
@@ -595,7 +595,7 @@ export class MemStorage implements IStorage {
     ];
     products.forEach((p) => this.products.set(p.id, p));
 
-    const promoDefaults = {
+    const promoDefaults: Partial<Promo> = {
       image: null,
       videoUrl: null,
       mediaType: "image" as const,
@@ -612,8 +612,16 @@ export class MemStorage implements IStorage {
       clicks: 0,
       startDate: null,
       endDate: null,
+      placement: "hero_home",
+      pricingModel: "flat",
+      budget: "0",
+      spentAmount: "0",
+      maxImpressions: null,
+      maxClicks: null,
+      commercialStatus: "active",
+      advertiserId: null,
     };
-    const promos: Promo[] = [
+    const promos: any[] = [
       {
         ...promoDefaults,
         id: "promo-1",
@@ -1445,7 +1453,7 @@ export class MemStorage implements IStorage {
   }
 
   async createReview(review: InsertReview): Promise<Review> {
-    const r: Review = { ...review, id: randomUUID(), createdAt: new Date() };
+    const r: Review = { ...review, id: randomUUID(), createdAt: new Date(), comment: review.comment ?? null };
     return r;
   }
   async getReviewsByStore(_storeId: string): Promise<Review[]> { return []; }
@@ -1478,13 +1486,13 @@ export class MemStorage implements IStorage {
   }
 
   async createTravelBooking(booking: InsertTravelBooking): Promise<TravelBooking> {
-    const b: TravelBooking = { ...booking, id: randomUUID(), createdAt: new Date(), status: booking.status ?? "confirmed", seats: booking.seats ?? 1 };
+    const b = { ...booking, id: randomUUID(), createdAt: new Date(), status: booking.status ?? "confirmed", seats: booking.seats ?? 1 } as TravelBooking;
     return b;
   }
   async getTravelBookingsByUser(_userId: string): Promise<TravelBooking[]> { return []; }
 
   async createNotification(notification: InsertNotification): Promise<Notification> {
-    return { ...notification, id: randomUUID(), isRead: false, createdAt: new Date() };
+    return { ...notification, id: randomUUID(), isRead: false, createdAt: new Date(), link: notification.link ?? null };
   }
   async getNotificationsByUser(_userId: string): Promise<Notification[]> { return []; }
   async getUnreadNotificationCount(_userId: string): Promise<number> { return 0; }

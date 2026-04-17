@@ -10,7 +10,13 @@ const DEFAULT_FOOTER = {
   phone: "+1 234 567 890",
   address: "Tu Ciudad, País",
   hours: "Lun - Dom: 8:00 - 22:00",
-  copyright: "PachaPay. Todos los derechos reservados."
+  copyright: "PachaPay. Todos los derechos reservados.",
+  facebook: "",
+  instagram: "",
+  twitter: "",
+  youtube: "",
+  telegram: "",
+  whatsapp: ""
 };
 const PAYMENT_METHODS_ICONS: Record<string, string> = {
   visa: "https://upload.wikimedia.org/wikipedia/commons/5/5e/Visa_Inc._logo.svg",

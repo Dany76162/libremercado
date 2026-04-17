@@ -6,6 +6,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { Navbar } from "@/components/layout/Navbar";
 import { Footer } from "@/components/layout/Footer";
 import { ThemeInjector } from "@/components/layout/ThemeInjector";
+import { ScrollToTop } from "@/components/layout/ScrollToTop";
 import Home from "@/pages/Home";
 import Explore from "@/pages/Explore";
 import StoreDetails from "@/pages/StoreDetails";
@@ -94,6 +95,7 @@ function App() {
     <QueryClientProvider client={queryClient}>
       <TooltipProvider>
         <ThemeInjector />
+        <ScrollToTop />
         <AppLayout />
         <Toaster />
       </TooltipProvider>

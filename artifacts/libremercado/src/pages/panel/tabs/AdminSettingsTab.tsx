@@ -80,10 +80,18 @@ export function AdminSettingsTab() {
   const headerLogoRef = useRef<HTMLInputElement>(null);
   const footerLogoRef = useRef<HTMLInputElement>(null);
   
-  const { data: footerConfig, isLoading: loadingFooter } = useQuery({ queryKey: ["/api/config/footer_config"] });
-  const { data: headerLogo, isLoading: loadingHeaderLogo } = useQuery({ queryKey: ["/api/config/header_logo"] });
-  const { data: footerLogo, isLoading: loadingFooterLogo } = useQuery({ queryKey: ["/api/config/footer_logo"] });
-  const { data: activePayments, isLoading: loadingPayments } = useQuery<string[]>({ queryKey: ["/api/config/payment_methods"] });
+  const { data: footerConfig, isLoading: loadingFooter } = useQuery<typeof DEFAULT_FOOTER>({
+    queryKey: ["/api/config/footer_config"],
+  });
+  const { data: headerLogo, isLoading: loadingHeaderLogo } = useQuery<{url: string}>({
+    queryKey: ["/api/config/header_logo"],
+  });
+  const { data: footerLogo, isLoading: loadingFooterLogo } = useQuery<{url: string}>({
+    queryKey: ["/api/config/footer_logo"],
+  });
+  const { data: activePayments, isLoading: loadingPayments } = useQuery<string[]>({
+    queryKey: ["/api/config/payment_methods"],
+  });
   const { data: themeConfig, isLoading: loadingTheme } = useQuery({ queryKey: ["/api/config/site_theme"] });
   const { data: dbCategories, isLoading: loadingCats } = useQuery({ queryKey: ["/api/config/site_categories"] });
 

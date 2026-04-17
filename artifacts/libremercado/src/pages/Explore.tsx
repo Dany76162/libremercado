@@ -71,7 +71,6 @@ export default function Explore() {
   );
 
   useEffect(() => {
-    window.scrollTo({ top: 0, behavior: "smooth" });
     setSelectedCategory(initialCategory);
     setSearchQuery(initialQuery);
     setActiveFilter(initialFilter);

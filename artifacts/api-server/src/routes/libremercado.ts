@@ -277,7 +277,7 @@ export async function registerRoutes(
   });
 
   app.get("/api/users/role/:role", requireRole("admin"), async (req, res) => {
-    const users = await storage.getUsersByRole(req.params.role);
+    const users = await storage.getUsersByRole(String(req.params.role));
     res.json(users);
   });
 
@@ -285,10 +285,10 @@ export async function registerRoutes(
     const me = await getCurrentUser(req);
     if (!me) return res.status(401).json({ error: "No autenticado" });
     // Only allow users to fetch their own profile; admins can fetch any
-    if (me.role !== "admin" && me.id !== req.params.id) {
+    if (me.role !== "admin" && me.id !== String(req.params.id)) {
       return res.status(403).json({ error: "Acceso no autorizado" });
     }
-    const user = await storage.getUser(req.params.id);
+    const user = await storage.getUser(String(req.params.id));
     if (!user) return res.status(404).json({ error: "User not found" });
     const { password, passwordResetToken, passwordResetExpiry, ...safeUser } = user;
     res.json(safeUser);
@@ -554,13 +554,13 @@ export async function registerRoutes(
       return res.status(401).json({ error: "No autenticado" });
     }
 
-    const document = await storage.getKycDocument(req.params.docId);
+    const document = await storage.getKycDocument(String(req.params.docId));
     if (!document) {
       return res.status(404).json({ error: "Documento no encontrado" });
     }
 
     // Approve the document
-    const updatedDoc = await storage.updateKycDocument(req.params.docId, {
+    const updatedDoc = await storage.updateKycDocument(String(req.params.docId), {
       status: "approved",
       reviewedAt: new Date(),
       reviewedBy: adminUser.id,
@@ -568,7 +568,7 @@ export async function registerRoutes(
 
     // Check if all documents for this user are approved
     const userDocs = await storage.getKycDocuments(document.userId);
-    const allApproved = userDocs.every((d) => d.status === "approved" || d.id === req.params.docId);
+    const allApproved = userDocs.every((d) => d.status === "approved" || d.id === String(req.params.docId));
     
     if (allApproved && userDocs.length >= 2) {
       // Require at least 2 docs (front and back of ID)
@@ -586,13 +586,13 @@ export async function registerRoutes(
 
     const { reason } = req.body;
     
-    const document = await storage.getKycDocument(req.params.docId);
+    const document = await storage.getKycDocument(String(req.params.docId));
     if (!document) {
       return res.status(404).json({ error: "Documento no encontrado" });
     }
 
     // Reject the document
-    const updatedDoc = await storage.updateKycDocument(req.params.docId, {
+    const updatedDoc = await storage.updateKycDocument(String(req.params.docId), {
       status: "rejected",
       rejectionReason: reason || "Documento rechazado",
       reviewedAt: new Date(),
@@ -607,7 +607,7 @@ export async function registerRoutes(
 
   // M2 — Tiendas destacadas
   app.get("/api/stores/featured", async (req, res) => {
-    const { provinciaId, ciudadId, lat, lng, radiusKm } = req.query;
+    const { provinciaId, ciudadId, lat, lng, radiusKm } = req.query as Record<string, string>;
     let stores = await storage.getFeaturedStores();
     const userLat = lat && typeof lat === "string" ? parseFloat(lat) : null;
     const userLng = lng && typeof lng === "string" ? parseFloat(lng) : null;
@@ -685,7 +685,7 @@ export async function registerRoutes(
   });
 
   app.get("/api/stores", async (req, res) => {
-    const { provinciaId, ciudadId, lat, lng, radiusKm } = req.query;
+    const { provinciaId, ciudadId, lat, lng, radiusKm } = req.query as Record<string, string>;
     let stores = await storage.getStores();
 
     const userLat = lat && typeof lat === "string" ? parseFloat(lat) : null;
@@ -722,7 +722,7 @@ export async function registerRoutes(
   });
 
   app.get("/api/stores/:id", async (req, res) => {
-    const store = await storage.getStore(req.params.id);
+    const store = await storage.getStore(String(req.params.id));
     if (!store) {
       return res.status(404).json({ error: "Store not found" });
     }
@@ -730,7 +730,7 @@ export async function registerRoutes(
   });
 
   app.get("/api/stores/:id/products", async (req, res) => {
-    const products = await storage.getProductsByStore(req.params.id);
+    const products = await storage.getProductsByStore(String(req.params.id));
     res.json(products);
   });
 
@@ -747,19 +747,19 @@ export async function registerRoutes(
     const user = await getCurrentUser(req);
     if (!user) return res.status(401).json({ error: "No autenticado" });
 
-    const existing = await storage.getStore(req.params.id);
+    const existing = await storage.getStore(String(req.params.id));
     if (!existing) return res.status(404).json({ error: "Tienda no encontrada" });
 
     if (user.role !== "admin" && existing.ownerId !== user.id) {
       return res.status(403).json({ error: "No tenés permiso para editar esta tienda" });
     }
 
-    const store = await storage.updateStore(req.params.id, req.body);
+    const store = await storage.updateStore(String(req.params.id), req.body);
     res.json(store);
   });
 
   app.delete("/api/stores/:id", requireRole("admin"), async (req, res) => {
-    const deleted = await storage.deleteStore(req.params.id);
+    const deleted = await storage.deleteStore(String(req.params.id));
     if (!deleted) {
       return res.status(404).json({ error: "Store not found" });
     }
@@ -767,7 +767,7 @@ export async function registerRoutes(
   });
 
   app.get("/api/products", async (req, res) => {
-    const { provinciaId, ciudadId, lat, lng, radiusKm, mode } = req.query;
+    const { provinciaId, ciudadId, lat, lng, radiusKm, mode } = req.query as Record<string, string>;
 
     if (mode === "wholesale") {
       const user = await getCurrentUser(req);
@@ -840,7 +840,7 @@ export async function registerRoutes(
   });
 
   app.get("/api/products/featured", async (req, res) => {
-    const { provinciaId, ciudadId, lat, lng, radiusKm, mode } = req.query;
+    const { provinciaId, ciudadId, lat, lng, radiusKm, mode } = req.query as Record<string, string>;
 
     if (mode === "wholesale") {
       const user = await getCurrentUser(req);
@@ -928,7 +928,7 @@ export async function registerRoutes(
   });
 
   app.get("/api/products/:id", async (req, res) => {
-    const product = await storage.getProduct(req.params.id);
+    const product = await storage.getProduct(String(req.params.id));
     if (!product) {
       return res.status(404).json({ error: "Product not found" });
     }
@@ -948,7 +948,7 @@ export async function registerRoutes(
     const user = await getCurrentUser(req);
     if (!user) return res.status(401).json({ error: "No autenticado" });
 
-    const product = await storage.getProduct(req.params.id);
+    const product = await storage.getProduct(String(req.params.id));
     if (!product) return res.status(404).json({ error: "Producto no encontrado" });
 
     if (user.role !== "admin") {
@@ -958,7 +958,7 @@ export async function registerRoutes(
       }
     }
 
-    const updated = await storage.updateProduct(req.params.id, req.body);
+    const updated = await storage.updateProduct(String(req.params.id), req.body);
     res.json(updated);
   });
 
@@ -966,7 +966,7 @@ export async function registerRoutes(
     const user = await getCurrentUser(req);
     if (!user) return res.status(401).json({ error: "No autenticado" });
 
-    const product = await storage.getProduct(req.params.id);
+    const product = await storage.getProduct(String(req.params.id));
     if (!product) return res.status(404).json({ error: "Producto no encontrado" });
 
     if (user.role !== "admin") {
@@ -976,7 +976,7 @@ export async function registerRoutes(
       }
     }
 
-    await storage.deleteProduct(req.params.id);
+    await storage.deleteProduct(String(req.params.id));
     res.status(204).send();
   });
 
@@ -988,7 +988,7 @@ export async function registerRoutes(
     if (!user) {
       return res.json({ hasAccess: false, reason: "unauthenticated" });
     }
-    if (user.role === "admin" || user.role === "superadmin") {
+    if (user.role === "admin" || (user.role as any) === "superadmin") {
       return res.json({ hasAccess: true, reason: "admin" });
     }
     if (user.kycStatus === "approved") {
@@ -1036,9 +1036,9 @@ export async function registerRoutes(
   // PATCH /api/admin/wholesale/stores/:id — toggle wholesale status on a store
   app.patch("/api/admin/wholesale/stores/:id", requireRole("admin"), async (req, res) => {
     const { isWholesale } = req.body;
-    const store = await storage.getStore(req.params.id);
+    const store = await storage.getStore(String(req.params.id));
     if (!store) return res.status(404).json({ error: "Tienda no encontrada" });
-    const updated = await storage.updateStore(req.params.id, { isWholesale: !!isWholesale } as any);
+    const updated = await storage.updateStore(String(req.params.id), { isWholesale: !!isWholesale } as any);
     res.json(updated);
   });
 
@@ -1066,7 +1066,7 @@ export async function registerRoutes(
     const user = await getCurrentUser(req);
     if (!user) return res.status(401).json({ error: "No autenticado" });
 
-    const order = await storage.getOrder(req.params.id);
+    const order = await storage.getOrder(String(req.params.id));
     if (!order) return res.status(404).json({ error: "Pedido no encontrado" });
 
     const isCustomer = order.customerId === user.id;
@@ -1082,12 +1082,12 @@ export async function registerRoutes(
       return res.status(403).json({ error: "No tenés acceso a este pedido" });
     }
 
-    const items = await storage.getOrderItems(req.params.id);
+    const items = await storage.getOrderItems(String(req.params.id));
     res.json({ ...order, items });
   });
 
   app.get("/api/orders/store/:storeId", requireRole("merchant", "admin"), async (req, res) => {
-    const orders = await storage.getOrdersByStore(req.params.storeId);
+    const orders = await storage.getOrdersByStore(String(req.params.storeId));
     res.json(orders);
   });
 
@@ -1130,7 +1130,7 @@ export async function registerRoutes(
     const user = await getCurrentUser(req);
     if (!user) return res.status(401).json({ error: "No autenticado" });
 
-    const existing = await storage.getOrder(req.params.id);
+    const existing = await storage.getOrder(String(req.params.id));
     if (!existing) return res.status(404).json({ error: "Pedido no encontrado" });
 
     const isCustomer = existing.customerId === user.id;
@@ -1146,7 +1146,7 @@ export async function registerRoutes(
       return res.status(403).json({ error: "No tenés permiso para modificar este pedido" });
     }
 
-    const order = await storage.updateOrder(req.params.id, req.body);
+    const order = await storage.updateOrder(String(req.params.id), req.body);
     res.json(order);
   });
 
@@ -1156,7 +1156,7 @@ export async function registerRoutes(
   });
 
   app.get("/api/promos/banners", async (req, res) => {
-    const { provinciaId, ciudadId, lat, lng } = req.query;
+    const { provinciaId, ciudadId, lat, lng } = req.query as Record<string, string>;
     const prov = typeof provinciaId === "string" ? provinciaId : undefined;
     const city = typeof ciudadId === "string" ? ciudadId : undefined;
     const userLat = typeof lat === "string" ? parseFloat(lat) : undefined;
@@ -1167,16 +1167,16 @@ export async function registerRoutes(
 
   app.post("/api/promos/:id/impression", async (req, res) => {
     const ip = (req.headers["x-forwarded-for"] as string)?.split(",")[0].trim() || req.ip || "unknown";
-    if (!isRecentlyTracked(req.params.id, ip)) {
-      await storage.trackPromoImpression(req.params.id);
+    if (!isRecentlyTracked(String(req.params.id), ip)) {
+      await storage.trackPromoImpression(String(req.params.id));
     }
     res.json({ ok: true });
   });
 
   app.post("/api/promos/:id/click", async (req, res) => {
     const ip = (req.headers["x-forwarded-for"] as string)?.split(",")[0].trim() || req.ip || "unknown";
-    if (!isRecentlyTracked(`click:${req.params.id}`, ip)) {
-      await storage.trackPromoClick(req.params.id);
+    if (!isRecentlyTracked(`click:${String(req.params.id)}`, ip)) {
+      await storage.trackPromoClick(String(req.params.id));
     }
     res.json({ ok: true });
   });
@@ -1287,13 +1287,13 @@ export async function registerRoutes(
       return res.status(401).json({ error: "No autenticado" });
     }
 
-    const application = await storage.getMerchantApplication(req.params.id);
+    const application = await storage.getMerchantApplication(String(req.params.id));
     if (!application) {
       return res.status(404).json({ error: "Solicitud no encontrada" });
     }
 
     // Update application status
-    const updatedApp = await storage.updateMerchantApplication(req.params.id, {
+    const updatedApp = await storage.updateMerchantApplication(String(req.params.id), {
       status: "approved",
       reviewedAt: new Date(),
       reviewedBy: adminUser.id,
@@ -1335,12 +1335,12 @@ export async function registerRoutes(
 
     const { reason } = req.body;
     
-    const application = await storage.getMerchantApplication(req.params.id);
+    const application = await storage.getMerchantApplication(String(req.params.id));
     if (!application) {
       return res.status(404).json({ error: "Solicitud no encontrada" });
     }
 
-    const updatedApp = await storage.updateMerchantApplication(req.params.id, {
+    const updatedApp = await storage.updateMerchantApplication(String(req.params.id), {
       status: "rejected",
       rejectionReason: reason || "Solicitud rechazada",
       reviewedAt: new Date(),
@@ -1379,7 +1379,7 @@ export async function registerRoutes(
       return res.status(401).json({ error: "No autenticado" });
     }
 
-    const store = await storage.getStore(req.params.id);
+    const store = await storage.getStore(String(req.params.id));
     if (!store) {
       return res.status(404).json({ error: "Tienda no encontrada" });
     }
@@ -1391,7 +1391,7 @@ export async function registerRoutes(
 
     try {
       const data = storeUpdateSchema.parse(req.body);
-      const updated = await storage.updateStore(req.params.id, data);
+      const updated = await storage.updateStore(String(req.params.id), data);
       res.json(updated);
     } catch (error) {
       if (error instanceof z.ZodError) {
@@ -1477,7 +1477,7 @@ export async function registerRoutes(
       return res.status(401).json({ error: "No autenticado" });
     }
 
-    const product = await storage.getProduct(req.params.id);
+    const product = await storage.getProduct(String(req.params.id));
     if (!product) {
       return res.status(404).json({ error: "Producto no encontrado" });
     }
@@ -1491,7 +1491,7 @@ export async function registerRoutes(
       return res.status(403).json({ error: "No tenés permiso para editar este producto" });
     }
 
-    const updated = await storage.updateProduct(req.params.id, req.body);
+    const updated = await storage.updateProduct(String(req.params.id), req.body);
     res.json(updated);
   });
 
@@ -1501,7 +1501,7 @@ export async function registerRoutes(
       return res.status(401).json({ error: "No autenticado" });
     }
 
-    const product = await storage.getProduct(req.params.id);
+    const product = await storage.getProduct(String(req.params.id));
     if (!product) {
       return res.status(404).json({ error: "Producto no encontrado" });
     }
@@ -1515,7 +1515,7 @@ export async function registerRoutes(
       return res.status(403).json({ error: "No tenés permiso para eliminar este producto" });
     }
 
-    await storage.deleteProduct(req.params.id);
+    await storage.deleteProduct(String(req.params.id));
     res.status(204).send();
   });
 
@@ -1580,7 +1580,7 @@ export async function registerRoutes(
       return res.status(400).json({ error: "Estado inválido" });
     }
 
-    const order = await storage.getOrder(req.params.id);
+    const order = await storage.getOrder(String(req.params.id));
     if (!order) {
       return res.status(404).json({ error: "Pedido no encontrado" });
     }
@@ -1594,8 +1594,8 @@ export async function registerRoutes(
       return res.status(403).json({ error: "No tenés permiso para modificar este pedido" });
     }
 
-    const updated = await storage.updateOrder(req.params.id, { status });
-    broadcastOrderStatus(req.params.id, status);
+    const updated = await storage.updateOrder(String(req.params.id), { status });
+    broadcastOrderStatus(String(req.params.id), status);
 
     const statusMessages: Record<string, string> = {
       confirmed: "Tu pedido fue confirmado por la tienda",
@@ -1634,8 +1634,8 @@ export async function registerRoutes(
 
     const delivered = orders.filter((o) => o.status === "delivered");
     const cancelled = orders.filter((o) => o.status === "cancelled");
-    const todayOrders = delivered.filter((o) => new Date(o.createdAt as Date) >= todayStart);
-    const weekOrders = delivered.filter((o) => new Date(o.createdAt as Date) >= weekStart);
+    const todayOrders = delivered.filter((o) => new Date((o as any).createdAt) >= todayStart);
+    const weekOrders = delivered.filter((o) => new Date((o as any).createdAt) >= weekStart);
 
     const totalRevenue = delivered.reduce((s, o) => s + parseFloat(o.total), 0);
     const todayRevenue = todayOrders.reduce((s, o) => s + parseFloat(o.total), 0);
@@ -1671,7 +1671,7 @@ export async function registerRoutes(
       const dayEnd = new Date(dayStart.getTime() + 24 * 60 * 60 * 1000);
       const dayRev = delivered
         .filter((o) => {
-          const d = new Date(o.createdAt as Date);
+          const d = new Date((o as any).createdAt);
           return d >= dayStart && d < dayEnd;
         })
         .reduce((s, o) => s + parseFloat(o.total), 0);
@@ -1706,14 +1706,14 @@ export async function registerRoutes(
   app.post("/api/orders/:id/dispute", requireAuth, async (req, res) => {
     const user = await getCurrentUser(req);
     if (!user) return res.status(401).json({ error: "Unauthorized" });
-    const order = await storage.getOrder(req.params.id);
+    const order = await storage.getOrder(String(req.params.id));
     if (!order || order.customerId !== user.id) return res.status(404).json({ error: "Pedido no encontrado" });
     if (order.status !== "delivered") return res.status(400).json({ error: "Solo puedes disputar pedidos entregados" });
-    const existing = await storage.getDisputeByOrder(req.params.id);
+    const existing = await storage.getDisputeByOrder(String(req.params.id));
     if (existing) return res.status(400).json({ error: "Ya existe una disputa para este pedido" });
     const { type, description } = req.body;
     if (!type || !description) return res.status(400).json({ error: "type y description son requeridos" });
-    const dispute = await storage.createDispute({ orderId: req.params.id, userId: user.id, type, description });
+    const dispute = await storage.createDispute({ orderId: String(req.params.id), userId: user.id, type, description });
     res.json(dispute);
   });
 
@@ -1739,7 +1739,7 @@ export async function registerRoutes(
     if (!user || user.role !== "admin") return res.status(403).json({ error: "Forbidden" });
     const { status, resolution } = req.body;
     if (!status) return res.status(400).json({ error: "status es requerido" });
-    const updated = await storage.updateDisputeStatus(req.params.id, status, resolution, user.id);
+    const updated = await storage.updateDisputeStatus(String(req.params.id), status, resolution, user.id);
     // Notify customer by email
     const disputeUser = await storage.getUser(updated.userId);
     if (disputeUser && status !== "pending") {
@@ -1753,11 +1753,11 @@ export async function registerRoutes(
     const user = await getCurrentUser(req);
     if (!user || user.role !== "admin") return res.status(403).json({ error: "Forbidden" });
     try {
-      const dispute = await storage.getDisputeByOrder(req.params.id);
+      const dispute = await storage.getDisputeByOrder(String(req.params.id));
       if (!dispute) {
         // Try finding by dispute id
         const allDisputes = await storage.getAllDisputes();
-        const d = allDisputes.find((x) => x.id === req.params.id);
+        const d = allDisputes.find((x) => x.id === String(req.params.id));
         if (!d) return res.status(404).json({ error: "Disputa no encontrada" });
         const order = await storage.getOrder(d.orderId);
         if (!order) return res.status(404).json({ error: "Pedido no encontrado" });
@@ -1810,7 +1810,7 @@ export async function registerRoutes(
   app.patch("/api/notifications/:id/read", requireAuth, async (req, res) => {
     const user = await getCurrentUser(req);
     if (!user) return res.status(401).json({ error: "No autenticado" });
-    await storage.markNotificationRead(req.params.id, user.id);
+    await storage.markNotificationRead(String(req.params.id), user.id);
     res.json({ success: true });
   });
 
@@ -1871,12 +1871,12 @@ export async function registerRoutes(
     const user = await getCurrentUser(req);
     if (!user) return res.status(401).json({ error: "No autenticado" });
 
-    const order = await storage.getOrder(req.params.id);
+    const order = await storage.getOrder(String(req.params.id));
     if (!order) return res.status(404).json({ error: "Pedido no encontrado" });
     if (order.customerId !== user.id) return res.status(403).json({ error: "No tenés acceso" });
     if (order.status !== "delivered") return res.status(400).json({ error: "Solo podés reseñar pedidos entregados" });
 
-    const existing = await storage.getReviewByOrderAndUser(req.params.id, user.id);
+    const existing = await storage.getReviewByOrderAndUser(String(req.params.id), user.id);
     if (existing) return res.status(409).json({ error: "Ya enviaste una reseña para este pedido" });
 
     const parsed = reviewSchema.safeParse(req.body);
@@ -1884,7 +1884,7 @@ export async function registerRoutes(
 
     const review = await storage.createReview({
       userId: user.id,
-      orderId: req.params.id,
+      orderId: String(req.params.id),
       storeId: order.storeId,
       rating: parsed.data.rating,
       comment: parsed.data.comment ?? null,
@@ -1895,8 +1895,8 @@ export async function registerRoutes(
 
   // Get reviews for a store
   app.get("/api/stores/:id/reviews", async (req, res) => {
-    const reviews = await storage.getReviewsByStore(req.params.id);
-    const avgRating = await storage.getAverageRating(req.params.id);
+    const reviews = await storage.getReviewsByStore(String(req.params.id));
+    const avgRating = await storage.getAverageRating(String(req.params.id));
     res.json({ reviews, avgRating, total: reviews.length });
   });
 
@@ -1905,10 +1905,10 @@ export async function registerRoutes(
     const user = await getCurrentUser(req);
     if (!user) return res.status(401).json({ error: "No autenticado" });
 
-    const store = await storage.getStore(req.params.id);
+    const store = await storage.getStore(String(req.params.id));
     if (!store) return res.status(404).json({ error: "Tienda no encontrada" });
 
-    const existing = await storage.getReviewByStoreAndUser(req.params.id, user.id);
+    const existing = await storage.getReviewByStoreAndUser(String(req.params.id), user.id);
     if (existing) return res.status(409).json({ error: "Ya enviaste una reseña para esta tienda" });
 
     const parsed = reviewSchema.safeParse(req.body);
@@ -1916,7 +1916,8 @@ export async function registerRoutes(
 
     const review = await storage.createReview({
       userId: user.id,
-      storeId: req.params.id,
+      storeId: String(req.params.id),
+      orderId: "ad_hoc",
       rating: parsed.data.rating,
       comment: parsed.data.comment ?? null,
     });
@@ -1929,10 +1930,10 @@ export async function registerRoutes(
     const user = await getCurrentUser(req);
     if (!user) return res.status(401).json({ error: "No autenticado" });
 
-    const order = await storage.getOrder(req.params.id);
+    const order = await storage.getOrder(String(req.params.id));
     if (!order || order.customerId !== user.id) return res.status(403).json({ error: "No tenés acceso" });
 
-    const existing = await storage.getReviewByOrderAndUser(req.params.id, user.id);
+    const existing = await storage.getReviewByOrderAndUser(String(req.params.id), user.id);
     res.json({ canReview: order.status === "delivered" && !existing, review: existing ?? null });
   });
 
@@ -2017,7 +2018,7 @@ export async function registerRoutes(
       return res.status(401).json({ error: "No autenticado" });
     }
 
-    const order = await storage.getOrder(req.params.id);
+    const order = await storage.getOrder(String(req.params.id));
     if (!order) {
       return res.status(404).json({ error: "Pedido no encontrado" });
     }
@@ -2030,13 +2031,14 @@ export async function registerRoutes(
       return res.status(400).json({ error: "El pedido ya fue asignado a otro repartidor" });
     }
 
-    const updated = await storage.updateOrder(req.params.id, {
+    const updated = await storage.updateOrder(String(req.params.id), {
       riderId: user.id,
       status: "in_transit",
     });
-    broadcastOrderStatus(req.params.id, "in_transit");
+    broadcastOrderStatus(String(req.params.id), "in_transit");
+    if (!updated) return res.status(404).json({ error: "Pedido no encontrado post actualizacion" });
     await storage.createNotification({
-      userId: updated.userId,
+      userId: updated.customerId,
       type: "order_status",
       title: "Tu pedido está en camino",
       body: "Un repartidor recogió tu pedido y va hacia vos",
@@ -2052,7 +2054,7 @@ export async function registerRoutes(
       return res.status(401).json({ error: "No autenticado" });
     }
 
-    const order = await storage.getOrder(req.params.id);
+    const order = await storage.getOrder(String(req.params.id));
     if (!order) {
       return res.status(404).json({ error: "Pedido no encontrado" });
     }
@@ -2065,12 +2067,13 @@ export async function registerRoutes(
       return res.status(400).json({ error: "El pedido no está en tránsito" });
     }
 
-    const updated = await storage.updateOrder(req.params.id, {
+    const updated = await storage.updateOrder(String(req.params.id), {
       status: "delivered",
     });
-    broadcastOrderStatus(req.params.id, "delivered");
+    broadcastOrderStatus(String(req.params.id), "delivered");
+    if (!updated) return res.status(404).json({ error: "Pedido no encontrado post actualizacion" });
     await storage.createNotification({
-      userId: updated.userId,
+      userId: updated.customerId,
       type: "order_delivered",
       title: "Pedido entregado",
       body: "Tu pedido fue entregado. Podés calificarlo desde Mis Pedidos.",
@@ -2127,20 +2130,20 @@ export async function registerRoutes(
     const { lat, lng } = req.body;
     if (!lat || !lng) return res.status(400).json({ error: "Latitud y longitud requeridas" });
 
-    const order = await storage.getOrder(req.params.id);
+    const order = await storage.getOrder(String(req.params.id));
     if (!order || order.riderId !== user.id) {
       return res.status(403).json({ error: "No tenés acceso a este pedido" });
     }
 
-    await storage.updateOrder(req.params.id, {
+    await storage.updateOrder(String(req.params.id), {
       riderLat: String(lat),
       riderLng: String(lng),
     });
 
     const { broadcastToOrder } = await import("../ws");
-    broadcastToOrder(req.params.id, {
+    broadcastToOrder(String(req.params.id), {
       type: "rider_location_update",
-      orderId: req.params.id,
+      orderId: String(req.params.id),
       payload: { lat: parseFloat(lat), lng: parseFloat(lng) },
     });
 
@@ -2166,29 +2169,29 @@ export async function registerRoutes(
 
   // Admin: Approve rider
   app.patch("/api/admin/riders/:userId/approve", requireRole("admin"), async (req, res) => {
-    const profile = await storage.getRiderProfile(req.params.userId);
+    const profile = await storage.getRiderProfile(String(req.params.userId));
     if (!profile) {
       return res.status(404).json({ error: "Perfil no encontrado" });
     }
 
-    const updated = await storage.updateRiderProfile(req.params.userId, {
+    const updated = await storage.updateRiderProfile(String(req.params.userId), {
       status: "active",
     });
 
     // Update user role to rider
-    await storage.updateUser(req.params.userId, { role: "rider" });
+    await storage.updateUser(String(req.params.userId), { role: "rider" });
 
     res.json(updated);
   });
 
   // Admin: Reject rider
   app.patch("/api/admin/riders/:userId/reject", requireRole("admin"), async (req, res) => {
-    const profile = await storage.getRiderProfile(req.params.userId);
+    const profile = await storage.getRiderProfile(String(req.params.userId));
     if (!profile) {
       return res.status(404).json({ error: "Perfil no encontrado" });
     }
 
-    const updated = await storage.updateRiderProfile(req.params.userId, {
+    const updated = await storage.updateRiderProfile(String(req.params.userId), {
       status: "inactive",
     });
 
@@ -2235,8 +2238,8 @@ export async function registerRoutes(
 
   // Get commissions by store
   app.get("/api/admin/commissions/store/:storeId", requireRole("admin"), async (req, res) => {
-    const commissions = await storage.getPlatformCommissionsByStore(req.params.storeId);
-    const store = await storage.getStore(req.params.storeId);
+    const commissions = await storage.getPlatformCommissionsByStore(String(req.params.storeId));
+    const store = await storage.getStore(String(req.params.storeId));
     
     const totalEarned = commissions.reduce((sum, c) => sum + parseFloat(c.commissionAmount as string), 0);
     const merchantTotal = commissions.reduce((sum, c) => sum + parseFloat(c.merchantAmount as string), 0);
@@ -2314,7 +2317,7 @@ export async function registerRoutes(
   // Get single payment + attempts + ledger
   app.get("/api/admin/payments/:id", requireRole("admin"), async (req, res) => {
     try {
-      const payment = await paymentService.getPayment(req.params.id);
+      const payment = await paymentService.getPayment(String(req.params.id));
       if (!payment) return res.status(404).json({ error: "Payment not found" });
       const [attempts, ledger] = await Promise.all([
         paymentService.listAttempts(payment.id),
@@ -2329,7 +2332,7 @@ export async function registerRoutes(
   // Get payment for an order
   app.get("/api/admin/payments/by-order/:orderId", requireRole("admin"), async (req, res) => {
     try {
-      const payment = await paymentService.getPaymentByOrder(req.params.orderId);
+      const payment = await paymentService.getPaymentByOrder(String(req.params.orderId));
       if (!payment) return res.status(404).json({ error: "No payment for this order" });
       const [attempts, ledger] = await Promise.all([
         paymentService.listAttempts(payment.id),
@@ -2346,12 +2349,12 @@ export async function registerRoutes(
     try {
       const { amount, reason } = req.body;
       await paymentService.refundPayment({
-        paymentId: req.params.id,
+        paymentId: String(req.params.id),
         amountGross: amount ? parseFloat(amount) : undefined,
         reason: reason ?? "admin_refund",
       });
       // Update order payment status
-      const payment = await paymentService.getPayment(req.params.id);
+      const payment = await paymentService.getPayment(String(req.params.id));
       if (payment) {
         await storage.updateOrder(payment.orderId, { paymentStatus: "refunded" });
       }
@@ -2537,7 +2540,7 @@ Responde en formato JSON con la siguiente estructura:
     if (!allowed.includes(status)) {
       return res.status(400).json({ error: `Estado inválido. Valores permitidos: ${allowed.join(", ")}` });
     }
-    const updated = await storage.updatePromoCommercialStatus(req.params.id, status);
+    const updated = await storage.updatePromoCommercialStatus(String(req.params.id), status);
     if (!updated) return res.status(404).json({ error: "Promo no encontrada" });
     res.json(updated);
   });
@@ -2553,7 +2556,7 @@ Responde en formato JSON con la siguiente estructura:
       ? new Date(Date.now() + Number(featuredDays) * 86400000)
       : isFeatured ? null : null;
     const updated = await storage.updateStoreFeatured(
-      req.params.id, isFeatured, featuredUntil, featuredScore ?? 0
+      String(req.params.id), isFeatured, featuredUntil, featuredScore ?? 0
     );
     if (!updated) return res.status(404).json({ error: "Tienda no encontrada" });
     res.json(updated);
@@ -2568,7 +2571,7 @@ Responde en formato JSON con la siguiente estructura:
       ? new Date(Date.now() + Number(sponsoredDays) * 86400000)
       : null;
     const updated = await storage.updateProductSponsored(
-      req.params.id, isSponsored, sponsoredUntil, sponsoredPriority ?? 0
+      String(req.params.id), isSponsored, sponsoredUntil, sponsoredPriority ?? 0
     );
     if (!updated) return res.status(404).json({ error: "Producto no encontrado" });
     res.json(updated);
@@ -2665,7 +2668,7 @@ Responde en formato JSON con la siguiente estructura:
   });
 
   app.patch("/api/promos/:id", requireRole("admin"), async (req, res) => {
-    const promo = await storage.updatePromo(req.params.id, req.body);
+    const promo = await storage.updatePromo(String(req.params.id), req.body);
     if (!promo) {
       return res.status(404).json({ error: "Promo not found" });
     }
@@ -2673,7 +2676,7 @@ Responde en formato JSON con la siguiente estructura:
   });
 
   app.delete("/api/promos/:id", requireRole("admin"), async (req, res) => {
-    const deleted = await storage.deletePromo(req.params.id);
+    const deleted = await storage.deletePromo(String(req.params.id));
     if (!deleted) {
       return res.status(404).json({ error: "Promo not found" });
     }
@@ -2834,7 +2837,7 @@ Responde en formato JSON con la siguiente estructura:
         const customer = await storage.getUser(updatedOrder?.customerId ?? "");
         const items = await storage.getOrderItems(orderId);
         if (updatedOrder && customer) {
-          const storeIds = [...new Set(items.map((i) => i.storeId))];
+          const storeIds = [updatedOrder.storeId];
           const storeList = await Promise.all(storeIds.map((sid) => storage.getStore(sid)));
           const storeName = storeList[0]?.name ?? "la tienda";
           const totalFormatted = new Intl.NumberFormat("es-AR", {
@@ -2918,7 +2921,7 @@ Responde en formato JSON con la siguiente estructura:
   // Get trip details
   app.get("/api/travel/trips/:tripId", async (req, res) => {
     try {
-      const trip = await travelBookingService.getTripById(req.params.tripId);
+      const trip = await travelBookingService.getTripById(String(req.params.tripId));
       if (!trip) return res.status(404).json({ error: "Trip not found" });
       res.json(trip);
     } catch (err: any) {
@@ -2929,7 +2932,7 @@ Responde en formato JSON con la siguiente estructura:
   // Get seat map for a trip
   app.get("/api/travel/trips/:tripId/seats", async (req, res) => {
     try {
-      const seatMap = await travelBookingService.getSeatMap(req.params.tripId);
+      const seatMap = await travelBookingService.getSeatMap(String(req.params.tripId));
       res.json(seatMap);
     } catch (err: any) {
       res.status(500).json({ error: err.message });
@@ -3037,7 +3040,7 @@ Responde en formato JSON con la siguiente estructura:
       const { companyId, companyName, origin, destination, travelDate, departureTime, arrivalTime, duration, price, seats } = req.body;
       const booking = await storage.createTravelBooking({
         userId: user.id, type: "bus", companyId, companyName, origin, destination,
-        travelDate, departureTime, arrivalTime, duration, price: Number(price), seats: Number(seats ?? 1), status: "confirmed",
+        travelDate, departureTime, arrivalTime, duration, price: String(price), seats: Number(seats ?? 1), status: "confirmed",
       });
       res.json(booking);
     } catch (err: any) {
@@ -3052,7 +3055,7 @@ Responde en formato JSON con la siguiente estructura:
       const { companyId, companyName, origin, destination, travelDate, departureTime, arrivalTime, duration, price, seats } = req.body;
       const booking = await storage.createTravelBooking({
         userId: user.id, type: "flight", companyId, companyName, origin, destination,
-        travelDate, departureTime, arrivalTime, duration, price: Number(price), seats: Number(seats ?? 1), status: "confirmed",
+        travelDate, departureTime, arrivalTime, duration, price: String(price), seats: Number(seats ?? 1), status: "confirmed",
       });
       res.json(booking);
     } catch (err: any) {
@@ -3065,25 +3068,25 @@ Responde en formato JSON con la siguiente estructura:
   // Store follows
   app.post("/api/stores/:id/follow", requireAuth, async (req, res) => {
     const userId = (req.session as any).userId as string;
-    await storage.followStore(userId, req.params.id);
+    await storage.followStore(userId, String(req.params.id));
     res.json({ ok: true });
   });
 
   app.delete("/api/stores/:id/follow", requireAuth, async (req, res) => {
     const userId = (req.session as any).userId as string;
-    await storage.unfollowStore(userId, req.params.id);
+    await storage.unfollowStore(userId, String(req.params.id));
     res.json({ ok: true });
   });
 
   app.get("/api/stores/:id/follow", requireAuth, async (req, res) => {
     const userId = (req.session as any).userId as string;
-    const isFollowing = await storage.isFollowingStore(userId, req.params.id);
-    const followersCount = await storage.getStoreFollowersCount(req.params.id);
+    const isFollowing = await storage.isFollowingStore(userId, String(req.params.id));
+    const followersCount = await storage.getStoreFollowersCount(String(req.params.id));
     res.json({ isFollowing, followersCount });
   });
 
   app.get("/api/stores/:id/followers/count", async (req, res) => {
-    const count = await storage.getStoreFollowersCount(req.params.id);
+    const count = await storage.getStoreFollowersCount(String(req.params.id));
     res.json({ count });
   });
 
@@ -3127,7 +3130,7 @@ Responde en formato JSON con la siguiente estructura:
 
   // Public: get single video
   app.get("/api/videos/:id", async (req, res) => {
-    const video = await storage.getVideo(req.params.id);
+    const video = await storage.getVideo(String(req.params.id));
     if (!video) return res.status(404).json({ error: "Video no encontrado" });
     const store = video.storeId ? await storage.getStore(video.storeId) : undefined;
     const product = video.productId ? await storage.getProduct(video.productId) : undefined;
@@ -3140,13 +3143,13 @@ Responde en formato JSON con la siguiente estructura:
 
   // Public: track video view
   app.post("/api/videos/:id/view", async (req, res) => {
-    await storage.trackVideoView(req.params.id);
+    await storage.trackVideoView(String(req.params.id));
     res.json({ ok: true });
   });
 
   // Public: track add to cart from video
   app.post("/api/videos/:id/add-to-cart", async (req, res) => {
-    await storage.trackVideoAddToCart(req.params.id);
+    await storage.trackVideoAddToCart(String(req.params.id));
     res.json({ ok: true });
   });
 
@@ -3225,11 +3228,11 @@ Responde en formato JSON con la siguiente estructura:
   app.patch("/api/merchant/videos/:id", requireAuth, requireRole("merchant"), async (req, res) => {
     const user = await getCurrentUser(req);
     if (!user) return res.status(401).json({ error: "Unauthorized" });
-    const video = await storage.getVideo(req.params.id);
+    const video = await storage.getVideo(String(req.params.id));
     if (!video || video.merchantId !== user.id) return res.status(404).json({ error: "Video no encontrado" });
     const { title, description, tags, thumbnailUrl, productId, contentType, targetProvince, targetCity, status } = req.body;
     const allowedStatus = video.status === "draft" || video.status === "rejected" ? "pending" : undefined;
-    const updated = await storage.updateVideo(req.params.id, {
+    const updated = await storage.updateVideo(String(req.params.id), {
       title: title ?? video.title,
       description: description ?? video.description,
       tags: tags ?? video.tags,
@@ -3247,9 +3250,9 @@ Responde en formato JSON con la siguiente estructura:
   app.delete("/api/merchant/videos/:id", requireAuth, requireRole("merchant"), async (req, res) => {
     const user = await getCurrentUser(req);
     if (!user) return res.status(401).json({ error: "Unauthorized" });
-    const video = await storage.getVideo(req.params.id);
+    const video = await storage.getVideo(String(req.params.id));
     if (!video || video.merchantId !== user.id) return res.status(404).json({ error: "Video no encontrado" });
-    await storage.deleteVideo(req.params.id);
+    await storage.deleteVideo(String(req.params.id));
     res.json({ ok: true });
   });
 
@@ -3277,27 +3280,27 @@ Responde en formato JSON con la siguiente estructura:
     if (!["draft", "pending", "approved", "rejected", "published"].includes(status)) {
       return res.status(400).json({ error: "Estado inválido" });
     }
-    const video = await storage.getVideo(req.params.id);
+    const video = await storage.getVideo(String(req.params.id));
     if (!video) return res.status(404).json({ error: "Video no encontrado" });
     const updates: any = { status };
     if (status === "published" && !video.publishedAt) updates.publishedAt = new Date();
-    const updated = await storage.updateVideo(req.params.id, updates);
+    const updated = await storage.updateVideo(String(req.params.id), updates);
     res.json(updated);
   });
 
   // Admin: toggle featured
   app.patch("/api/admin/videos/:id/featured", requireAuth, requireRole("admin"), async (req, res) => {
-    const video = await storage.getVideo(req.params.id);
+    const video = await storage.getVideo(String(req.params.id));
     if (!video) return res.status(404).json({ error: "Video no encontrado" });
-    const updated = await storage.updateVideo(req.params.id, { isFeatured: !video.isFeatured });
+    const updated = await storage.updateVideo(String(req.params.id), { isFeatured: !video.isFeatured });
     res.json(updated);
   });
 
   // Admin: toggle sponsored
   app.patch("/api/admin/videos/:id/sponsored", requireAuth, requireRole("admin"), async (req, res) => {
-    const video = await storage.getVideo(req.params.id);
+    const video = await storage.getVideo(String(req.params.id));
     if (!video) return res.status(404).json({ error: "Video no encontrado" });
-    const updated = await storage.updateVideo(req.params.id, { isSponsored: !video.isSponsored });
+    const updated = await storage.updateVideo(String(req.params.id), { isSponsored: !video.isSponsored });
     res.json(updated);
   });
 
@@ -3341,7 +3344,7 @@ Responde en formato JSON con la siguiente estructura:
   });
 
   app.get("/api/novedades/:id", async (req, res) => {
-    const item = await storage.getNovedadById(req.params.id);
+    const item = await storage.getNovedadById(String(req.params.id));
     if (!item) return res.status(404).json({ error: "Not found" });
     res.json(item);
   });
@@ -3362,7 +3365,7 @@ Responde en formato JSON con la siguiente estructura:
 
   app.patch("/api/admin/novedades/:id", requireRole("admin"), async (req, res) => {
     try {
-      const item = await storage.updateNovedad(req.params.id, req.body);
+      const item = await storage.updateNovedad(String(req.params.id), req.body);
       if (!item) return res.status(404).json({ error: "Not found" });
       res.json(item);
     } catch (err) {
@@ -3371,7 +3374,7 @@ Responde en formato JSON con la siguiente estructura:
   });
 
   app.delete("/api/admin/novedades/:id", requireRole("admin"), async (req, res) => {
-    await storage.deleteNovedad(req.params.id);
+    await storage.deleteNovedad(String(req.params.id));
     res.json({ ok: true });
   });
 
@@ -3406,7 +3409,7 @@ Responde en formato JSON con la siguiente estructura:
   app.patch("/api/oficial/novedades/:id", requireRole("official", "admin"), async (req, res) => {
     try {
       const user = (req as any).user;
-      const item = await storage.updateOfficialNovedad(user.id, req.params.id, req.body);
+      const item = await storage.updateOfficialNovedad(user.id, String(req.params.id), req.body);
       if (!item) return res.status(404).json({ error: "Novedad no encontrada o sin permiso" });
       res.json(item);
     } catch (err: any) {
@@ -3416,7 +3419,7 @@ Responde en formato JSON con la siguiente estructura:
 
   app.delete("/api/oficial/novedades/:id", requireRole("official", "admin"), async (req, res) => {
     const user = (req as any).user;
-    const ok = await storage.deleteOfficialNovedad(user.id, req.params.id);
+    const ok = await storage.deleteOfficialNovedad(user.id, String(req.params.id));
     if (!ok) return res.status(404).json({ error: "No encontrada o sin permiso" });
     res.json({ ok: true });
   });
@@ -3488,11 +3491,11 @@ Responde en formato JSON con la siguiente estructura:
       if (me.role !== "admin") {
         const entity = await storage.getEntityForUser(me.id);
         const secs = entity ? await storage.getSecretarias(entity.id) : [];
-        if (!secs.find(s => s.id === req.params.id)) {
+        if (!secs.find(s => s.id === String(req.params.id))) {
           return res.status(403).json({ error: "No podés modificar secretarías de otra entidad" });
         }
       }
-      const item = await storage.updateSecretaria(req.params.id, req.body);
+      const item = await storage.updateSecretaria(String(req.params.id), req.body);
       if (!item) return res.status(404).json({ error: "Secretaría no encontrada" });
       res.json(item);
     } catch (err: any) {
@@ -3505,11 +3508,11 @@ Responde en formato JSON con la siguiente estructura:
     if (me.role !== "admin") {
       const entity = await storage.getEntityForUser(me.id);
       const secs = entity ? await storage.getSecretarias(entity.id) : [];
-      if (!secs.find(s => s.id === req.params.id)) {
+      if (!secs.find(s => s.id === String(req.params.id))) {
         return res.status(403).json({ error: "No podés eliminar secretarías de otra entidad" });
       }
     }
-    await storage.deleteSecretaria(req.params.id);
+    await storage.deleteSecretaria(String(req.params.id));
     res.json({ ok: true });
   });
 
@@ -3519,14 +3522,14 @@ Responde en formato JSON con la siguiente estructura:
       if (me.role !== "admin") {
         const entity = await storage.getEntityForUser(me.id);
         const secs = entity ? await storage.getSecretarias(entity.id) : [];
-        if (!secs.find(s => s.id === req.params.id)) {
+        if (!secs.find(s => s.id === String(req.params.id))) {
           return res.status(403).json({ error: "No podés crear cuentas para secretarías de otra entidad" });
         }
       }
       const { email, username, password } = req.body as { email: string; username: string; password: string };
       if (!email || !username || !password) return res.status(400).json({ error: "email, username y password requeridos" });
       const hashed = await hashPassword(password);
-      const newUser = await storage.createSecretariaAccount(req.params.id, email, username, hashed);
+      const newUser = await storage.createSecretariaAccount(String(req.params.id), email, username, hashed);
       res.status(201).json({ ok: true, userId: newUser.id });
     } catch (err: any) {
       res.status(400).json({ error: err.message ?? "Error al crear cuenta" });
@@ -3539,7 +3542,7 @@ Responde en formato JSON con la siguiente estructura:
       const { email, username, password } = req.body as { email: string; username: string; password: string };
       if (!email || !username || !password) return res.status(400).json({ error: "email, username y password requeridos" });
       const hashed = await hashPassword(password);
-      const user = await storage.createOfficialAccount(req.params.id, email, username, hashed);
+      const user = await storage.createOfficialAccount(String(req.params.id), email, username, hashed);
       res.status(201).json({ ok: true, userId: user.id });
     } catch (err: any) {
       res.status(400).json({ error: err.message ?? "Error al crear cuenta" });
@@ -3562,7 +3565,7 @@ Responde en formato JSON con la siguiente estructura:
   });
 
   app.get("/api/public-entities/:id", async (req, res) => {
-    const item = await storage.getPublicEntityById(req.params.id);
+    const item = await storage.getPublicEntityById(String(req.params.id));
     if (!item) return res.status(404).json({ error: "Not found" });
     res.json(item);
   });
@@ -3583,7 +3586,7 @@ Responde en formato JSON con la siguiente estructura:
 
   app.patch("/api/admin/public-entities/:id", requireRole("admin"), async (req, res) => {
     try {
-      const item = await storage.updatePublicEntity(req.params.id, req.body);
+      const item = await storage.updatePublicEntity(String(req.params.id), req.body);
       if (!item) return res.status(404).json({ error: "Not found" });
       res.json(item);
     } catch (err) {
@@ -3617,7 +3620,7 @@ Responde en formato JSON con la siguiente estructura:
       // Return raw value
       return res.json(typeof value === "string" ? { value } : value);
     } catch (err) {
-      console.error(`Error in GET /api/config/${req.params.key}:`, err);
+      console.error(`Error in GET /api/config/${String(req.params.key)}:`, err);
       res.status(500).json({ error: "Internal server error", details: String(err) });
     }
   });
@@ -3626,8 +3629,8 @@ Responde en formato JSON con la siguiente estructura:
   app.post("/api/config/:key", requireRole("admin"), async (req, res) => {
     try {
       const value = typeof req.body === "string" ? req.body : JSON.stringify(req.body);
-      await storage.setSiteSetting(req.params.key, value);
-      res.json({ success: true, key: req.params.key });
+      await storage.setSiteSetting(String(req.params.key), value);
+      res.json({ success: true, key: String(req.params.key) });
     } catch (err) {
       res.status(500).json({ error: "Error al guardar configuración" });
     }
@@ -3642,10 +3645,10 @@ Responde en formato JSON con la siguiente estructura:
       const url = await processUpload(req.file, "branding", true, false);
       
       // Guardar URL en settings (si es logo_config lo guardamos estructurado)
-      if (req.params.key === "logo_config") {
+      if (String(req.params.key) === "logo_config") {
         await storage.setSiteSetting("logo_config", JSON.stringify({ url }));
       } else {
-        await storage.setSiteSetting(req.params.key, url);
+        await storage.setSiteSetting(String(req.params.key), url);
       }
       
       res.json({ success: true, url });
