@@ -52,7 +52,7 @@ export function ProductCard({ product, showStore = false }: ProductCardProps) {
   return (
     <Link href={`/product/${product.id}`} className="block h-full">
     <Card
-      className="group overflow-hidden hover-elevate active-elevate-2 cursor-pointer transition-all h-full flex flex-col"
+      className="group overflow-hidden card-hover-effect cursor-pointer h-full flex flex-col"
       data-testid={`card-product-${product.id}`}
     >
       <div className="relative aspect-square overflow-hidden bg-muted">

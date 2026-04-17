@@ -82,7 +82,7 @@ function AppLayout() {
   return (
     <div className={`min-h-screen flex flex-col${isVideos ? " h-screen overflow-hidden" : ""}`}>
       <Navbar />
-      <main className={isVideos ? "flex-1 overflow-hidden" : "flex-1"}>
+      <main className={`${isVideos ? "flex-1 overflow-hidden" : "flex-1"} page-transition`}>
         <Router />
       </main>
       {!isVideos && <Footer />}

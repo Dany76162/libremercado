@@ -206,6 +206,26 @@
     @apply font-sans antialiased bg-background text-foreground overflow-x-hidden;
     width: 100%;
     position: relative;
+    scroll-behavior: smooth;
+  }
+
+  /* Global Entrance Animation */
+  @keyframes page-fade-in {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  .page-transition {
+    animation: page-fade-in 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  }
+
+  /* Smooth interactions for all interactive elements */
+  a, button, input, select, textarea {
+    @apply transition-all duration-200 ease-in-out;
+  }
+
+  button:active, .btn-active-scale:active {
+    transform: scale(0.96);
   }
 }
 
@@ -380,3 +400,45 @@
     box-shadow: 0 0 15px rgba(249, 115, 22, 0.2);
   }
 }
+
+/* Premium Card Interaction */
+.card-hover-effect {
+  @apply transition-all duration-300 ease-out hover:shadow-lg hover:-translate-y-1 hover:border-primary/20 active:scale-[0.98];
+}
+
+/* Shimmer Loading Animation */
+@keyframes shimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+
+.animate-shimmer {
+  background: linear-gradient(90deg, 
+    hsl(var(--muted)) 25%, 
+    hsl(var(--muted)) 37%, 
+    hsl(var(--muted)/0.8) 50%, 
+    hsl(var(--muted)) 63%, 
+    hsl(var(--muted)) 75%
+  );
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite linear;
+}
+
+/* Glassmorphism utility */
+.glass-effect {
+  @apply bg-white/70 dark:bg-black/70 backdrop-blur-md border border-white/20 dark:border-white/10;
+}
+
+/* Scroll Progress Bar */
+#scroll-progress {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 0%;
+  height: 3px;
+  background: linear-gradient(to right, hsl(var(--primary)), hsl(var(--accent)));
+  z-index: 9999;
+  transition: width 0.1s ease-out;
+}
+
+

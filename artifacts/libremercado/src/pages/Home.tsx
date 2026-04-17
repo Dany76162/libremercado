@@ -342,7 +342,7 @@ export default function Home() {
             return (
               <Link key={category.id} href={`/explore?category=${category.id}`}>
                 <Card
-                  className="hover-elevate active-elevate-2 cursor-pointer overflow-hidden"
+                  className="card-hover-effect cursor-pointer overflow-hidden"
                   data-testid={`card-category-${category.id}`}
                 >
                   <CardContent className="p-0">

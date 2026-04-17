@@ -13,7 +13,7 @@ export function StoreCard({ store }: StoreCardProps) {
   return (
     <Link href={`/store/${store.id}`}>
       <Card
-        className="group overflow-hidden hover-elevate active-elevate-2 cursor-pointer transition-all"
+        className="group overflow-hidden card-hover-effect cursor-pointer"
         data-testid={`card-store-${store.id}`}
       >
         <div className="relative aspect-[16/9] overflow-hidden bg-muted">
