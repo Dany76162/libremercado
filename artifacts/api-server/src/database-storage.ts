@@ -35,6 +35,7 @@ import type {
   ShoppableVideo, InsertShoppableVideo, VideoStatus,
   Novedad, InsertNovedad,
   PublicEntity, InsertPublicEntity,
+  MerchantType,
   Secretaria,
 } from "@workspace/db";
 import type { IStorage } from "./storage";
@@ -101,6 +102,14 @@ export class DatabaseStorage implements IStorage {
   }
   async updateStore(id: string, data: Partial<InsertStore>): Promise<Store | undefined> {
     const [updated] = await db.update(stores).set(data).where(eq(stores.id, id)).returning();
+    return updated;
+  }
+  async updateStoreClassification(id: string, merchantType: MerchantType, isVerified: boolean): Promise<Store | undefined> {
+    const [updated] = await db.update(stores).set({ 
+      merchantType, 
+      isVerified,
+      verifiedAt: isVerified ? new Date() : null
+    }).where(eq(stores.id, id)).returning();
     return updated;
   }
   async deleteStore(id: string): Promise<boolean> {

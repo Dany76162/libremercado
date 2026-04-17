@@ -380,6 +380,16 @@ export async function registerRoutes(
     });
   });
 
+  // Admin: List all users
+  app.get("/api/admin/users", requireRole("admin"), async (req, res) => {
+    try {
+      const users = await storage.getUsers();
+      res.json(users);
+    } catch (err: any) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
   // Admin platform statistics
   app.get("/api/admin/stats", requireRole("admin"), async (req, res) => {
     const [users, stores, products, orders, pendingMerchants, pendingRiders, pendingKyc, featuredProducts] = await Promise.all([
@@ -756,6 +766,38 @@ export async function registerRoutes(
 
     const store = await storage.updateStore(String(req.params.id), req.body);
     res.json(store);
+  });
+
+  // Admin: Update store classification and verification
+  app.patch("/api/admin/stores/:id/classification", requireRole("admin"), async (req, res) => {
+    try {
+      const { merchantType, isVerified } = req.body;
+      if (!merchantType || isVerified === undefined) {
+        return res.status(400).json({ error: "merchantType and isVerified are required" });
+      }
+      
+      const updated = await storage.updateStoreClassification(
+        String(req.params.id), 
+        merchantType as any, 
+        isVerified
+      );
+      
+      if (!updated) return res.status(404).json({ error: "Tienda no encontrada" });
+      
+      if (isVerified) {
+        await storage.createNotification({
+          userId: updated.ownerId,
+          type: "store_verified",
+          title: "¡Tienda Verificada!",
+          body: `Tu tienda ${updated.name} ha sido verificada oficialmente por Pachapay.`,
+          link: `/store/${updated.id}`
+        });
+      }
+
+      res.json(updated);
+    } catch (err: any) {
+      res.status(500).json({ error: err.message });
+    }
   });
 
   app.delete("/api/stores/:id", requireRole("admin"), async (req, res) => {

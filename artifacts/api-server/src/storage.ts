@@ -10,6 +10,7 @@ import type {
   TravelOffer, InsertTravelOffer,
   KycDocument, InsertKycDocument,
   KycStatus,
+  MerchantType,
   SubscriptionPlan, InsertSubscriptionPlan,
   MerchantApplication, InsertMerchantApplication,
   RiderProfile, InsertRiderProfile,
@@ -47,6 +48,7 @@ export interface IStorage {
   getUsersByRole(role: string): Promise<User[]>;
   getUserByUsername(username: string): Promise<User | undefined>;
   getUserByEmail(email: string): Promise<User | undefined>;
+  getUsers(): Promise<User[]>;
   createUser(user: InsertUser): Promise<User>;
   updateUser(id: string, data: Partial<InsertUser>): Promise<User | undefined>;
 
@@ -54,7 +56,8 @@ export interface IStorage {
   getStore(id: string): Promise<Store | undefined>;
   getStoresByOwner(ownerId: string): Promise<Store[]>;
   createStore(store: InsertStore): Promise<Store>;
-  updateStore(id: string, data: Partial<InsertStore>): Promise<Store | undefined>;
+  updateStore(id: string, data: Partial<Store>): Promise<Store | undefined>;
+  updateStoreClassification(id: string, merchantType: MerchantType, isVerified: boolean): Promise<Store | undefined>;
   deleteStore(id: string): Promise<boolean>;
 
   getProducts(): Promise<Product[]>;
@@ -1408,6 +1411,19 @@ export class MemStorage implements IStorage {
       isFeatured,
       featuredUntil: featuredUntil !== undefined ? featuredUntil : store.featuredUntil,
       featuredScore: featuredScore !== undefined ? featuredScore : store.featuredScore,
+    } as Store;
+    this.stores.set(id, updated);
+    return updated;
+  }
+
+  async updateStoreClassification(id: string, merchantType: "common" | "wholesaler" | "distributor", isVerified: boolean): Promise<Store | undefined> {
+    const store = this.stores.get(id);
+    if (!store) return undefined;
+    const updated = { 
+      ...store, 
+      merchantType, 
+      isVerified,
+      verifiedAt: isVerified ? (store.verifiedAt || new Date()) : null
     } as Store;
     this.stores.set(id, updated);
     return updated;

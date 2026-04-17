@@ -17,6 +17,7 @@ export type PromoMediaType = "image" | "video";
 export type CommissionStatus = "pending" | "collected" | "paid_to_merchant";
 export type FavoriteType = "store" | "product";
 export type VideoStatus = "draft" | "pending" | "approved" | "rejected" | "published";
+export type MerchantType = "common" | "wholesaler" | "distributor";
 
 export type TransportCompanyStatus = "active" | "inactive" | "pending";
 export type FlightStatus = "scheduled" | "boarding" | "departed" | "arrived" | "cancelled" | "delayed";
@@ -118,7 +119,9 @@ export interface Store {
   openingHours?: string | null;
   reviewCount?: number | null;
   totalSales?: number | null;
+  merchantType?: MerchantType | null;
   isVerified?: boolean | null;
+  verifiedAt?: Date | string | null;
   isPaused?: boolean | null;
   followerCount?: number | null;
   createdAt?: Date | null;

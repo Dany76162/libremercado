@@ -15,6 +15,7 @@ export type PromoCommercialStatus = "draft" | "active" | "paused" | "completed" 
 export type AdBillingStatus = "pending" | "active" | "completed";
 export type DisputeType = "return" | "not_received" | "damaged" | "wrong_item" | "other";
 export type DisputeStatus = "pending" | "reviewing" | "resolved" | "rejected";
+export type MerchantType = "common" | "wholesaler" | "distributor";
 
 export const users = pgTable("users", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
@@ -101,6 +102,10 @@ export const stores = pgTable("stores", {
   lng: decimal("lng", { precision: 10, scale: 7 }),
   phone: text("phone"),
   openingHours: text("opening_hours"),
+  // M3 — Clasificación Avanzada
+  merchantType: text("merchant_type").$type<MerchantType>().notNull().default("common"),
+  isVerified: boolean("is_verified").notNull().default(false),
+  verifiedAt: timestamp("verified_at"),
   // M2 — Destaque comercial
   isFeatured: boolean("is_featured").notNull().default(false),
   featuredUntil: timestamp("featured_until"),

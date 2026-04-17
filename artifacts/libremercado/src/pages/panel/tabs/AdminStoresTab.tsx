@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Store, Plus, Sparkles, Package, Star, Calendar, X } from "lucide-react";
+import { Store, Plus, Sparkles, Package, Star, Calendar, X, ShieldCheck, ShieldAlert, Award } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -301,23 +301,119 @@ function SponsoredDialog({
   );
 }
 
+function ClassificationDialog({
+  store,
+  open,
+  onClose,
+}: {
+  store: StoreType;
+  open: boolean;
+  onClose: () => void;
+}) {
+  const { toast } = useToast();
+  const [merchantType, setMerchantType] = useState<string>(store.merchantType || "common");
+  const [isVerified, setIsVerified] = useState<boolean>(store.isVerified || false);
+
+  const mutation = useMutation({
+    mutationFn: (data: { merchantType: string; isVerified: boolean }) =>
+      apiRequest("PATCH", `/api/admin/stores/${store.id}/classification`, data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/stores"] });
+      toast({ title: "Clasificación de tienda actualizada" });
+      onClose();
+    },
+    onError: () => toast({ title: "Error al actualizar clasificación", variant: "destructive" }),
+  });
+
+  return (
+    <Dialog open={open} onOpenChange={onClose}>
+      <DialogContent className="max-w-sm">
+        <DialogHeader>
+          <DialogTitle className="flex items-center gap-2">
+            <Award className="h-5 w-5 text-primary" />
+            Clasificación — {store.name}
+          </DialogTitle>
+          <DialogDescription>
+            Configura el nivel de confianza y tipo de comercio.
+          </DialogDescription>
+        </DialogHeader>
+
+        <div className="space-y-4 py-2">
+          <div className="space-y-2">
+            <Label>Tipo de Comercio</Label>
+            <Select value={merchantType} onValueChange={setMerchantType}>
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="common">Tienda Común</SelectItem>
+                <SelectItem value="wholesaler">Mayorista</SelectItem>
+                <SelectItem value="distributor">Distribuidora</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div className="flex items-center justify-between p-3 border rounded-lg bg-muted/30">
+            <div className="space-y-0.5">
+              <Label className="text-sm font-semibold">Estado de Verificación</Label>
+              <p className="text-xs text-muted-foreground">Otorga el sello de confianza de Pachapay</p>
+            </div>
+            <Button
+              variant={isVerified ? "default" : "outline"}
+              size="sm"
+              onClick={() => setIsVerified(!isVerified)}
+              className={isVerified ? "bg-green-600 hover:bg-green-700" : ""}
+            >
+              {isVerified ? <ShieldCheck className="h-4 w-4 mr-1" /> : <ShieldAlert className="h-4 w-4 mr-1" />}
+              {isVerified ? "Verificada" : "No Verif."}
+            </Button>
+          </div>
+        </div>
+
+        <DialogFooter className="gap-2">
+          <Button variant="outline" onClick={onClose}>Cancelar</Button>
+          <Button 
+            onClick={() => mutation.mutate({ merchantType, isVerified })}
+            disabled={mutation.isPending}
+          >
+            Guardar Cambios
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
 export function AdminStoresTab() {
   const { toast } = useToast();
   const { data: stores, isLoading } = useStores();
   const [featuredStore, setFeaturedStore] = useState<StoreType | null>(null);
   const [sponsoredStore, setSponsoredStore] = useState<StoreType | null>(null);
+  const [classificationStore, setClassificationStore] = useState<StoreType | null>(null);
   const [search, setSearch] = useState("");
+  const [typeFilter, setTypeFilter] = useState<string>("all");
+  const [verifyFilter, setVerifyFilter] = useState<string>("all");
 
-  const filtered = (stores ?? []).filter(
-    (s) =>
-      s.name.toLowerCase().includes(search.toLowerCase()) ||
-      s.category.toLowerCase().includes(search.toLowerCase())
-  );
+  const filtered = (stores ?? []).filter((s) => {
+    const matchesSearch = s.name.toLowerCase().includes(search.toLowerCase()) || 
+                         s.category.toLowerCase().includes(search.toLowerCase());
+    const matchesType = typeFilter === "all" || s.merchantType === typeFilter;
+    const matchesVerify = verifyFilter === "all" || 
+                         (verifyFilter === "verified" && s.isVerified) || 
+                         (verifyFilter === "unverified" && !s.isVerified);
+    return matchesSearch && matchesType && matchesVerify;
+  });
 
   const TIER_VARIANT: Record<string, "default" | "secondary" | "outline"> = {
     premium: "default",
     basic: "secondary",
     free: "outline",
+  };
+
+  const TYPE_LABEL: Record<string, string> = {
+    common: "Común",
+    wholesaler: "Mayorista",
+    distributor: "Distribuidora",
   };
 
   return (
@@ -334,11 +430,34 @@ export function AdminStoresTab() {
             </CardDescription>
           </div>
           <div className="flex items-center gap-2">
+            <Select value={typeFilter} onValueChange={setTypeFilter}>
+              <SelectTrigger className="w-32 h-8 text-xs">
+                <SelectValue placeholder="Tipo" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Todo Tipo</SelectItem>
+                <SelectItem value="common">Tienda Común</SelectItem>
+                <SelectItem value="wholesaler">Mayorista</SelectItem>
+                <SelectItem value="distributor">Distribuidor</SelectItem>
+              </SelectContent>
+            </Select>
+
+            <Select value={verifyFilter} onValueChange={setVerifyFilter}>
+              <SelectTrigger className="w-32 h-8 text-xs">
+                <SelectValue placeholder="Verif." />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Estado Verif.</SelectItem>
+                <SelectItem value="verified">Verificadas</SelectItem>
+                <SelectItem value="unverified">No Verificadas</SelectItem>
+              </SelectContent>
+            </Select>
+
             <Input
               placeholder="Buscar tienda..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              className="w-44 h-8"
+              className="w-40 h-8"
               data-testid="input-search-stores"
             />
           </div>
@@ -356,11 +475,13 @@ export function AdminStoresTab() {
                 <TableHeader>
                   <TableRow>
                     <TableHead>Tienda</TableHead>
+                    <TableHead>Tipo</TableHead>
                     <TableHead>Categoría</TableHead>
                     <TableHead>Plan</TableHead>
+                    <TableHead>Sello</TableHead>
                     <TableHead>Estado</TableHead>
                     <TableHead>Destacada</TableHead>
-                    <TableHead>Acciones</TableHead>
+                    <TableHead className="text-right">Acciones</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -372,9 +493,19 @@ export function AdminStoresTab() {
                       <TableRow key={store.id} data-testid={`row-store-${store.id}`}>
                         <TableCell>
                           <div>
-                            <p className="font-medium text-sm">{store.name}</p>
+                            <p className="font-medium text-sm flex items-center gap-2">
+                              {store.name}
+                              {store.isVerified && (
+                                <ShieldCheck className="h-4 w-4 text-green-600" />
+                              )}
+                            </p>
                             <p className="text-xs text-muted-foreground">{store.address}</p>
                           </div>
+                        </TableCell>
+                        <TableCell>
+                          <Badge variant="outline" className="text-[10px] uppercase font-bold tracking-tight">
+                            {TYPE_LABEL[store.merchantType || "common"]}
+                          </Badge>
                         </TableCell>
                         <TableCell>
                           <span className="text-sm">{store.category}</span>
@@ -385,6 +516,17 @@ export function AdminStoresTab() {
                           </Badge>
                         </TableCell>
                         <TableCell>
+                          {store.isVerified ? (
+                            <Badge className="bg-green-100 text-green-700 hover:bg-green-100 border-green-200 text-[10px]">
+                              VERIFICADO
+                            </Badge>
+                          ) : (
+                            <Badge variant="secondary" className="text-[10px] opacity-70">
+                              SIN SELLO
+                            </Badge>
+                          )}
+                        </TableCell>
+                        <TableCell>
                           <Badge variant={store.isActive ? "default" : "secondary"} className="text-xs">
                             {store.isActive ? "Activa" : "Inactiva"}
                           </Badge>
@@ -392,39 +534,45 @@ export function AdminStoresTab() {
                         <TableCell>
                           {isFeaturedActive ? (
                             <div className="flex items-center gap-1">
-                              <Badge className="text-xs flex items-center gap-1 bg-primary/10 text-primary border-primary/30">
+                              <Badge className="text-[10px] flex items-center gap-1 bg-primary/10 text-primary border-primary/30">
                                 <Sparkles className="h-3 w-3" />
                                 Destacada
                               </Badge>
-                              {store.featuredUntil && (
-                                <span className="text-xs text-muted-foreground">
-                                  hasta {new Date(store.featuredUntil).toLocaleDateString("es-AR")}
-                                </span>
-                              )}
                             </div>
                           ) : (
                             <span className="text-xs text-muted-foreground">—</span>
                           )}
                         </TableCell>
-                        <TableCell>
-                          <div className="flex items-center gap-2">
+                        <TableCell className="text-right">
+                          <div className="flex items-center justify-end gap-2">
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              className="h-7 px-2"
+                              onClick={() => setClassificationStore(store)}
+                              title="Configurar clasificación"
+                            >
+                              <Award className="h-3.5 w-3.5" />
+                            </Button>
                             <Button
                               size="sm"
                               variant={isFeaturedActive ? "outline" : "secondary"}
+                              className="h-7 px-2"
                               onClick={() => setFeaturedStore(store)}
                               data-testid={`button-toggle-featured-${store.id}`}
+                              title="Destacar"
                             >
-                              <Sparkles className="h-3 w-3 mr-1" />
-                              {isFeaturedActive ? "Quitar" : "Destacar"}
+                              <Sparkles className="h-3.5 w-3.5" />
                             </Button>
                             <Button
                               size="sm"
                               variant="outline"
+                              className="h-7 px-2"
                               onClick={() => setSponsoredStore(store)}
                               data-testid={`button-manage-sponsored-${store.id}`}
+                              title="Productos patrocinados"
                             >
-                              <Package className="h-3 w-3 mr-1" />
-                              Patrocinados
+                              <Package className="h-3.5 w-3.5" />
                             </Button>
                           </div>
                         </TableCell>
@@ -451,6 +599,14 @@ export function AdminStoresTab() {
           store={sponsoredStore}
           open={!!sponsoredStore}
           onClose={() => setSponsoredStore(null)}
+        />
+      )}
+      
+      {classificationStore && (
+        <ClassificationDialog
+          store={classificationStore}
+          open={!!classificationStore}
+          onClose={() => setClassificationStore(null)}
         />
       )}
     </>

@@ -431,28 +431,36 @@ export default function Home() {
           </div>
 
           {featuredStoresLoading ? (
-            <div className="flex gap-4 overflow-x-auto pb-4 hide-scrollbar">
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
               {Array.from({ length: 4 }).map((_, i) => (
-                <div key={i} className="w-[300px] shrink-0">
-                  <Card>
-                    <Skeleton className="aspect-[16/9]" />
-                    <CardContent className="p-4 space-y-2">
-                      <Skeleton className="h-5 w-32" />
-                      <Skeleton className="h-4 w-20" />
-                      <Skeleton className="h-4 w-full" />
-                    </CardContent>
-                  </Card>
-                </div>
+                <Card key={i}>
+                  <Skeleton className="aspect-[16/9]" />
+                  <CardContent className="p-4 space-y-2">
+                    <Skeleton className="h-5 w-32" />
+                    <Skeleton className="h-4 w-20" />
+                    <Skeleton className="h-4 w-full" />
+                  </CardContent>
+                </Card>
               ))}
             </div>
           ) : (
-            <div className="flex gap-4 overflow-x-auto pb-4 hide-scrollbar snap-x snap-mandatory">
-              {(featuredStores ?? []).slice(0, 8).map((store) => (
-                <div key={store.id} className="w-[300px] md:w-[320px] shrink-0 snap-start">
-                  <StoreCard store={store} />
-                </div>
-              ))}
-            </div>
+            <>
+              {/* Mobile: Scroll horizontal */}
+              <div className="flex md:hidden gap-4 overflow-x-auto pb-4 hide-scrollbar snap-x snap-mandatory">
+                {(featuredStores ?? []).slice(0, 8).map((store) => (
+                  <div key={store.id} className="w-[280px] shrink-0 snap-start">
+                    <StoreCard store={store} />
+                  </div>
+                ))}
+              </div>
+
+              {/* Desktop: Grilla fija (4 tiendas) */}
+              <div className="hidden md:grid grid-cols-4 gap-4">
+                {(featuredStores ?? []).slice(0, 4).map((store) => (
+                  <StoreCard key={store.id} store={store} />
+                ))}
+              </div>
+            </>
           )}
         </section>
       )}
@@ -506,28 +514,36 @@ export default function Home() {
         </div>
 
         {storesLoading ? (
-          <div className="flex gap-4 overflow-x-auto pb-4 hide-scrollbar">
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
             {Array.from({ length: 4 }).map((_, i) => (
-              <div key={i} className="w-[300px] shrink-0">
-                <Card>
-                  <Skeleton className="aspect-[16/9]" />
-                  <CardContent className="p-4 space-y-2">
-                    <Skeleton className="h-5 w-32" />
-                    <Skeleton className="h-4 w-20" />
-                    <Skeleton className="h-4 w-full" />
-                  </CardContent>
-                </Card>
-              </div>
+              <Card key={i}>
+                <Skeleton className="aspect-[16/9]" />
+                <CardContent className="p-4 space-y-2">
+                  <Skeleton className="h-5 w-32" />
+                  <Skeleton className="h-4 w-20" />
+                  <Skeleton className="h-4 w-full" />
+                </CardContent>
+              </Card>
             ))}
           </div>
         ) : (
-          <div className="flex gap-4 overflow-x-auto pb-4 hide-scrollbar snap-x snap-mandatory">
-            {(stores ?? []).filter(s => !!s.banner).slice(0, 8).map((store) => (
-              <div key={store.id} className="w-[300px] md:w-[320px] shrink-0 snap-start">
-                <StoreCard store={store} />
-              </div>
-            ))}
-          </div>
+          <>
+            {/* Mobile: Scroll horizontal */}
+            <div className="flex md:hidden gap-4 overflow-x-auto pb-4 hide-scrollbar snap-x snap-mandatory">
+              {(stores ?? []).filter(s => !!s.banner).slice(0, 8).map((store) => (
+                <div key={store.id} className="w-[280px] shrink-0 snap-start">
+                  <StoreCard store={store} />
+                </div>
+              ))}
+            </div>
+
+            {/* Desktop: Grilla fija (4 tiendas) */}
+            <div className="hidden md:grid grid-cols-4 gap-4">
+              {(stores ?? []).filter(s => !!s.banner).slice(0, 4).map((store) => (
+                <StoreCard key={store.id} store={store} />
+              ))}
+            </div>
+          </>
         )}
       </section>
 
